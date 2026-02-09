@@ -4,14 +4,6 @@
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
 
-#include <gui/backend.hpp>
+#pragma once
 
-#include <cstdlib>
-
-int main(int argc, char** argv) {
-  auto backend = gui::createBackend();
-  if (!backend) {
-    return EXIT_FAILURE;
-  }
-  return backend->run(argc, argv);
-}
+int run_wx_app(int argc, char** argv);
