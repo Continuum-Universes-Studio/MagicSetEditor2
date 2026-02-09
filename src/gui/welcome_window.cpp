@@ -1,5 +1,6 @@
 //+----------------------------------------------------------------------------+
 //| Description:  Magic Set Editor - Program to make card games                |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -11,6 +12,8 @@
 #include <gui/util.hpp>
 #include <gui/new_window.hpp>
 #include <gui/set/window.hpp>
+#include <gui/packages_window.hpp>
+#include <gui/theme.hpp>
 #include <util/window_id.hpp>
 #include <data/settings.hpp>
 #include <data/format/formats.hpp>
@@ -29,6 +32,7 @@ bool __compare_package_name(const PackagedP& a, const PackagedP& b) {
 }
 WelcomeWindow::WelcomeWindow()
   : wxFrame(nullptr, wxID_ANY, _TITLE_("magic set editor"), wxDefaultPosition, wxSize(520,380), wxDEFAULT_DIALOG_STYLE | wxTAB_TRAVERSAL | wxCLIP_CHILDREN )
+  , logo (load_resource_image(settings.darkModePrefix() + _("about")))
   , logo (load_resource_image(settings.darkModePrefix() + _("about")))
 {
   SetIcon(load_resource_icon(_("app")));
@@ -86,9 +90,11 @@ void WelcomeWindow::onPaint(wxPaintEvent&) {
 
 void WelcomeWindow::draw(DC& dc) {
   wxSize ws = GetClientSize();
+  const wxColour background = theme_color(THEME_COLOR_BACKGROUND);
+  const wxColour accent = theme_color(THEME_COLOR_ACCENT);
   // draw background
   dc.SetPen  (*wxTRANSPARENT_PEN);
-  dc.SetBrush(settings.darkModeColor());
+  dc.SetBrush(background);
   dc.DrawRectangle(0, 0, ws.GetWidth(), ws.GetHeight());
   // draw logo
   dc.DrawBitmap(logo,  (ws.GetWidth() -  logo.GetWidth()) / 2, 5);
@@ -97,7 +103,7 @@ void WelcomeWindow::draw(DC& dc) {
   #endif
   // draw version number
   dc.SetFont(wxFont(8, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, _("Arial")));
-  dc.SetTextForeground(Color(0,126,176));
+  dc.SetTextForeground(accent);
   int tw,th;
   String version_string = _("version ") + app_version.toString() + version_suffix;
   dc.GetTextExtent(version_string,&tw,&th);
@@ -118,6 +124,7 @@ void WelcomeWindow::onSelectLanguage(wxCommandEvent&) {
 }
 
 void WelcomeWindow::onOpenSet(wxCommandEvent&) {
+  wxFileDialog* dlg = new wxFileDialog(this, _TITLE_("open set"), settings.default_set_dir, _(""), import_formats(), wxFD_OPEN);
   wxFileDialog* dlg = new wxFileDialog(this, _TITLE_("open set"), settings.default_set_dir, _(""), import_formats(), wxFD_OPEN);
   if (dlg->ShowModal() == wxID_OK) {
     settings.default_set_dir = dlg->GetDirectory();

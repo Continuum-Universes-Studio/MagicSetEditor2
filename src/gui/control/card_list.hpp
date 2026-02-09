@@ -77,6 +77,7 @@ public:
   bool canCut()    const override;
   bool canCopy()   const override;
   bool canPaste()  const override;
+  bool canPasteCards() const;
   bool canDelete() const override;
   // Try to perform a clipboard operation, return success
   bool doCopy() override;
@@ -171,11 +172,16 @@ private:
   void onColumnResize    (wxListEvent&);
   void onItemActivate    (wxListEvent&);
   void onSelectColumns   (wxCommandEvent&);
+  void onCut             (wxCommandEvent&);
+  void onCopy            (wxCommandEvent&);
+  void onPaste           (wxCommandEvent&);
   void onChar            (wxKeyEvent&);
   void onBeginDrag       (wxListEvent&);
   void OnDragTimer       (wxTimerEvent&);
   void onDrag            (wxMouseEvent&);
+  void onRightUp         (wxMouseEvent&);
   void onContextMenu     (wxContextMenuEvent&);
+  void showContextMenu   (const wxPoint&);
 };
 
 // ----------------------------------------------------------------------------- : Drag'n'Drop

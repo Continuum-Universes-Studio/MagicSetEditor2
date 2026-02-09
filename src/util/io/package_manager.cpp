@@ -8,6 +8,7 @@
 
 #include <util/prec.hpp>
 #include <util/io/package_manager.hpp>
+#include <util/application_paths.hpp>
 #include <util/error.hpp>
 #include <util/file_utils.hpp>
 #include <data/game.hpp>
@@ -17,7 +18,6 @@
 #include <data/locale.hpp>
 #include <data/export_template.hpp>
 #include <data/installer.hpp>
-#include <wx/stdpaths.h>
 #include <wx/wfstream.h>
 
 // ----------------------------------------------------------------------------- : PackageManager : in memory
@@ -30,8 +30,8 @@ void PackageManager::init() {
   global.init(false);
   if (!(local.valid() || global.valid()))
     throw Error(_("The MSE data files can not be found, there should be a directory called 'data' with these files. ")
-                _("The expected place to find it in was either ") + wxStandardPaths::Get().GetDataDir() + _(" or ") +
-                wxStandardPaths::Get().GetUserDataDir());
+                _("The expected place to find it in was either ") + app_data_dir() + _(" or ") +
+                app_user_data_dir());
 }
 void PackageManager::destroy() {
   loaded_packages.clear();
@@ -220,10 +220,10 @@ bool PackageManager::install(const InstallablePackage& package) {
 void PackageDirectory::init(bool local) {
   is_local = local;
   if (local) {
-    init(wxStandardPaths::Get().GetUserDataDir() + _("/data"));
+    init(app_user_data_dir() + _("/data"));
   } else {
     // determine data directory
-    String dir = wxStandardPaths::Get().GetDataDir();
+    String dir = app_data_dir();
     // check if this is the actual data directory, especially during debugging,
     // the data may be higher up:
     //  exe path  = mse/build/debug/mse.exe
@@ -233,7 +233,7 @@ void PackageDirectory::init(bool local) {
       dir = wxPathOnly(dir);
       if (d == dir) {
         // we are at the root -> 'data' not found anywhere in the path
-        dir = wxStandardPaths::Get().GetDataDir();
+        dir = app_data_dir();
         break;
       }
     }

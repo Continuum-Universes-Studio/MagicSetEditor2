@@ -1,5 +1,6 @@
 //+----------------------------------------------------------------------------+
 //| Description:  Magic Set Editor - Program to make card games                |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -9,12 +10,15 @@
 #include <util/prec.hpp>
 #include <gui/about_window.hpp>
 #include <gui/util.hpp>
+#include <gui/theme.hpp>
 #include <util/version.hpp>
 #include <wx/dcbuffer.h>
 
 // ----------------------------------------------------------------------------- : About window
 
 AboutWindow::AboutWindow(Window* parent)
+  : wxDialog(parent, wxID_ANY, _TITLE_("about"), wxDefaultPosition, wxSize(510,460), wxCLIP_CHILDREN | wxDEFAULT_DIALOG_STYLE | wxTAB_TRAVERSAL)
+  , logo(load_resource_image(settings.darkModePrefix() + _("about")))
   : wxDialog(parent, wxID_ANY, _TITLE_("about"), wxDefaultPosition, wxSize(510,460), wxCLIP_CHILDREN | wxDEFAULT_DIALOG_STYLE | wxTAB_TRAVERSAL)
   , logo(load_resource_image(settings.darkModePrefix() + _("about")))
 {
@@ -42,15 +46,25 @@ const char* MSE_AUTHORS[] = {
   "Thomas Tkacz (TomTkacz)",
   "CaiCai (247321453)"
 };
+const char* MSE_AUTHORS[] = {
+  "Twan van Laarhoven (twanvl)",
+  "Sean Hunt (coppro)",
+  "Alissa Rao (Lymia)",
+  "Olivier Bocksberger (G-e-n-e-v-e-n-s-i-S)",
+  "Brendan Hagan (haganbmj)",
+  "Thomas Tkacz (TomTkacz)",
+  "CaiCai (247321453)"
+};
 
 void AboutWindow::draw(DC& dc) {
   wxSize ws = GetClientSize();
   // draw background
   dc.SetPen  (*wxTRANSPARENT_PEN);
-  dc.SetBrush(settings.darkModeColor());
+  dc.SetBrush(theme_color(THEME_COLOR_BACKGROUND));
   dc.DrawRectangle(0, 0, ws.GetWidth(), ws.GetHeight());
   // draw logo
   dc.DrawBitmap(logo,  (ws.GetWidth() -  logo.GetWidth()) / 2, 5);
+  dc.SetTextForeground(theme_color(THEME_COLOR_TEXT));
   // draw version info
   dc.SetFont(wxFont(9, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, _("Arial")));
   int x = 34, y = 110;
@@ -90,6 +104,7 @@ void HoverButtonBase::onMouseEnter(wxMouseEvent&) {
 void HoverButtonBase::onMouseLeave(wxMouseEvent&) {
   hover = false;
   refreshIfNeeded();
+  if (!help_text.empty()) set_status_text(this,_(""));
   if (!help_text.empty()) set_status_text(this,_(""));
 }
 void HoverButtonBase::onFocus(wxFocusEvent&) {
@@ -208,7 +223,11 @@ void HoverButton::draw(DC& dc) {
   // clear background (for transparent button images)
   wxSize ws = GetClientSize();
   dc.SetPen(*wxTRANSPARENT_PEN);
-  dc.SetBrush(wxBrush(background.Alpha()>0 ? wxColour(background) : wxSystemSettings::GetColour(wxSYS_COLOUR_3DFACE)));
+  if (background.Alpha() > 0) {
+    dc.SetBrush(wxBrush(wxColour(background)));
+  } else {
+    dc.SetBrush(wxBrush(theme_color(THEME_COLOR_BACKGROUND)));
+  }
   dc.DrawRectangle(0, 0, ws.GetWidth(), ws.GetHeight());
   // draw button
   dc.DrawBitmap(*toDraw(), 0, 0, true);

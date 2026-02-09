@@ -51,6 +51,13 @@ enum InstallType
 void parse_enum(const String&, InstallType&);
 bool is_install_local(InstallType type);
 
+/// Which theme should the UI use?
+enum ThemePreference
+{  THEME_SYSTEM
+,  THEME_LIGHT
+,  THEME_DARK
+};
+
 /// How to handle filename conflicts
 enum FilenameConflicts
 {  CONFLICT_KEEP_OLD      // always keep old file
@@ -172,6 +179,9 @@ public:
   UInt set_window_height;
   UInt card_notes_height;
   bool open_sets_in_new_window;
+
+  // --------------------------------------------------- : Theme
+  ThemePreference theme_preference;
   
   // --------------------------------------------------- : Symbol editor
   UInt symbol_grid_size;
