@@ -23,12 +23,28 @@
 #endif
 
 #if defined(MSE_HAS_WX_APPEARANCE)
+#include <wx/settings.h>
+#include <wx/version.h>
+
+#if defined(__has_include)
+  #if __has_include(<wx/appearance.h>)
+    #define MSE_HAS_WX_APPEARANCE 1
+  #endif
+#endif
+
+#if !defined(MSE_HAS_WX_APPEARANCE) && wxCHECK_VERSION(3, 1, 0)
+  #define MSE_HAS_WX_APPEARANCE 1
+#endif
+
+#if defined(MSE_HAS_WX_APPEARANCE)
 #include <wx/appearance.h>
+#endif
 #endif
 
 // ----------------------------------------------------------------------------- : Theme palette
 
 static bool system_is_dark() {
+  #if defined(MSE_HAS_WX_APPEARANCE)
   #if defined(MSE_HAS_WX_APPEARANCE)
     return wxSystemAppearance::Get().IsDark();
   #else
