@@ -23,6 +23,7 @@
 #include <gui/set/window.hpp>
 #include <gui/symbol/window.hpp>
 #include <gui/thumbnail_thread.hpp>
+#include <gui/theme.hpp>
 #include <wx/fs_inet.h>
 #include <wx/wfstream.h>
 #include <wx/txtstrm.h>
@@ -54,6 +55,8 @@ public:
   void HandleEvent(wxEvtHandler *handler, wxEventFunction func, wxEvent& event) const override;
   /// Hack around some wxWidget idiocies
   int FilterEvent(wxEvent& ev) override;
+  /// Apply theme to newly created windows
+  void onWindowCreate(wxWindowCreateEvent& event);
   /// Fancier assert
   #if defined(_MSC_VER) && defined(_DEBUG) && defined(_CRT_WIDE)
     void OnAssert(const wxChar *file, int line, const wxChar *cond, const wxChar *msg) override;
@@ -97,6 +100,7 @@ int MSEWxApp::OnRun() {
     package_manager.init();
     settings.read();
     the_locale = Locale::byName(settings.locale);
+    Bind(wxEVT_CREATE, &MSEWxApp::onWindowCreate, this);
     nag_about_ascii_version();
 
     // interpret command line
@@ -331,6 +335,11 @@ int MSEWxApp::FilterEvent(wxEvent& ev) {
     return -1;
   }*/
   return -1;
+}
+
+void MSEWxApp::onWindowCreate(wxWindowCreateEvent& event) {
+  apply_theme_to_window(event.GetWindow());
+  event.Skip();
 }
 
 int run_wx_app(int argc, char** argv) {

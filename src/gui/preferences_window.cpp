@@ -9,7 +9,7 @@
 
 #include <util/prec.hpp>
 #include <gui/preferences_window.hpp>
-#include <gui/theme.hpp>
+#include <gui/update_checker.hpp>
 #include <data/settings.hpp>
 #include <util/window_id.hpp>
 #include <util/io/package_manager.hpp>
