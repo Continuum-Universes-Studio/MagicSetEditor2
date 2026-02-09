@@ -85,19 +85,13 @@ cmake --build build
 
 ## Building on Linux / FreeBSD
 
- * Install the dependencies:
+ * Install the dependencies; for example, on a Debian-based system:
 
 ```
-# debian 12+ / ubuntu 24.04+
-sudo apt install libboost-dev libboost-regex-dev libwxgtk3.2-dev libhunspell-dev qt6-base-dev cmake
-# debian 11 / ubuntu 22.04
-sudo apt install libboost-dev libboost-regex-dev libwxgtk3.0-gtk3-dev libhunspell-dev qt6-base-dev cmake
-# fedora / centos
-sudo dnf install boost-devel wxGTK-devel qt6-qtbase-devel hunspell-devel git cmake
-# archlinux / manjaro
-sudo pacman -Syu wxgtk3 qt6-base hunspell boost git cmake
-# freebsd
-sudo pkg install hunspell cmake wx30-gtk3 qt6-base boost-all
+sudo apt install g++
+sudo apt install libboost-dev libwxgtk3.0-gtk3-dev libhunspell-dev
+sudo apt install qt6-base-dev # only needed for the Qt6 backend
+sudo apt install libxcb-cursor0 # needed for Qt6 xcb platform plugin on some distros
 ```
 
 Then use cmake to build:
@@ -113,17 +107,43 @@ cmake --build .
 To build with the Qt6 backend instead of wxWidgets:
 
 ```
-cmake -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON ..
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON
+cmake --build build
+```
+
+If Qt6 is installed in a non-standard prefix, point CMake at the directory
+that contains `Qt6Config.cmake` (not the file itself), for example:
+
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON -DQt6_DIR=/usr/lib64/cmake/Qt6
+cmake --build build
+```
+
+Alternatively, you can set `CMAKE_PREFIX_PATH` to your Qt6 install prefix so
+that CMake can locate `Qt6Config.cmake` automatically:
+
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON -DCMAKE_PREFIX_PATH=/usr/lib64/qt6
+cmake --build build
+```
+
+## Building on FreeBSD
+
+ * Install the dependencies:
+
+```
+sudo pkg install hunspell cmake wx30-gtk3 boost-all
+```
+
+Then use cmake to build:
+
+```
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
 
-### wx-config can't be found
-On old versions it's possible that cmake can't find wx-config, to solve this add the tool to the cmake command manually like this: `-DwxWidgets_CONFIG_EXECUTABLE=/usr/bin/wx-config-gtk3`
-
-### Installing resources
-Install the resource folder to the .magicseteditor dir: `mkdir -p $HOME/.magicseteditor && cp -rT ./resource $HOME/.magicseteditor/resource`
-Templates are installed to `~/.magicseteditor/data`. Fonts are installed to `~/.local/share/fonts`.
-
+ Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
 
 ## Building on Mac OS
 
