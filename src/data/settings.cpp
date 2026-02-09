@@ -46,6 +46,12 @@ bool is_install_local(InstallType type) {
   return type == INSTALL_DEFAULT ? DEFAULT_INSTALL_LOCAL : type == INSTALL_LOCAL;
 }
 
+IMPLEMENT_REFLECTION_ENUM(ThemePreference) {
+  VALUE_N("system", THEME_SYSTEM); // default
+  VALUE_N("light",  THEME_LIGHT);
+  VALUE_N("dark",   THEME_DARK);
+}
+
 IMPLEMENT_REFLECTION_ENUM(FilenameConflicts) {
   VALUE_N("keep old",      CONFLICT_KEEP_OLD);
   VALUE_N("overwrite",    CONFLICT_OVERWRITE);
@@ -171,6 +177,7 @@ Settings::Settings()
   , set_window_height    (300)
   , card_notes_height    (40)
   , open_sets_in_new_window(true)
+  , theme_preference     (THEME_SYSTEM)
   , symbol_grid_size     (30)
   , symbol_grid          (true)
   , symbol_grid_snap     (false)
@@ -259,6 +266,7 @@ IMPLEMENT_REFLECTION_NO_SCRIPT(Settings) {
   REFLECT(set_window_height);
   REFLECT(card_notes_height);
   REFLECT(open_sets_in_new_window);
+  REFLECT(theme_preference);
   REFLECT(symbol_grid_size);
   REFLECT(symbol_grid);
   REFLECT(symbol_grid_snap);
