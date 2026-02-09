@@ -103,8 +103,24 @@ Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
 To build with the Qt6 backend instead of wxWidgets:
 
 ```
-cmake -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON ..
-cmake --build .
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON
+cmake --build build
+```
+
+If Qt6 is installed in a non-standard prefix, point CMake at the directory
+that contains `Qt6Config.cmake` (not the file itself), for example:
+
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON -DQt6_DIR=/usr/lib64/cmake/Qt6
+cmake --build build
+```
+
+Alternatively, you can set `CMAKE_PREFIX_PATH` to your Qt6 install prefix so
+that CMake can locate `Qt6Config.cmake` automatically:
+
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON -DCMAKE_PREFIX_PATH=/usr/lib64/qt6
+cmake --build build
 ```
 
 ## Building on FreeBSD
