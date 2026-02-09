@@ -1,0 +1,34 @@
+ASSERT INFO:
+./src/gtk/window.cpp(6476): assert ""sb"" failed in SetScrollPos(): this window is not scrollable
+
+BACKTRACE:
+[1] wxWindow::SetScrollPos(int, int, bool)
+[2] DropDownList::scrollTo(int)
+[3] DropDownList::onMouseWheel(wxMouseEvent&)
+[4] MSEWxApp::HandleEvent(wxEvtHandler*, void (wxEvtHandler::*)(wxEvent&), wxEvent&) const
+[5] wxEvtHandler::ProcessEventIfMatchesId(wxEventTableEntryBase const&, wxEvtHandler*, wxEvent&)
+[6] wxEventHashTable::HandleEvent(wxEvent&, wxEvtHandler*)
+[7] wxEvtHandler::TryHereOnly(wxEvent&)
+[8] wxEvtHandler::ProcessEventLocally(wxEvent&)
+[9] wxEvtHandler::ProcessEvent(wxEvent&)
+[10] wxEvtHandler::SafelyProcessEvent(wxEvent&)
+[11] g_closure_invoke
+[12] g_signal_emit_valist
+[13] g_signal_emit
+[14] gtk_propagate_event
+[15] gtk_main_do_event
+[16] g_main_loop_run
+[17] gtk_main
+[18] wxGUIEventLoop::DoRun()
+[19] wxEventLoopBase::Run()
+[20] wxAppConsoleBase::MainLoop()
+[21] MSEWxApp::runGUI()
+[22] MSEWxApp::OnRun()::WxStartupPresenter::showWelcomeWindow() app_wx.cpp
+[23] gui_core::run_startup_request(gui_core::StartupRequest const&, gui_core::StartupPresenter&, char const*)
+[24] MSEWxApp::OnRun()
+[25] wxEntry(int&, wchar_t**)
+[26] run_wx_app(int, char**)
+[27] gui::WxBackend::run(int, char**)
+[28] main
+[29] __libc_start_main
+[30] _start /home/abuild/rpmbuild/BUILD/glibc-2.43-build/glibc-2.43/csu/../sysdeps/x86_64/start.S:117

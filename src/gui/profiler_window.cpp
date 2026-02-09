@@ -8,6 +8,7 @@
 
 #include <util/prec.hpp>
 #include <script/profiler.hpp>
+#include <gui/theme.hpp>
 #include <wx/dcbuffer.h>
 
 #if USE_SCRIPT_PROFILING
@@ -82,7 +83,7 @@ void ProfilerPanel::onPaint(wxPaintEvent&) {
     wxPaintDC dc(this);
   #endif
   // clear background
-  clear_dc(dc, wxSystemSettings::GetColour(wxSYS_COLOUR_3DFACE));
+  clear_dc(dc, theme_color(THEME_COLOR_BACKGROUND));
   // draw table
   dc.SetFont(*wxNORMAL_FONT);
   draw_profiler(dc, 0, 0);
@@ -95,8 +96,9 @@ void ProfilerPanel::draw_profiler(wxDC& dc, int x0, int y0) {
     vector<FunctionProfileP> profiles;
     profile.get_children(profiles);
     // set up colors
-    wxColour fg(0,0,0);
-    wxColour fg_highlight(0,20,220);
+    ThemePalette palette = theme_palette();
+    wxColour fg = palette.text;
+    wxColour fg_highlight = palette.accent;
     dc.SetTextForeground(fg);
     dc.SetPen(fg);
     // set up positions/sizes

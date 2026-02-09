@@ -1,5 +1,6 @@
 //+----------------------------------------------------------------------------+
 //| Description:  Magic Set Editor - Program to make card games                |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -9,6 +10,7 @@
 // ----------------------------------------------------------------------------- : Includes
 
 #include <util/prec.hpp>
+#include <data/settings.hpp>
 #include <data/settings.hpp>
 
 // ----------------------------------------------------------------------------- : About window
@@ -80,7 +82,7 @@ public:
   /** name+"_normal", name+"_hover", name+"_focus", name+"_down"
    *  are the resource names of the images used.
    */
-  HoverButton(Window* parent, int id, const String& name, const Color& background = settings.darkModeColor(), bool accepts_focus = true);
+  HoverButton(Window* parent, int id, const String& name, const Color& background = Color(), bool accepts_focus = true);
   
   /// Load different bitmaps for this button
   void loadBitmaps(const String& name);
