@@ -43,12 +43,6 @@ IMPLEMENT_REFLECTION_ENUM(CheckUpdatesTargets) {
   VALUE_N("never",    CHECK_NEVER);
 }
 
-IMPLEMENT_REFLECTION_ENUM(CheckUpdatesTargets) {
-  VALUE_N("update app",        CHECK_APP);
-  VALUE_N("update games",      CHECK_GAMES);
-  VALUE_N("update everything", CHECK_EVERYTHING); //default
-}
-
 IMPLEMENT_REFLECTION_ENUM(InstallType) {
   VALUE_N("default", INSTALL_DEFAULT); // default
   VALUE_N("local",   INSTALL_LOCAL);
@@ -75,13 +69,7 @@ IMPLEMENT_REFLECTION_ENUM(FilenameConflicts) {
   VALUE_N("overwrite",        CONFLICT_OVERWRITE);
   VALUE_N("number",           CONFLICT_NUMBER);
   VALUE_N("number overwrite", CONFLICT_NUMBER_OVERWRITE);
-  VALUE_N("keep old",         CONFLICT_KEEP_OLD);
-  VALUE_N("overwrite",        CONFLICT_OVERWRITE);
-  VALUE_N("number",           CONFLICT_NUMBER);
-  VALUE_N("number overwrite", CONFLICT_NUMBER_OVERWRITE);
 }
-
-const vector<int> Settings::scale_choices = { 50,66,75,80,100,120,125,150,175,200 };
 
 const vector<int> Settings::scale_choices = { 50,66,75,80,100,120,125,150,175,200 };
 
@@ -260,29 +248,27 @@ IMPLEMENT_REFLECTION_ENUM(DarkModeType) {
 Settings settings;
 
 Settings::Settings()
-  : locale                   (_("en"))
-  , set_window_maximized     (false)
-  , set_window_width         (790)
-  , set_window_height        (300)
-  , card_notes_height        (40)
-  , open_sets_in_new_window  (true)
-  , theme_preference         (THEME_SYSTEM)
-  , symbol_grid_size         (30)
-  , symbol_grid              (true)
-  , symbol_grid_snap         (false)
-  , print_spacing            (0.33)
-  , print_bleed              (0.0)
-  , print_cutter_lines       (CUTTER_ALL)
-  , dark_mode_type           (DARKMODE_SYSTEM)
-  , import_scale_selection   (0)
-  , allow_image_download     (true)
-  , installer_list_url       (_("https://raw.githubusercontent.com/MagicSetEditorPacks/Installer-Pack/refs/heads/main/packages.txt"))
-  , check_updates_what       (CHECK_EVERYTHING)
-  , check_updates_when       (CHECK_5)
-  , check_updates_counter    (0)
-  , website_url              (_("https://magicseteditor.boards.net/"))
-  , documentation_url        (_("https://mseverse.miraheze.org/wiki/Dev:Documentation#Topics"))
-  , install_type             (INSTALL_DEFAULT)
+  : locale               (_("en"))
+  , set_window_maximized (false)
+  , set_window_width     (790)
+  , set_window_height    (300)
+  , card_notes_height    (40)
+  , open_sets_in_new_window(true)
+  , symbol_grid_size     (30)
+  , symbol_grid          (true)
+  , symbol_grid_snap     (false)
+  , print_layout         (LAYOUT_NO_SPACE)
+  , internal_scale       (1.0)
+  , internal_image_extension(true)
+  #if USE_OLD_STYLE_UPDATE_CHECKER
+  , updates_url          (_("http://magicseteditor.sourceforge.net/updates"))
+  #endif
+  , package_versions_url (_("http://magicseteditor.sourceforge.net/packages"))
+  , installer_list_url   (_("http://magicseteditor.sourceforge.net/installers"))
+  , check_updates        (CHECK_IF_CONNECTED)
+  , check_updates_all    (true)
+  , website_url          (_("http://magicseteditor.sourceforge.net/"))
+  , install_type         (INSTALL_DEFAULT)
 {}
 
 void Settings::addRecentFile(const String& filename) {
