@@ -49,12 +49,9 @@ include_directories(${HUNSPELL_INCLUDE_DIRS})
 
 add_executable(magicseteditor WIN32)
 if(USE_QT6)
-  target_compile_definitions(magicseteditor PRIVATE USE_QT6)
-  target_link_libraries(${PROJECT_NAME} Qt6::Core Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets Qt6::Test)
-else()
-  target_compile_definitions(magicseteditor PRIVATE USE_WX)
-  target_link_libraries(${PROJECT_NAME} wxWidgets::wxWidgets)
+  target_link_libraries(${PROJECT_NAME} Qt6::Widgets)
 endif()
+target_link_libraries(${PROJECT_NAME} ${wxWidgets_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${HUNSPELL_LIBRARIES})
 
@@ -89,6 +86,7 @@ if(USE_QT6)
     src/main.cpp
     ${qt_gui_sources}
   )
+  list(FILTER sources EXCLUDE REGEX "src/gui_wx/.*")
 else()
   target_sources(magicseteditor PRIVATE ${core_common_sources})
   target_sources(magicseteditor PRIVATE ${wx_gui_sources})
