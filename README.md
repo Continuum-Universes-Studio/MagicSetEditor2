@@ -88,6 +88,7 @@ cmake --build build
 sudo apt install g++
 sudo apt install libboost-dev libwxgtk3.0-gtk3-dev libhunspell-dev
 sudo apt install qt6-base-dev # only needed for the Qt6 backend
+sudo apt install libxcb-cursor0 # needed for Qt6 xcb platform plugin on some distros
 ```
 
 Then use cmake to build:
