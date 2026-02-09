@@ -21,12 +21,89 @@
 #include <wx/filefn.h>
 
 #include <QApplication>
+#include <QDateTime>
+#include <QMessageLogContext>
+
+#include <chrono>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
 
 ScriptValueP export_set(SetP const& set, vector<CardP> const& cards, ExportTemplateP const& exp, String const& outname);
 
 namespace gui {
 
 namespace {
+std::string resolve_log_dir() {
+  const char* home = std::getenv("HOME");
+#ifdef _WIN32
+  if (!home) {
+    home = std::getenv("USERPROFILE");
+  }
+  if (!home) {
+    home = std::getenv("APPDATA");
+  }
+#endif
+  if (!home || std::string(home).empty()) {
+    return ".";
+  }
+  return std::string(home) + "/.magicseteditor";
+}
+
+std::ofstream& boot_log() {
+  static std::ofstream log_stream;
+  static bool initialized = false;
+  if (!initialized) {
+    initialized = true;
+    try {
+      const std::string log_dir = resolve_log_dir();
+      std::filesystem::create_directories(log_dir);
+      const std::string log_path = log_dir + "/boot.log";
+      log_stream.open(log_path, std::ios::out | std::ios::app);
+      if (log_stream.is_open()) {
+        log_stream << "\n--- Magic Set Editor boot log (Qt6 backend) ---\n";
+      }
+    } catch (...) {
+      // Best-effort logging only.
+    }
+  }
+  return log_stream;
+}
+
+void log_line(const std::string& message) {
+  auto& stream = boot_log();
+  if (!stream.is_open()) {
+    return;
+  }
+  const auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+  stream << std::string(std::ctime(&now)).substr(0, 24) << " | " << message << "\n";
+}
+
+const char* qt_log_level(QtMsgType type) {
+  switch (type) {
+    case QtDebugMsg:
+      return "DEBUG";
+    case QtInfoMsg:
+      return "INFO";
+    case QtWarningMsg:
+      return "WARN";
+    case QtCriticalMsg:
+      return "CRITICAL";
+    case QtFatalMsg:
+      return "FATAL";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+void qt_message_handler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+  std::string output = std::string("Qt ") + qt_log_level(type) + ": " + message.toStdString();
+  if (context.file && context.line > 0) {
+    output += " (" + std::string(context.file) + ":" + std::to_string(context.line) + ")";
+  }
+  log_line(output);
+}
+
 int run_gui(QApplication& app) {
   return app.exec();
 }
@@ -52,7 +129,10 @@ struct ScopedCleanup {
 class QtBackend final : public Backend {
 public:
   int run(int argc, char** argv) override {
+    log_line("Starting Qt backend.");
+    qInstallMessageHandler(qt_message_handler);
     QApplication app(argc, argv);
+    log_line("QApplication created.");
 
     init_script_variables();
     init_file_formats();
@@ -64,6 +144,7 @@ public:
 
     try {
       // interpret command line
+      log_line("Parsing command line arguments.");
       vector<String> args;
       for (int i = 1; i < argc; ++i) {
         args.push_back(argv[i]);
@@ -223,6 +304,7 @@ public:
       show_and_run(app, wnd);
       return EXIT_SUCCESS;
     } CATCH_ALL_ERRORS(true);
+    log_line("Unhandled error during Qt backend startup.");
     cli.print_pending_errors();
     return EXIT_FAILURE;
   }
