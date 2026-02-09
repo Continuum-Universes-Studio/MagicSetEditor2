@@ -96,6 +96,11 @@ else()
   target_sources(magicseteditor PRIVATE ${wx_gui_sources})
   target_precompile_headers(magicseteditor PRIVATE src/util/prec.hpp)
 endif()
+target_sources(magicseteditor PRIVATE ${sources})
+if(USE_QT6)
+  target_sources(magicseteditor PRIVATE src/gui/util.cpp)
+endif()
+target_precompile_headers(magicseteditor PRIVATE src/util/prec.hpp)
 
 configure_file(src/config.hpp.in src/config.hpp)
 
