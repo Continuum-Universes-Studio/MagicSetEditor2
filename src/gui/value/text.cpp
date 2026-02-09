@@ -771,7 +771,7 @@ void TextValueEditor::onAction(const Action& action, bool undone) {
 // ----------------------------------------------------------------------------- : Clipboard
 
 bool TextValueEditor::canPaste() const {
-  return wxTheClipboard->IsSupported(wxDF_TEXT);
+  return clipboard_is_supported(wxDF_TEXT);
 }
 
 bool TextValueEditor::canCopy() const {

@@ -11,6 +11,8 @@
 #include <gui/util.hpp>
 #include <gui/new_window.hpp>
 #include <gui/set/window.hpp>
+#include <gui/packages_window.hpp>
+#include <gui/theme.hpp>
 #include <util/window_id.hpp>
 #include <data/settings.hpp>
 #include <data/format/formats.hpp>
@@ -86,9 +88,11 @@ void WelcomeWindow::onPaint(wxPaintEvent&) {
 
 void WelcomeWindow::draw(DC& dc) {
   wxSize ws = GetClientSize();
+  const wxColour background = theme_color(THEME_COLOR_BACKGROUND);
+  const wxColour accent = theme_color(THEME_COLOR_ACCENT);
   // draw background
   dc.SetPen  (*wxTRANSPARENT_PEN);
-  dc.SetBrush(settings.darkModeColor());
+  dc.SetBrush(background);
   dc.DrawRectangle(0, 0, ws.GetWidth(), ws.GetHeight());
   // draw logo
   dc.DrawBitmap(logo,  (ws.GetWidth() -  logo.GetWidth()) / 2, 5);
@@ -97,7 +101,7 @@ void WelcomeWindow::draw(DC& dc) {
   #endif
   // draw version number
   dc.SetFont(wxFont(8, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, _("Arial")));
-  dc.SetTextForeground(Color(0,126,176));
+  dc.SetTextForeground(accent);
   int tw,th;
   String version_string = _("version ") + app_version.toString() + version_suffix;
   dc.GetTextExtent(version_string,&tw,&th);
