@@ -4,14 +4,18 @@
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
 
-#include <gui/backend.hpp>
+#pragma once
 
-#include <cstdlib>
+#include <memory>
 
-int main(int argc, char** argv) {
-  auto backend = gui::createBackend();
-  if (!backend) {
-    return EXIT_FAILURE;
-  }
-  return backend->run(argc, argv);
-}
+namespace gui {
+
+class Backend {
+public:
+  virtual ~Backend() = default;
+  virtual int run(int argc, char** argv) = 0;
+};
+
+std::unique_ptr<Backend> createBackend();
+
+} // namespace gui

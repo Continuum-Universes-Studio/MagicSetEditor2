@@ -6,12 +6,19 @@
 
 #include <gui/backend.hpp>
 
-#include <cstdlib>
+#include "app_wx.hpp"
 
-int main(int argc, char** argv) {
-  auto backend = gui::createBackend();
-  if (!backend) {
-    return EXIT_FAILURE;
+namespace gui {
+
+class WxBackend final : public Backend {
+public:
+  int run(int argc, char** argv) override {
+    return run_wx_app(argc, argv);
   }
-  return backend->run(argc, argv);
+};
+
+std::unique_ptr<Backend> createBackend() {
+  return std::make_unique<WxBackend>();
 }
+
+} // namespace gui
