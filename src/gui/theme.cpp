@@ -9,8 +9,12 @@
 #include <util/prec.hpp>
 #include <gui/theme.hpp>
 #include <data/settings.hpp>
-#include <wx/appearance.h>
 #include <wx/settings.h>
+#include <wx/version.h>
+
+#if wxCHECK_VERSION(3, 1, 0)
+#include <wx/appearance.h>
+#endif
 
 // ----------------------------------------------------------------------------- : Theme palette
 
