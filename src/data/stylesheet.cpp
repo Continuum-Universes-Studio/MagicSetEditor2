@@ -11,7 +11,7 @@
 #include <data/game.hpp>
 #include <data/field.hpp>
 #include <util/io/package_manager.hpp>
-#include <gui/new_window.hpp> // for selecting stylesheets on load error
+#include <gui/select_stylesheet.hpp> // for selecting stylesheets on load error
 
 // ----------------------------------------------------------------------------- : StyleSheet
 
