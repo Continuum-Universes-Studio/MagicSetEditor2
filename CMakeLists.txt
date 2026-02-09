@@ -8,6 +8,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package(wxWidgets 3.3.1 CONFIG REQUIRED)
+
+option(USE_QT6 "Build the Qt6 GUI backend" OFF)
+
+if(USE_QT6)
+  find_package(Qt6 REQUIRED COMPONENTS Widgets)
+  add_definitions(-DUSE_QT6)
+endif()
 find_package(Boost REQUIRED COMPONENTS regex)
 
 find_package(PkgConfig)
@@ -41,9 +48,18 @@ include_directories(${HUNSPELL_INCLUDE_DIRS})
 
 add_executable(magicseteditor WIN32)
 target_link_libraries(${PROJECT_NAME} PRIVATE wxWidgets::wxWidgets ${Boost_LIBRARIES} ${HUNSPELL_LIBRARIES})
+if(USE_QT6)
+  target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
+endif()
 
 file(GLOB_RECURSE sources src/*.cpp)
 list(FILTER sources EXCLUDE REGEX win32_cli_wrapper.cpp)
+if(USE_QT6)
+  list(FILTER sources EXCLUDE REGEX "src/gui/.*")
+  list(FILTER sources EXCLUDE REGEX "src/gui_wx/.*")
+else()
+  list(FILTER sources EXCLUDE REGEX "src/gui_qt/.*")
+endif()
 target_sources(magicseteditor PRIVATE ${sources})
 target_precompile_headers(magicseteditor PRIVATE src/util/prec.hpp)
 
@@ -125,7 +141,7 @@ endif()
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT magicseteditor)
 
 # Static linking on windows
-if (${VCPKG_TARGET_TRIPLET} MATCHES ".*-static")
+if (NOT USE_QT6 AND ${VCPKG_TARGET_TRIPLET} MATCHES ".*-static")
   message("Static linking")
   set(CompilerFlags CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELWITHDEBINFO CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE)
   foreach(CompilerFlag ${CompilerFlags})

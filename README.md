@@ -11,6 +11,7 @@ Documentation on https://mseverse.miraheze.org/wiki/Category:MSE_Documentation
 
 The code depends on
  * wxWidgets >= 3.3.1
+ * Qt6 Widgets (optional GUI backend via `-DUSE_QT6=ON`)
  * boost
  * hunspell
 
@@ -22,6 +23,7 @@ On windows, the program can be compiled with Visual Studio (recommended) or with
  * Download and install [Visual Studio Community Edition](https://visualstudio.microsoft.com/vs/community/)
  * Download and install [vcpkg](https://github.com/microsoft/vcpkg)
  * Use vcpkg to install pkgconf, wxwidgets, boost, hunspell:
+ * For the Qt6 backend, also install Qt6 (for example `qtbase`)
 
 ````
 .\vcpkg install pkgconf wxwidgets[fonts] boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator boost-json hunspell --triplet=x64-windows-static
@@ -32,6 +34,10 @@ and/or
 ````
 (these two lines differ only by the triplet at the end. Use x64 for 64 bit operating systems, and x86 for 32 bit.)
 
+for Qt6 builds add:
+````
+.\vcpkg install qtbase --triplet=x64-windows-static
+````
 then, regardless of your choice
 ````
 .\vcpkg integrate install
@@ -39,6 +45,7 @@ then, regardless of your choice
 
  * Inside Visual Studio go to File menu > Open > Folder... > select the Magic Set Editor source code root folder.
  * Select the configuration that you want to build (probably release x64-windows-static). Make sure you have installed all the packages with the corresponding triplet.
+ * To build the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure settings in Visual Studio.
 
 ![configuration](https://github.com/G-e-n-e-v-e-n-s-i-S/MagicSetEditor2/blob/main/resource/readme/configuration.png)
 
@@ -76,22 +83,21 @@ cmake --build build
 
  Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
 
-
 ## Building on Linux / FreeBSD
 
  * Install the dependencies:
 
 ```
 # debian 12+ / ubuntu 24.04+
-sudo apt install libboost-dev libboost-regex-dev libwxgtk3.2-dev libhunspell-dev cmake
+sudo apt install libboost-dev libboost-regex-dev libwxgtk3.2-dev libhunspell-dev qt6-base-dev cmake
 # debian 11 / ubuntu 22.04
-sudo apt install libboost-dev libboost-regex-dev libwxgtk3.0-gtk3-dev libhunspell-dev cmake
+sudo apt install libboost-dev libboost-regex-dev libwxgtk3.0-gtk3-dev libhunspell-dev qt6-base-dev cmake
 # fedora / centos
-sudo dnf install boost-devel wxGTK-devel hunspell-devel git cmake
+sudo dnf install boost-devel wxGTK-devel qt6-qtbase-devel hunspell-devel git cmake
 # archlinux / manjaro
-sudo pacman -Syu wxgtk3 hunspell boost git cmake
+sudo pacman -Syu wxgtk3 qt6-base hunspell boost git cmake
 # freebsd
-sudo pkg install hunspell cmake wx30-gtk3 boost-all
+sudo pkg install hunspell cmake wx30-gtk3 qt6-base boost-all
 ```
 
 Then use cmake to build:
@@ -103,6 +109,13 @@ cmake --build .
 ```
 
  Use `-CMAKE_BUILD_TYPE=Debug` for a debug build.
+
+To build with the Qt6 backend instead of wxWidgets:
+
+```
+cmake -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON ..
+cmake --build .
+```
 
 ### wx-config can't be found
 On old versions it's possible that cmake can't find wx-config, to solve this add the tool to the cmake command manually like this: `-DwxWidgets_CONFIG_EXECUTABLE=/usr/bin/wx-config-gtk3`
@@ -117,7 +130,7 @@ Templates are installed to `~/.magicseteditor/data`. Fonts are installed to `~/.
  * Install the dependencies; for example, using Homebrew: (Note: Tested with boost 1.84.0, wxmac (wxwidgets) 3.2.4, hunspell 1.7.2, cmake 3.28.3, dylibbundler 1.0.5.)
 
 ```
-brew install boost wxwidgets hunspell cmake dylibbundler
+brew install boost wxwidgets hunspell cmake dylibbundler qt
 ```
 
  * Then use cmake to build:
@@ -129,6 +142,7 @@ cmake --build .
 ```
 
  Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
+ * For the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure step.
  * Finally, copy the resources to a SharedSupport directory and run the executable:
 
 ```
