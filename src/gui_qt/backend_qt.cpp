@@ -37,7 +37,11 @@ void show_and_run(QApplication& app, QWidget* window) {
 }
 
 QString toQString(const String& value) {
-  return QString::fromUtf8(value.ToUTF8());
+  if (value.empty()) {
+    return QString();
+  }
+  const wxScopedCharBuffer utf8 = value.ToUTF8();
+  return QString::fromUtf8(utf8.data(), static_cast<qsizetype>(utf8.length()));
 }
 
 struct ScopedCleanup {
