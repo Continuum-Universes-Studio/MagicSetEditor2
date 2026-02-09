@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make card games                |
+//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -16,31 +16,24 @@
 #include <data/word_list.hpp>
 #include <util/reflect.hpp>
 #include <util/platform.hpp>
+#include <util/application_paths.hpp>
 #include <util/io/reader.hpp>
 #include <util/io/writer.hpp>
 #include <util/delayed_index_maps.hpp>
 #include <wx/filename.h>
 #include <wx/wfstream.h>
-#include <wx/stdpaths.h>
 
 // ----------------------------------------------------------------------------- : Extra types
 
 IMPLEMENT_REFLECTION_ENUM(CheckUpdates) {
-  VALUE_N("always",   CHECK_ALWAYS);
-  VALUE_N("every 5",  CHECK_5); //default
-  VALUE_N("every 10", CHECK_10);
-  VALUE_N("never",    CHECK_NEVER);
-}
-
-IMPLEMENT_REFLECTION_ENUM(CheckUpdatesTargets) {
-  VALUE_N("update app",        CHECK_APP);
-  VALUE_N("update games",      CHECK_GAMES);
-  VALUE_N("update everything", CHECK_EVERYTHING); //default
+  VALUE_N("if connected", CHECK_IF_CONNECTED); //default
+  VALUE_N("always",       CHECK_ALWAYS);
+  VALUE_N("never",        CHECK_NEVER);
 }
 
 IMPLEMENT_REFLECTION_ENUM(InstallType) {
-  VALUE_N("default", INSTALL_DEFAULT); //default
-  VALUE_N("local",   INSTALL_LOCAL);
+  VALUE_N("default",  INSTALL_DEFAULT); //default
+  VALUE_N("local",  INSTALL_LOCAL);
   VALUE_N("global",  INSTALL_GLOBAL);
 }
 
@@ -53,14 +46,18 @@ bool is_install_local(InstallType type) {
   return type == INSTALL_DEFAULT ? DEFAULT_INSTALL_LOCAL : type == INSTALL_LOCAL;
 }
 
-IMPLEMENT_REFLECTION_ENUM(FilenameConflicts) {
-  VALUE_N("keep old",         CONFLICT_KEEP_OLD);
-  VALUE_N("overwrite",        CONFLICT_OVERWRITE);
-  VALUE_N("number",           CONFLICT_NUMBER);
-  VALUE_N("number overwrite", CONFLICT_NUMBER_OVERWRITE);
+IMPLEMENT_REFLECTION_ENUM(ThemePreference) {
+  VALUE_N("system", THEME_SYSTEM); // default
+  VALUE_N("light",  THEME_LIGHT);
+  VALUE_N("dark",   THEME_DARK);
 }
 
-const vector<int> Settings::scale_choices = { 50,66,75,80,100,120,125,150,175,200 };
+IMPLEMENT_REFLECTION_ENUM(FilenameConflicts) {
+  VALUE_N("keep old",      CONFLICT_KEEP_OLD);
+  VALUE_N("overwrite",    CONFLICT_OVERWRITE);
+  VALUE_N("number",      CONFLICT_NUMBER);
+  VALUE_N("number overwrite",  CONFLICT_NUMBER_OVERWRITE);
+}
 
 const int COLUMN_NOT_INITIALIZED = -100000;
 
@@ -78,13 +75,13 @@ IMPLEMENT_REFLECTION_NO_SCRIPT(ColumnSettings) {
 }
 
 GameSettings::GameSettings()
-  : sort_cards_ascending    (true)
-  , images_export_filename  (_("{card.name}.png"))
-  , images_export_conflicts (CONFLICT_NUMBER_OVERWRITE)
-  , use_auto_replace        (true)
-  , pack_seed_random        (true)
-  , pack_seed               (123456)
-  , initialized             (false)
+  : sort_cards_ascending(true)
+  , images_export_filename(_("{card.name}.png"))
+  , images_export_conflicts(CONFLICT_NUMBER_OVERWRITE)
+  , use_auto_replace(true)
+  , pack_seed_random(true)
+  , pack_seed(123456)
+  , initialized(false)
 {}
 
 void GameSettings::initDefaults(const Game& game) {
@@ -111,11 +108,6 @@ void GameSettings::initDefaults(const Game& game) {
       auto_replaces.push_back(ar);
     }
   }
-  // make sure things aren't in a problematic state
-  for (auto it = cardlist_columns.begin(); it != cardlist_columns.end(); ++it) {
-    if (it->second.width < 20) it->second.width = 20;
-  }
-  if (images_export_filename.Trim().empty()) images_export_filename = _("{card.name}.png");
 }
 
 IMPLEMENT_REFLECTION_NO_SCRIPT(GameSettings) {
@@ -131,63 +123,47 @@ IMPLEMENT_REFLECTION_NO_SCRIPT(GameSettings) {
   REFLECT(pack_amounts);
   REFLECT(pack_seed_random);
   REFLECT(pack_seed);
-  REFLECT(custom_colors);
 }
 
 
 StyleSheetSettings::StyleSheetSettings()
-  : card_zoom               (1.0,   true)
-  , export_scale_selection  (0,     true)
-  , card_angle              (0,     true)
-  , card_anti_alias         (true,  true)
-  , card_borders            (true,  true)
-  , card_draw_editing       (true,  true)
-  , card_normal_export      (true,  true)
-  , card_bleed_export       (false, true)
-  , card_notes_export       (false, true)
-  , card_spellcheck_enabled (true,  true)
+  : card_zoom              (1.0,  true)
+  , export_zoom            (1.0,  true)
+  , card_angle             (0,    true)
+  , card_anti_alias        (true, true)
+  , card_borders           (true, true)
+  , card_draw_editing      (true, true)
+  , card_normal_export     (true, true)
+  , card_spellcheck_enabled(true, true)
 {}
 
 void StyleSheetSettings::useDefault(const StyleSheetSettings& ss) {
   if (card_zoom              .isDefault()) card_zoom              .assignDefault(ss.card_zoom);
-  if (export_scale_selection .isDefault()) export_scale_selection  .assignDefault(ss.export_scale_selection);
+  if (export_zoom            .isDefault()) export_zoom            .assignDefault(ss.export_zoom);
   if (card_angle             .isDefault()) card_angle             .assignDefault(ss.card_angle);
   if (card_anti_alias        .isDefault()) card_anti_alias        .assignDefault(ss.card_anti_alias);
   if (card_borders           .isDefault()) card_borders           .assignDefault(ss.card_borders);
   if (card_draw_editing      .isDefault()) card_draw_editing      .assignDefault(ss.card_draw_editing);
   if (card_normal_export     .isDefault()) card_normal_export     .assignDefault(ss.card_normal_export);
-  if (card_bleed_export      .isDefault()) card_bleed_export      .assignDefault(ss.card_bleed_export);
-  if (card_notes_export      .isDefault()) card_notes_export      .assignDefault(ss.card_notes_export);
   if (card_spellcheck_enabled.isDefault()) card_spellcheck_enabled.assignDefault(ss.card_spellcheck_enabled);
 }
 
 IMPLEMENT_REFLECTION_NO_SCRIPT(StyleSheetSettings) {
   REFLECT(card_zoom);
-  REFLECT(export_scale_selection);
+  REFLECT(export_zoom);
   REFLECT(card_angle);
   REFLECT(card_anti_alias);
   REFLECT(card_borders);
   REFLECT(card_draw_editing);
   REFLECT(card_normal_export);
-  REFLECT(card_bleed_export);
-  REFLECT(card_notes_export);
   REFLECT(card_spellcheck_enabled);
 }
 
-// ----------------------------------------------------------------------------- : Printing settings
+// ----------------------------------------------------------------------------- : Printing
 
-IMPLEMENT_REFLECTION_ENUM(CutterLinesType) {
-  VALUE_N("all",          CUTTER_ALL);
-  VALUE_N("no intersect", CUTTER_NO_INTERSECTION);
-  VALUE_N("none",         CUTTER_NONE);
-}
-
-// ----------------------------------------------------------------------------- : Dark mode settings
-
-IMPLEMENT_REFLECTION_ENUM(DarkModeType) {
-  VALUE_N("yes",    DARKMODE_YES);
-  VALUE_N("system", DARKMODE_SYSTEM);
-  VALUE_N("no",     DARKMODE_NO);
+IMPLEMENT_REFLECTION_ENUM(PageLayoutType) {
+  VALUE_N("no space",    LAYOUT_NO_SPACE);
+  VALUE_N("equal space", LAYOUT_EQUAL_SPACE);
 }
 
 // ----------------------------------------------------------------------------- : Settings
@@ -195,28 +171,28 @@ IMPLEMENT_REFLECTION_ENUM(DarkModeType) {
 Settings settings;
 
 Settings::Settings()
-  : locale                   (_("en"))
-  , set_window_maximized     (false)
-  , set_window_width         (790)
-  , set_window_height        (300)
-  , card_notes_height        (40)
-  , open_sets_in_new_window  (true)
-  , symbol_grid_size         (30)
-  , symbol_grid              (true)
-  , symbol_grid_snap         (false)
-  , print_spacing            (0.33)
-  , print_bleed              (0.0)
-  , print_cutter_lines       (CUTTER_ALL)
-  , dark_mode_type           (DARKMODE_SYSTEM)
-  , import_scale_selection   (0)
-  , allow_image_download     (true)
-  , installer_list_url       (_("https://raw.githubusercontent.com/MagicSetEditorPacks/Installer-Pack/refs/heads/main/packages.txt"))
-  , check_updates_what       (CHECK_EVERYTHING)
-  , check_updates_when       (CHECK_5)
-  , check_updates_counter    (0)
-  , website_url              (_("https://magicseteditor.boards.net/"))
-  , documentation_url        (_("https://mseverse.miraheze.org/wiki/Dev:Documentation#Topics"))
-  , install_type             (INSTALL_DEFAULT)
+  : locale               (_("en"))
+  , set_window_maximized (false)
+  , set_window_width     (790)
+  , set_window_height    (300)
+  , card_notes_height    (40)
+  , open_sets_in_new_window(true)
+  , theme_preference     (THEME_SYSTEM)
+  , symbol_grid_size     (30)
+  , symbol_grid          (true)
+  , symbol_grid_snap     (false)
+  , print_layout         (LAYOUT_NO_SPACE)
+  , internal_scale       (1.0)
+  , internal_image_extension(true)
+  #if USE_OLD_STYLE_UPDATE_CHECKER
+  , updates_url          (_("http://magicseteditor.sourceforge.net/updates"))
+  #endif
+  , package_versions_url (_("http://magicseteditor.sourceforge.net/packages"))
+  , installer_list_url   (_("http://magicseteditor.sourceforge.net/installers"))
+  , check_updates        (CHECK_IF_CONNECTED)
+  , check_updates_all    (true)
+  , website_url          (_("http://magicseteditor.sourceforge.net/"))
+  , install_type         (INSTALL_DEFAULT)
 {}
 
 void Settings::addRecentFile(const String& filename) {
@@ -241,7 +217,6 @@ GameSettings& Settings::gameSettingsFor(const Game& game) {
   gs->initDefaults(game);
   return *gs;
 }
-
 ColumnSettings& Settings::columnSettingsFor(const Game& game, const Field& field) {
   // Get game info
   GameSettings& gs = gameSettingsFor(game);
@@ -255,7 +230,6 @@ ColumnSettings& Settings::columnSettingsFor(const Game& game, const Field& field
   }
   return cs;
 }
-
 StyleSheetSettings& Settings::stylesheetSettingsFor(const StyleSheet& stylesheet) {
   // Use the canonical form here since the stylesheet name will be used as a stored key.
   // This does introduce the possibility of collision if two stylesheets return the same value canonically, but I think that's just a necessary risk.
@@ -265,63 +239,19 @@ StyleSheetSettings& Settings::stylesheetSettingsFor(const StyleSheet& stylesheet
   return *ss;
 }
 
-double Settings::exportScaleSettingsFor(const StyleSheet& stylesheet) {
-  StyleSheetSettings& ss = stylesheetSettingsFor(stylesheet);
-  int export_scale = ss.export_scale_selection();
-  if (export_scale == 0) return adaptiveScaleSettingsFor(stylesheet, 300.0, 50.0);
-  if (export_scale == 1) return adaptiveScaleSettingsFor(stylesheet, 300.0, 1.0);
-  if (export_scale == 2) return adaptiveScaleSettingsFor(stylesheet, 150.0, 1.0);
-  return (double)scale_choices[export_scale - 3] / 100.0;
-}
-
-double Settings::importScaleSettingsFor(const StyleSheet& stylesheet) {
-  if (import_scale_selection == 0) return exportScaleSettingsFor(stylesheet);
-  if (import_scale_selection == 1) return adaptiveScaleSettingsFor(stylesheet, 300.0, 50.0);
-  if (import_scale_selection == 2) return adaptiveScaleSettingsFor(stylesheet, 300.0, 1.0);
-  if (import_scale_selection == 3) return adaptiveScaleSettingsFor(stylesheet, 150.0, 1.0);
-  return (double)scale_choices[import_scale_selection - 4] / 100.0;
-}
-
-double Settings::adaptiveScaleSettingsFor(const StyleSheet& stylesheet, double dpi_target, double dpi_leeway) {
-  if (abs(stylesheet.card_dpi - dpi_target) <= dpi_leeway) return 1.0;
-  return dpi_target / max(10.0, stylesheet.card_dpi);
-}
-
-Settings::ExportSettings Settings::exportSettingsFor(const StyleSheet& stylesheet) {
-  StyleSheetSettings& ss = stylesheetSettingsFor(stylesheet);
-  double zoom = settings.exportScaleSettingsFor(stylesheet);
-  double angle = ss.card_normal_export() ? 0.0 : deg_to_rad(ss.card_angle());
-  double bleed = ss.card_bleed_export() ? (stylesheet.card_dpi / 300.0) * 36.0 * zoom : 0.0; // 36 pixels of bleed on a 300 DPI print
-  return ExportSettings{zoom, angle, bleed};
-}
-
 IndexMap<FieldP,ValueP>& Settings::exportOptionsFor(const ExportTemplate& export_template) {
   return export_options.get(export_template.name(), export_template.option_fields);
 }
 
 /// Retrieve the directory to use for settings and other data files
 String user_settings_dir() {
-  String dir = wxStandardPaths::Get().GetUserDataDir();
+  String dir = app_user_data_dir();
   if (!wxDirExists(dir)) wxMkdir(dir);
   return dir + _("/");
 }
 
 String Settings::settingsFile() {
   return user_settings_dir() + _("mse.config");
-}
-
-bool Settings::darkMode() {
-  return wxSystemSettings::GetAppearance().IsDark();
-}
-
-String Settings::darkModePrefix() {
-  if (darkMode()) return _("dark_");
-  return _("");
-}
-
-Color Settings::darkModeColor() {
-  if (darkMode()) return wxColor(15,8,0);
-  return wxColor(240,247,255);
 }
 
 IMPLEMENT_REFLECTION_NO_SCRIPT(Settings) {
@@ -331,29 +261,31 @@ IMPLEMENT_REFLECTION_NO_SCRIPT(Settings) {
   REFLECT(default_image_dir);
   REFLECT(default_symbol_dir);
   REFLECT(default_export_dir);
-  REFLECT(default_import_dir);
   REFLECT(set_window_maximized);
   REFLECT(set_window_width);
   REFLECT(set_window_height);
   REFLECT(card_notes_height);
   REFLECT(open_sets_in_new_window);
+  REFLECT(theme_preference);
   REFLECT(symbol_grid_size);
   REFLECT(symbol_grid);
   REFLECT(symbol_grid_snap);
   REFLECT(default_game);
-  REFLECT(print_spacing);
-  REFLECT(print_bleed);
-  REFLECT(print_cutter_lines);
-  REFLECT(dark_mode_type);
+  REFLECT(print_layout);
   REFLECT(apprentice_location);
-  REFLECT(import_scale_selection);
-  REFLECT(allow_image_download);
-  REFLECT(check_updates_what);
-  REFLECT(check_updates_when);
-  REFLECT(check_updates_counter);
+  REFLECT(internal_scale);
+  REFLECT(internal_image_extension);
+  #if USE_OLD_STYLE_UPDATE_CHECKER
+    REFLECT(updates_url);
+  #else
+    REFLECT_COMPAT_IGNORE(<306,"updates_url",String);
+  #endif
+  REFLECT(package_versions_url);
+  REFLECT(installer_list_url);
+  REFLECT(check_updates);
+  REFLECT(check_updates_all);
   REFLECT(install_type);
   REFLECT(website_url);
-  REFLECT(documentation_url);
   REFLECT(game_settings);
   REFLECT(stylesheet_settings);
   REFLECT(default_stylesheet_settings);
@@ -379,10 +311,6 @@ void Settings::read() {
     if (!file.Ok()) return; // failure is not an error
     Reader reader(file, nullptr, filename);
     reader.handle_greedy(*this);
-    // make sure things aren't in a problematic state
-    if (locale.Trim().empty()) locale = _("en");
-    if (symbol_grid_size < 30) symbol_grid_size = 30;
-    if (default_stylesheet_settings.card_zoom < 0.5) default_stylesheet_settings.card_zoom = 1.0;
   }
 }
 

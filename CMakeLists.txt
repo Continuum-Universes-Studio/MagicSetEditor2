@@ -1,15 +1,20 @@
 cmake_minimum_required(VERSION 3.13)
 
 project(magicseteditor VERSION 2.6.0)
-
 add_definitions(-DUNOFFICIAL_BUILD)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-find_package(wxWidgets 3.3.1 CONFIG REQUIRED)
+option(USE_QT6 "Build the Qt6 GUI backend" OFF)
+
+if(USE_QT6)
+  find_package(Qt6 REQUIRED COMPONENTS Widgets)
+endif()
+
+find_package(wxWidgets 3.3.1 REQUIRED COMPONENTS core base net html)
+include(${wxWidgets_USE_FILE})
 find_package(Boost REQUIRED COMPONENTS regex)
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGL OpenGLWidgets Test)
 
 find_package(PkgConfig)
 
@@ -35,6 +40,7 @@ message("-- Does this have a full path? If not, and it's just a file name, it's 
 
 include_directories("${PROJECT_BINARY_DIR}/src")
 include_directories("${PROJECT_SOURCE_DIR}/src")
+include(${wxWidgets_USE_FILE})
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${HUNSPELL_INCLUDE_DIRS})
 
@@ -110,11 +116,6 @@ if(WIN32)
   )
 endif()
 
-# Magic Set Editor Updater executable
-
-add_executable(magicseteditor-updater WIN32)
-target_link_libraries(magicseteditor-updater PRIVATE wxWidgets::wxWidgets)
-target_sources(magicseteditor-updater PRIVATE src_updater/main.cpp src_updater/win32_res.rc src_updater/updater.ico)
 
 # warnings
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
@@ -135,6 +136,15 @@ if (${VCPKG_TARGET_TRIPLET} MATCHES ".*-static")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL")
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /GL")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG")
+  # Need explicit dependencies on wx's dependencies
+  find_package(png REQUIRED)
+  find_package(tiff REQUIRED)
+  find_package(jpeg REQUIRED)
+  find_package(zlib REQUIRED)
+  target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
+  target_link_libraries(${PROJECT_NAME} ${JPEG_LIBRARIES})
+  target_link_libraries(${PROJECT_NAME} ${ZLIB_LIBRARIES})
+  target_link_libraries(${PROJECT_NAME} ${TIFF_LIBRARIES})
   # Defines
   add_definitions(-DSTATIC)
   add_definitions(-DHUNSPELL_STATIC)

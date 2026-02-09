@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make card games                |
+//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -12,12 +12,10 @@
 #include <gui/control/item_list.hpp>
 #include <data/card.hpp>
 #include <data/set.hpp>
-#include <wx/dnd.h>
 
 DECLARE_POINTER_TYPE(ChoiceField);
 DECLARE_POINTER_TYPE(Field);
 class CardListBase;
-class CardListDropTarget;
 
 // ----------------------------------------------------------------------------- : Events
 
@@ -66,46 +64,20 @@ public:
   
   // --------------------------------------------------- : Selection
   
-  inline CardP getCard() const                                { return static_pointer_cast<Card>(selected_item); }
-  inline void  setCard(const CardP& card, bool event = false) { selectItem(card, true, event); }
+  inline CardP getCard() const            { return static_pointer_cast<Card>(selected_item); }
+  inline void  setCard(const CardP& card) { selectItem(card, true, false); }
+    
+  // --------------------------------------------------- : Clipboard
   
-  // --------------------------------------------------- : Clipboard and Drag'n'Drop
-
-  CardListDropTarget* drop_target;
-  wxTimer drop_timer;
-
   bool canCut()    const override;
   bool canCopy()   const override;
   bool canPaste()  const override;
+  bool canPasteCards() const;
   bool canDelete() const override;
   // Try to perform a clipboard operation, return success
   bool doCopy() override;
-  bool doCopyCardAndLinkedCards();
   bool doPaste() override;
   bool doDelete() override;
-
-  // Try to perform a bulk operation, return success
-  bool doAddCSV();
-  bool doAddJSON();
-
-  bool doBulkModification();
-
-  // Look for cards inside some given data
-  bool parseData(bool ignore_cards_from_own_card_list);
-  bool parseUrl  (String& url,              vector<CardP>& out);
-  bool parseFiles(wxArrayString& filenames, vector<CardP>& out);
-  bool parseText (String& text,             vector<CardP>& out);
-  bool parseImage(Image& image,             vector<CardP>& out);
-
-  /// Recreate the images for image fields from the metadata
-  void parseImageMetadata(CardP& card, const Image& image);
-  void parseImageMetadata(CardP& card);
-
-  // --------------------------------------------------- : Card linking
-  
-  bool canLink()    const;
-  bool doLink();
-  bool doUnlink(CardP linked_card);
   
   // --------------------------------------------------- : Set actions
   
@@ -134,7 +106,7 @@ protected:
   
   /// Send an 'item selected' event for the currently selected item (selected_item)
   void sendEvent() override { sendEvent(EVENT_CARD_SELECT); }
-  void sendEvent(int type);
+  void sendEvent(int type = EVENT_CARD_SELECT);
   /// Compare cards
   bool compareItems(void* a, void* b) const override;
   
@@ -155,7 +127,7 @@ private:
   vector<FieldP> column_fields; ///< The field to use for each column (by column index)
   FieldP alternate_sort_field;  ///< Second field to sort by, if the column doesn't suffice
   
-  mutable wxListItemAttr item_attr; ///< for OnGetItemAttr
+  mutable wxListItemAttr item_attr; // for OnGetItemAttr
   
 public:
   /// Open a dialog for selecting columns to be shown
@@ -171,26 +143,13 @@ private:
   void onColumnResize    (wxListEvent&);
   void onItemActivate    (wxListEvent&);
   void onSelectColumns   (wxCommandEvent&);
+  void onCut             (wxCommandEvent&);
+  void onCopy            (wxCommandEvent&);
+  void onPaste           (wxCommandEvent&);
   void onChar            (wxKeyEvent&);
-  void onBeginDrag       (wxListEvent&);
-  void OnDragTimer       (wxTimerEvent&);
   void onDrag            (wxMouseEvent&);
+  void onRightUp         (wxMouseEvent&);
   void onContextMenu     (wxContextMenuEvent&);
-};
-
-// ----------------------------------------------------------------------------- : Drag'n'Drop
-
-class CardListDropTarget : public wxDropTarget {
-public:
-  CardListDropTarget(CardListBase* card_list);
-  ~CardListDropTarget();
-
-  wxDragResult OnData(wxCoord x, wxCoord y, wxDragResult defaultDragResult) override;
-
-  wxDataObjectComposite* data_object; ///< the object that acquires the data from the Clipboard or a Drag'n'Drop
-
-  String                 ignored_id;  ///< the id of the transaction we need to ignore (the one coming from our own card_list)
-private:
-  CardListBase*          card_list;   ///< the card list we are the drop target of
+  void showContextMenu   (const wxPoint&);
 };
 

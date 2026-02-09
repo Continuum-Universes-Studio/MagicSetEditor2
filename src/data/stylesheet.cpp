@@ -11,7 +11,7 @@
 #include <data/game.hpp>
 #include <data/field.hpp>
 #include <util/io/package_manager.hpp>
-#include <gui/new_window.hpp> // for selecting stylesheets on load error
+#include <gui/select_stylesheet.hpp> // for selecting stylesheets on load error
 
 // ----------------------------------------------------------------------------- : StyleSheet
 
@@ -47,7 +47,7 @@ StyleSheetP StyleSheet::byGameAndName(const Game& game, const String& name) {
     //}
     
     // load an alternative stylesheet
-    StyleSheetP ss = select_stylesheet(game, name);
+    StyleSheetP ss = gui::select_stylesheet(game, name);
     if (ss) {
       stylesheet_alternatives[full_name] = ss->relativeFilename();
       return ss;
