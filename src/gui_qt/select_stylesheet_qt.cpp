@@ -4,26 +4,46 @@
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
 
-#include "select_stylesheet_qt.hpp"
-
+#include <util/prec.hpp>
 #include <gui/select_stylesheet.hpp>
-#include <gui_core/select_stylesheet_flow.hpp>
-#include <data/stylesheet.hpp>
 
-namespace gui_qt {
+#include <data/game.hpp>
+#include <data/settings.hpp>
+#include <data/stylesheet.hpp>
+#include <util/io/package_manager.hpp>
+
 namespace {
-class QtMissingStyleSheetPresenter final : public gui_core::MissingStyleSheetPresenter {
-public:
-  StyleSheetP selectMissingStyleSheet(const Game& game, const String& failed_name) override {
-    (void)game;
-    (void)failed_name;
+StyleSheetP open_stylesheet_or_null(const String& full_name) {
+  if (full_name.empty()) {
     return StyleSheetP();
   }
-};
+  try {
+    return package_manager.open<StyleSheet>(full_name);
+  } catch (const Error&) {
+    return StyleSheetP();
+  }
+}
 } // namespace
 
-void install_missing_stylesheet_presenter() {
-  gui::set_missing_stylesheet_presenter(std::make_unique<QtMissingStyleSheetPresenter>());
-}
+StyleSheetP select_stylesheet(const Game& game, const String& failed_name) {
+  (void)failed_name;
+  const String& preferred = settings.gameSettingsFor(game).default_stylesheet;
+  if (!preferred.empty()) {
+    StyleSheetP preferred_sheet =
+        open_stylesheet_or_null(game.name() + _("-") + preferred + _(".mse-style"));
+    if (preferred_sheet) {
+      return preferred_sheet;
+    }
+  }
 
-} // namespace gui_qt
+  vector<PackagedP> matches;
+  package_manager.findMatching(game.name() + _("-*.mse-style"), matches);
+  for (const PackagedP& candidate : matches) {
+    StyleSheetP sheet = open_stylesheet_or_null(candidate->relativeFilename());
+    if (sheet) {
+      return sheet;
+    }
+  }
+
+  return StyleSheetP();
+}
