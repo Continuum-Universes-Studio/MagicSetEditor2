@@ -10,6 +10,7 @@
 
 #include <util/prec.hpp>
 #include <gui/control/filter_ctrl.hpp>
+#include <gui/select_stylesheet.hpp>
 
 class PackageList;
 class Game;
@@ -62,9 +63,6 @@ private:
 
 // ----------------------------------------------------------------------------- : SelectStyleSheetWindow
 // very similair, so in the same file
-
-/// Show the select stylesheet window, return the selected stylesheet, if any
-StyleSheetP select_stylesheet(const Game& game, const String& failed_name);
 
 /// "Create a new set" dialog. First select game, then matching style.
 class SelectStyleSheetWindow : public wxDialog {
