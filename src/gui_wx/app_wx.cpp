@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -15,14 +15,16 @@
 #include <data/locale.hpp>
 #include <data/installer.hpp>
 #include <data/format/formats.hpp>
+#include <data/font.hpp>
 #include <cli/cli_main.hpp>
 #include <cli/text_io_handler.hpp>
 #include <gui/welcome_window.hpp>
-#include <gui/update_checker.hpp>
+#include <gui/downloadable_installers.hpp>
 #include <gui/packages_window.hpp>
 #include <gui/set/window.hpp>
 #include <gui/symbol/window.hpp>
 #include <gui/thumbnail_thread.hpp>
+#include <gui/theme.hpp>
 #include <wx/fs_inet.h>
 #include <wx/wfstream.h>
 #include <wx/txtstrm.h>
@@ -54,6 +56,8 @@ public:
   void HandleEvent(wxEvtHandler *handler, wxEventFunction func, wxEvent& event) const override;
   /// Hack around some wxWidget idiocies
   int FilterEvent(wxEvent& ev) override;
+  /// Apply theme to newly created windows
+  void onWindowCreate(wxWindowCreateEvent& event);
   /// Fancier assert
   #if defined(_MSC_VER) && defined(_DEBUG) && defined(_CRT_WIDE)
     void OnAssert(const wxChar *file, int line, const wxChar *cond, const wxChar *msg) override;
@@ -88,6 +92,7 @@ int MSEWxApp::OnRun() {
       // Platform friendly appname
       SetAppName(_("magicseteditor"));
     #endif
+    FontRef::PreloadResourceFonts(true);
     wxInitAllImageHandlers();
     wxFileSystem::AddHandler(new wxInternetFSHandler); // needed for update checker
     wxSocketBase::Initialize();
@@ -96,8 +101,11 @@ int MSEWxApp::OnRun() {
     cli.init();
     package_manager.init();
     settings.read();
+    SetAppearance((Appearance)settings.dark_mode_type);
     the_locale = Locale::byName(settings.locale);
+    Bind(wxEVT_CREATE, &MSEWxApp::onWindowCreate, this);
     nag_about_ascii_version();
+    downloadable_installers.check_updates();
 
     // interpret command line
     {
@@ -253,7 +261,7 @@ int MSEWxApp::OnRun() {
             out = out.substr(pos + 1);
           }
           // export
-          export_images(set, set->cards, path, out, CONFLICT_NUMBER_OVERWRITE);
+          export_image(set, set->cards, path, out, CONFLICT_NUMBER_OVERWRITE);
           return EXIT_SUCCESS;
         } else if (args[0] == _("--export")) {
           if (args.size() < 2) {
@@ -286,7 +294,6 @@ int MSEWxApp::OnRun() {
 }
 
 int MSEWxApp::runGUI() {
-  //check_updates(); // FIXME: Disable update checking on startup. Likely want to either replace the Update Checker or remove it entirely.
   return wxApp::OnRun();
 }
 
@@ -331,6 +338,11 @@ int MSEWxApp::FilterEvent(wxEvent& ev) {
     return -1;
   }*/
   return -1;
+}
+
+void MSEWxApp::onWindowCreate(wxWindowCreateEvent& event) {
+  apply_theme_to_window(event.GetWindow());
+  event.Skip();
 }
 
 int run_wx_app(int argc, char** argv) {

@@ -11,6 +11,7 @@
 #include <gui/set/window.hpp>
 #include <gui/control/text_ctrl.hpp>
 #include <gui/util.hpp>
+#include <gui/theme.hpp>
 #include <util/window_id.hpp>
 #include <data/stylesheet.hpp>
 #include <data/card.hpp>
@@ -58,12 +59,6 @@ public:
     icons[MESSAGE_WARNING] = wxBitmap(load_resource_image(_("message_warning")));
     icons[MESSAGE_ERROR]   = wxBitmap(load_resource_image(_("message_error")));
     icons[MESSAGE_FATAL_ERROR] = icons[MESSAGE_ERROR];
-    // color
-    colors[MESSAGE_INPUT]   = wxColour(0,80,0);
-    colors[MESSAGE_OUTPUT]  = wxColour(255,255,255);
-    colors[MESSAGE_INFO]    = wxColour(0,0,255);
-    colors[MESSAGE_WARNING] = wxColour(255,255,0);
-    colors[MESSAGE_ERROR]   = colors[MESSAGE_FATAL_ERROR] = wxColour(255,0,0);
     // scrollbar
     update_scrollbar();
   }
@@ -125,9 +120,27 @@ private:
   vector<ConsoleMessageP> messages;
   size_t selection;
   wxBitmap icons[MESSAGE_TYPE_MAX];
-  wxColour colors[MESSAGE_TYPE_MAX];
-  
   // --------------------------------------------------- : Events
+
+  wxColour message_color(MessageType type) const {
+    ThemePalette palette = theme_palette();
+    switch (type) {
+      case MESSAGE_INPUT:
+        return palette.accent;
+      case MESSAGE_OUTPUT:
+        return palette.text;
+      case MESSAGE_INFO:
+        return palette.accent;
+      case MESSAGE_WARNING:
+        return palette.warning;
+      case MESSAGE_ERROR:
+      case MESSAGE_FATAL_ERROR:
+        return palette.error;
+      case MESSAGE_NONE:
+      default:
+        return palette.text;
+    }
+  }
   
   void select(size_t sel) {
     selection = sel;
@@ -248,9 +261,15 @@ private:
     draw(dc);
   }
 
+<<<<<<< HEAD
   void draw(wxDC& dc) const {
     clearDC(dc, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
     dc.SetFont(*wxNORMAL_FONT);
+=======
+  void draw(wxDC& dc) const {
+    clearDC(dc, theme_color(THEME_COLOR_BACKGROUND));
+    dc.SetFont(*wxNORMAL_FONT);
+>>>>>>> aecfe9bc (Add theme manager and preference)
 
     FOR_EACH_CONST(msg, messages) {
       draw(dc, *msg);
@@ -266,19 +285,20 @@ private:
     int left = 0;
     int top  = msg.top - view_start;
     int width = client_size.x;
-    wxColour color = colors[msg.type];
+    ThemePalette palette = theme_palette();
+    wxColour color = message_color(msg.type);
     wxColour bg, fg;
     if (selection < messages.size() && messages[selection].get() == &msg) {
       if (FindFocus() == this) {
-        bg = wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT);
-        fg = wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHTTEXT);
+        bg = theme_selection_background();
+        fg = theme_selection_text();
       } else {
-        bg = lerp(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT), 0.1);
-        fg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+        bg = lerp(palette.background, palette.text, 0.1);
+        fg = palette.text;
       }
     } else {
-      bg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
-      fg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+      bg = palette.background;
+      fg = palette.text;
     }
     
     // draw background

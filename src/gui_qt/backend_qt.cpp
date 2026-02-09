@@ -197,7 +197,7 @@ public:
             path += _("/x");
             out = out.substr(pos + 1);
           }
-          export_images(set, set->cards, path, out, CONFLICT_NUMBER_OVERWRITE);
+          export_image(set, set->cards, path, out, CONFLICT_NUMBER_OVERWRITE);
           return EXIT_SUCCESS;
         } else if (args[0] == _("--export")) {
           if (args.size() < 2) {

@@ -9,6 +9,7 @@
 #include <util/prec.hpp>
 #include <gui/about_window.hpp>
 #include <gui/util.hpp>
+#include <gui/theme.hpp>
 #include <util/version.hpp>
 #include <wx/dcbuffer.h>
 
@@ -43,6 +44,7 @@ const char* MSE_AUTHORS[] = {
   "CaiCai (247321453)"
 };
 
+<<<<<<< HEAD
 void AboutWindow::draw(DC& dc) {
   wxSize ws = GetClientSize();
   // draw background
@@ -54,6 +56,20 @@ void AboutWindow::draw(DC& dc) {
   // draw version info
   dc.SetFont(wxFont(9, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, _("Arial")));
   int x = 34, y = 110;
+=======
+void AboutWindow::draw(DC& dc) {
+  wxSize ws = GetClientSize();
+  // draw background
+  dc.SetPen  (*wxTRANSPARENT_PEN);
+  dc.SetBrush(theme_color(THEME_COLOR_BACKGROUND));
+  dc.DrawRectangle(0, 0, ws.GetWidth(), ws.GetHeight());
+  // draw logo
+  dc.DrawBitmap(logo,  (ws.GetWidth() -  logo.GetWidth()) / 2, 5);
+  dc.SetTextForeground(theme_color(THEME_COLOR_TEXT));
+  // draw version info
+  dc.SetFont(wxFont(9, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, _("Arial")));
+  int x = 34, y = 110;
+>>>>>>> aecfe9bc (Add theme manager and preference)
   dc.DrawText(_("Version: ") + app_version.toString() + version_suffix, x, y);
   y += 30;
   // license
@@ -208,7 +224,11 @@ void HoverButton::draw(DC& dc) {
   // clear background (for transparent button images)
   wxSize ws = GetClientSize();
   dc.SetPen(*wxTRANSPARENT_PEN);
-  dc.SetBrush(wxBrush(background.Alpha()>0 ? wxColour(background) : wxSystemSettings::GetColour(wxSYS_COLOUR_3DFACE)));
+  if (background.Alpha() > 0) {
+    dc.SetBrush(wxBrush(wxColour(background)));
+  } else {
+    dc.SetBrush(wxBrush(theme_color(THEME_COLOR_BACKGROUND)));
+  }
   dc.DrawRectangle(0, 0, ws.GetWidth(), ws.GetHeight());
   // draw button
   dc.DrawBitmap(*toDraw(), 0, 0, true);
