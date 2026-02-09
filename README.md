@@ -8,7 +8,7 @@ Documentation on https://mseverse.miraheze.org/wiki/Category:MSE_Documentation
 ## Dependencies
 
 The code depends on
- * wxWidgets >= 3.3.1 (default GUI backend)
+ * wxWidgets >= 3.0 (default GUI backend)
  * Qt6 Widgets (optional GUI backend via `-DUSE_QT6=ON`)
  * boost
  * hunspell
@@ -21,13 +21,14 @@ On windows, the program can be compiled with Visual Studio (recommended) or with
  * Download and install [vcpkg](https://github.com/microsoft/vcpkg)
  * Use vcpkg to install pkgconf, wxwidgets, boost, hunspell
  * For the Qt6 backend, also install Qt6 (for example `qtbase`)
+ * For the Qt6 backend, also install Qt6 (for example `qtbase`)
 
 ````
 .\vcpkg install pkgconf wxwidgets[fonts] boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator boost-json hunspell --triplet=x64-windows-static
 ````
 and/or
 ````
-.\vcpkg install pkgconf wxwidgets[fonts] boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator boost-json hunspell --triplet=x86-windows-static
+.\vcpkg install pkgconf wxwidgets boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator hunspell --triplet=x86-windows-static
 ````
 for Qt6 builds add:
 ````
@@ -40,6 +41,7 @@ then, regardless of your choice
 
  * Then just use "Open Folder" from inside visual studio to open the Magic Set Editor source code root folder.
  * Select the configuration that you want to build (probably release x64-windows-static).
+ * To build the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure settings in Visual Studio.
  * To build the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure settings in Visual Studio.
 
 ![configuration](https://github.com/haganbmj/MagicSetEditor2/blob/master/resource/readme/configuration.png)
@@ -89,7 +91,6 @@ cmake --build build
 sudo apt install g++
 sudo apt install libboost-dev libwxgtk3.0-gtk3-dev libhunspell-dev
 sudo apt install qt6-base-dev # only needed for the Qt6 backend
-sudo apt install libxcb-cursor0 # needed for Qt6 xcb platform plugin on some distros
 ```
 
 Then use cmake to build:
@@ -101,28 +102,13 @@ cmake --build .
 ```
 
 Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
+Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
 
 To build with the Qt6 backend instead of wxWidgets:
 
 ```
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON
-cmake --build build
-```
-
-If Qt6 is installed in a non-standard prefix, point CMake at the directory
-that contains `Qt6Config.cmake` (not the file itself), for example:
-
-```
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON -DQt6_DIR=/usr/lib64/cmake/Qt6
-cmake --build build
-```
-
-Alternatively, you can set `CMAKE_PREFIX_PATH` to your Qt6 install prefix so
-that CMake can locate `Qt6Config.cmake` automatically:
-
-```
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON -DCMAKE_PREFIX_PATH=/usr/lib64/qt6
-cmake --build build
+cmake -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON ..
+cmake --build .
 ```
 
 ## Building on FreeBSD
@@ -149,6 +135,7 @@ cmake --build .
 
 ```
 brew install boost wxwidgets hunspell cmake dylibbundler qt
+brew install boost wxwidgets hunspell cmake dylibbundler qt
 ```
 
  * Then use cmake to build:
@@ -160,6 +147,7 @@ cmake --build .
 ```
 
  Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
+ * For the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure step.
  * For the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure step.
  * Finally, copy the resources to a SharedSupport directory and run the executable:
 
