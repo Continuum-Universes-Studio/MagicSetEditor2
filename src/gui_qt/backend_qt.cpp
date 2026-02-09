@@ -4,104 +4,66 @@
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
 
-// ----------------------------------------------------------------------------- : Includes
+#include <gui/backend.hpp>
 
+#include <cli/cli_main.hpp>
+#include <cli/text_io_handler.hpp>
+#include <data/format/formats.hpp>
+#include <data/installer.hpp>
+#include <data/locale.hpp>
+#include <data/set.hpp>
+#include <data/settings.hpp>
+#include <gui_qt/windows.hpp>
 #include <util/prec.hpp>
 #include <util/io/package_manager.hpp>
 #include <util/spell_checker.hpp>
-#include <data/game.hpp>
-#include <data/set.hpp>
-#include <data/settings.hpp>
-#include <data/locale.hpp>
-#include <data/installer.hpp>
-#include <data/format/formats.hpp>
-#include <cli/cli_main.hpp>
-#include <cli/text_io_handler.hpp>
-#include <gui/welcome_window.hpp>
-#include <gui/update_checker.hpp>
-#include <gui/packages_window.hpp>
-#include <gui/set/window.hpp>
-#include <gui/symbol/window.hpp>
-#include <gui/thumbnail_thread.hpp>
-#include <wx/fs_inet.h>
-#include <wx/wfstream.h>
-#include <wx/txtstrm.h>
-#include <wx/socket.h>
+#include <wx/filename.h>
+#include <wx/filefn.h>
 
-#include "app_wx.hpp"
+#include <QApplication>
 
 ScriptValueP export_set(SetP const& set, vector<CardP> const& cards, ExportTemplateP const& exp, String const& outname);
 
-// ----------------------------------------------------------------------------- : Main function/class
+namespace gui {
 
-/// The application class for MSE.
-/** This class is used by wxWidgets as a kind of 'main function'
- */
-class MSEWxApp : public wxApp {
-public:
-  /// Do nothing. The command line parsing, etc. is done in OnRun
-  bool OnInit() override { return true; }
-  /// Main startup function of the program
-  /** Use OnRun instead of OnInit, so we can determine whether or not we need a main loop
-   *  Also, OnExit is always run.
-   */
-  int OnRun() override;
-  /// Actually start the GUI mainloop
-  int runGUI();
-  /// On exit: write the settings to the config file
-  int OnExit() override;
-  /// On exception: display error message
-  void HandleEvent(wxEvtHandler *handler, wxEventFunction func, wxEvent& event) const override;
-  /// Hack around some wxWidget idiocies
-  int FilterEvent(wxEvent& ev) override;
-  /// Fancier assert
-  #if defined(_MSC_VER) && defined(_DEBUG) && defined(_CRT_WIDE)
-    void OnAssert(const wxChar *file, int line, const wxChar *cond, const wxChar *msg) override;
-  #endif
-};
-
-IMPLEMENT_APP_NO_MAIN(MSEWxApp)
-
-// ----------------------------------------------------------------------------- : Checks
-
-void nag_about_ascii_version() {
-  #if !defined(UNICODE) && defined(__WXMSW__)
-    // windows 2000/XP/Vista/... users shouldn't use the 9x version
-    OSVERSIONINFO info;
-    info.dwOSVersionInfoSize = sizeof(info);
-    GetVersionEx(&info);
-    if (info.dwMajorVersion >= 5) {
-      queue_message(MESSAGE_WARNING,
-        _("This build of Magic Set Editor is intended for Windows 95/98/ME systems.\n")
-        _("It is recommended that you download the appropriate MSE version for your Windows version."));
-    }
-  #endif
+namespace {
+int run_gui(QApplication& app) {
+  return app.exec();
 }
 
-// ----------------------------------------------------------------------------- : Initialization
+void show_and_run(QApplication& app, QWidget* window) {
+  window->show();
+  run_gui(app);
+}
 
-int MSEWxApp::OnRun() {
-  try {
-    #ifdef __WXMSW__
-      SetAppName(_("Magic Set Editor"));
-    #else
-      // Platform friendly appname
-      SetAppName(_("magicseteditor"));
-    #endif
-    wxInitAllImageHandlers();
-    wxFileSystem::AddHandler(new wxInternetFSHandler); // needed for update checker
-    wxSocketBase::Initialize();
+QString toQString(const String& value) {
+  return QString::fromUtf8(value.ToUTF8());
+}
+
+struct ScopedCleanup {
+  ~ScopedCleanup() {
+    settings.write();
+    package_manager.destroy();
+    SpellChecker::destroyAll();
+  }
+};
+} // namespace
+
+class QtBackend final : public Backend {
+public:
+  int run(int argc, char** argv) override {
+    QApplication app(argc, argv);
+
     init_script_variables();
     init_file_formats();
     cli.init();
     package_manager.init();
     settings.read();
     the_locale = Locale::byName(settings.locale);
-    nag_about_ascii_version();
+    ScopedCleanup cleanup;
 
-    // interpret command line
-    {
-      // ingnore the --color argument, it is handled by cli.init()
+    try {
+      // interpret command line
       vector<String> args;
       for (int i = 1; i < argc; ++i) {
         args.push_back(argv[i]);
@@ -109,41 +71,28 @@ int MSEWxApp::OnRun() {
       }
       if (!args.empty()) {
         const String& arg = args[0];
-        // Find the extension
-        wxFileName f(arg.Mid(0,arg.find_last_not_of(_("\\/")) + 1));
+        wxFileName f(arg.Mid(0, arg.find_last_not_of(_("\\/")) + 1));
         if (f.GetExt() == _("mse-symbol")) {
-          // Show the symbol editor
-          Window* wnd = new SymbolWindow(nullptr, arg);
-          wnd->Show();
-          return runGUI();
+          auto* wnd = new gui_qt::SymbolWindow(toQString(arg));
+          show_and_run(app, wnd);
+          return EXIT_SUCCESS;
         } else if (f.GetExt() == _("mse-set") || f.GetExt() == _("mse") || f.GetExt() == _("set")) {
-          // Show the set window
-          Window* wnd = new SetWindow(nullptr, import_set(arg));
-          wnd->Show();
-          return runGUI();
+          auto* wnd = new gui_qt::SetWindow(toQString(arg));
+          show_and_run(app, wnd);
+          return EXIT_SUCCESS;
         } else if (f.GetExt() == _("mse-installer")) {
-          // Installer; install it
-          InstallType type = settings.install_type;
-          if (args.size() > 1) {
-            if (starts_with(args[1], _("--"))) {
-              parse_enum(String(args[1]).substr(2), type);
-            }
-          }
-          InstallerP installer = open_package<Installer>(argv[1]);
-          PackagesWindow wnd(nullptr, installer);
-          wnd.ShowModal();
+          gui_qt::PackagesWindow wnd(toQString(arg));
+          wnd.exec();
           return EXIT_SUCCESS;
         } else if (f.GetExt() == _("mse-script")) {
-          // Run a script file
           if (!run_script_file(arg)) return EXIT_FAILURE;
           if (cli.shown_errors()) return EXIT_FAILURE;
           return EXIT_SUCCESS;
         } else if (arg == _("--symbol-editor")) {
-          Window* wnd = new SymbolWindow(nullptr);
-          wnd->Show();
-          return runGUI();
+          auto* wnd = new gui_qt::SymbolWindow();
+          show_and_run(app, wnd);
+          return EXIT_SUCCESS;
         } else if (arg == _("--create-installer")) {
-          // create an installer
           Installer inst;
           FOR_EACH(arg, args) {
             if (!starts_with(arg, _("--"))) {
@@ -157,7 +106,6 @@ int MSEWxApp::OnRun() {
           }
           return EXIT_SUCCESS;
         } else if (arg == _("--help") || arg == _("-?")) {
-          // command line help
           cli << _("Magic Set Editor\n\n");
           cli << _("Usage: ") << BRIGHT << argv[0] << NORMAL << _(" [") << PARAM << _("OPTIONS") << NORMAL << _("]");
           cli << _("\n\n  no options");
@@ -211,13 +159,11 @@ int MSEWxApp::OnRun() {
           cli.flush();
           return EXIT_SUCCESS;
         } else if (arg == _("--version") || arg == _("-v") || arg == _("-V")) {
-          // dump version
           cli << _("Magic Set Editor\n");
           cli << _("Version ") << app_version.toString() << version_suffix << ENDL;
           cli.flush();
           return EXIT_SUCCESS;
         } else if (arg == _("--cli")) {
-          // command line interface
           SetP set;
           bool quiet = false;
           for (size_t i = 1; i < args.size(); ++i) {
@@ -232,7 +178,7 @@ int MSEWxApp::OnRun() {
               cli.enableRaw();
             }
           }
-          CLISetInterface cli_interface(set,quiet);
+          CLISetInterface cli_interface(set, quiet);
           return EXIT_SUCCESS;
         } else if (arg == _("--export-images")) {
           if (args.size() < 2) {
@@ -240,7 +186,6 @@ int MSEWxApp::OnRun() {
             return EXIT_FAILURE;
           }
           SetP set = import_set(args[1]);
-          // path
           String out = args.size() >= 3 && !starts_with(args[2], _("--"))
             ? args[2]
             : settings.gameSettingsFor(*set->game).images_export_filename;
@@ -252,7 +197,6 @@ int MSEWxApp::OnRun() {
             path += _("/x");
             out = out.substr(pos + 1);
           }
-          // export
           export_images(set, set->cards, path, out, CONFLICT_NUMBER_OVERWRITE);
           return EXIT_SUCCESS;
         } else if (args[0] == _("--export")) {
@@ -274,65 +218,18 @@ int MSEWxApp::OnRun() {
           handle_error(_("Invalid command line argument:\n") + arg);
         }
       }
-    }
 
-    // no command line arguments, or error, show welcome window
-    (new WelcomeWindow())->Show();
-    return runGUI();
-
-  } CATCH_ALL_ERRORS(true);
-  cli.print_pending_errors();
-  return EXIT_FAILURE;
-}
-
-int MSEWxApp::runGUI() {
-  //check_updates(); // FIXME: Disable update checking on startup. Likely want to either replace the Update Checker or remove it entirely.
-  return wxApp::OnRun();
-}
-
-// ----------------------------------------------------------------------------- : Exit
-
-int MSEWxApp::OnExit() {
-  thumbnail_thread.abortAll();
-  settings.write();
-  package_manager.destroy();
-  SpellChecker::destroyAll();
-  return 0;
-}
-
-// ----------------------------------------------------------------------------- : Exception handling
-
-void MSEWxApp::HandleEvent(wxEvtHandler *handler, wxEventFunction func, wxEvent& event) const {
-  try {
-    wxApp::HandleEvent(handler, func, event);
-  } CATCH_ALL_ERRORS(true);
-}
-
-#if defined(_MSC_VER) && defined(_DEBUG) && defined(_CRT_WIDE)
-  // Print assert failures to debug output
-  void MSEWxApp::OnAssert(const wxChar *file, int line, const wxChar *cond, const wxChar *msg) {
-    #ifdef UNICODE
-      msvc_assert(msg, cond, file, line);
-    #else
-      wchar_t file_[1024]; mbstowcs(file_,file,1023);
-      wchar_t cond_[1024]; mbstowcs(cond_,cond,1023);
-      wchar_t msg_ [1024]; mbstowcs(msg_, msg, 1023);
-      msvc_assert(msg_, cond_, file_, line);
-    #endif
+      auto* wnd = new gui_qt::WelcomeWindow();
+      show_and_run(app, wnd);
+      return EXIT_SUCCESS;
+    } CATCH_ALL_ERRORS(true);
+    cli.print_pending_errors();
+    return EXIT_FAILURE;
   }
-#endif
+};
 
-// ----------------------------------------------------------------------------- : Events
-
-int MSEWxApp::FilterEvent(wxEvent& ev) {
-  /*if (ev.GetEventType() == wxEVT_MOUSE_CAPTURE_LOST) {
-    return 1;
-  } else {
-    return -1;
-  }*/
-  return -1;
+std::unique_ptr<Backend> createBackend() {
+  return std::make_unique<QtBackend>();
 }
 
-int run_wx_app(int argc, char** argv) {
-  return wxEntry(argc, argv);
-}
+} // namespace gui
