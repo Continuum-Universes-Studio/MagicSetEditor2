@@ -80,7 +80,7 @@ public:
   /** name+"_normal", name+"_hover", name+"_focus", name+"_down"
    *  are the resource names of the images used.
    */
-  HoverButton(Window* parent, int id, const String& name, const Color& background = settings.darkModeColor(), bool accepts_focus = true);
+  HoverButton(Window* parent, int id, const String& name, const Color& background = Color(), bool accepts_focus = true);
   
   /// Load different bitmaps for this button
   void loadBitmaps(const String& name);

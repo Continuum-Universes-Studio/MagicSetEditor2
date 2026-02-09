@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make card games                |
+//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -78,7 +78,7 @@ void NewSetWindow::onGameSelect(wxCommandEvent&) {
   GameP game = game_list->getSelection<Game>(false);
   //handle_pending_errors(); // errors are ignored until set window is shown
   settings.default_game = game->name();
-  stylesheet_list->showData<StyleSheet>(game->name() + _("*"));
+  stylesheet_list->showData<StyleSheet>(game->name() + _("-*"));
   stylesheet_list->select(settings.gameSettingsFor(*game).default_stylesheet);
   UpdateWindowUI(wxUPDATE_UI_RECURSE);
   // resize (yuck)
@@ -168,11 +168,6 @@ END_EVENT_TABLE  ()
 // ----------------------------------------------------------------------------- : SelectStyleSheetWindow
 
 
-StyleSheetP select_stylesheet(const Game& game, const String& failed_name) {
-  SelectStyleSheetWindow wnd(nullptr, game, failed_name);
-  wnd.ShowModal();
-  return wnd.stylesheet;
-}
 
 SelectStyleSheetWindow::SelectStyleSheetWindow(Window* parent, const Game& game, const String& failed_name)
   : wxDialog(parent, wxID_ANY, _TITLE_("select stylesheet"), wxDefaultPosition, wxSize(830,320), wxDEFAULT_DIALOG_STYLE)

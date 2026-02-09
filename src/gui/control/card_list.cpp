@@ -20,6 +20,7 @@
 #include <data/game.hpp>
 #include <data/field.hpp>
 #include <data/field/choice.hpp>
+#include <data/field/text.hpp>
 #include <data/set.hpp>
 #include <data/card.hpp>
 #include <data/settings.hpp>
@@ -33,6 +34,7 @@
 #include <wx/clipbrd.h>
 #include <wx/webrequest.h>
 #include <wx/wfstream.h>
+#include <wx/tokenzr.h>
 #include <unordered_set>
 #include <fstream>
 
@@ -150,11 +152,79 @@ void CardListBase::getSelection(vector<CardP>& out) const {
 
 bool CardListBase::canCut()   const { return canDelete(); }
 bool CardListBase::canCopy()  const { return focusCount() > 0; }
+bool CardListBase::canPasteCards() const {
+  return allowModify() && clipboard_is_supported(CardsDataObject::format);
+}
 bool CardListBase::canPaste() const {
-  return allowModify();
+  if (!allowModify()) return false;
+  return canPasteCards()
+      || clipboard_is_supported(wxDF_TEXT)
+      || clipboard_is_supported(wxDF_UNICODETEXT);
 }
 bool CardListBase::canDelete() const {
   return allowModify() && focusCount() > 0; // TODO: check for selection?
+}
+
+static bool setCardNameFromText(const CardP& card, const String& name) {
+  FOR_EACH(v, card->data) {
+    if (v->fieldP->identifying) {
+      if (auto text_value = dynamic_cast<TextValue*>(v.get())) {
+        text_value->value = name;
+        return true;
+      }
+    }
+  }
+  FOR_EACH(v, card->data) {
+    if (auto text_value = dynamic_cast<TextValue*>(v.get())) {
+      text_value->value = name;
+      return true;
+    }
+  }
+  return false;
+}
+
+static void appendCardsFromText(const SetP& set, const String& text, vector<CardP>& out) {
+  wxStringTokenizer lines(text, _("\r\n"), wxTOKEN_STRTOK);
+  while (lines.HasMoreTokens()) {
+    String line = lines.GetNextToken();
+    line.Trim(true);
+    line.Trim(false);
+    if (line.empty()) continue;
+
+    size_t pos = 0;
+    while (pos < line.size() && wxIsspace(line[pos])) pos++;
+    size_t digits_start = pos;
+    while (pos < line.size() && wxIsdigit(line[pos])) pos++;
+
+    long count = 1;
+    String name = line;
+    if (pos > digits_start) {
+      String number = line.Mid(digits_start, pos - digits_start);
+      long parsed = 0;
+      if (number.ToLong(&parsed) && parsed > 0) {
+        size_t after = pos;
+        while (after < line.size() && wxIsspace(line[after])) after++;
+        if (after < line.size() && (line[after] == 'x' || line[after] == 'X')) {
+          after++;
+          while (after < line.size() && wxIsspace(line[after])) after++;
+        }
+        if (after < line.size()) {
+          name = line.Mid(after);
+          name.Trim(true);
+          name.Trim(false);
+          if (!name.empty()) {
+            count = parsed;
+          }
+        }
+      }
+    }
+
+    for (long i = 0; i < count; ++i) {
+      CardP card = make_intrusive<Card>(*set->game);
+      setCardNameFromText(card, name);
+      out.push_back(card);
+    }
+  }
 }
 
 bool CardListBase::doCopy() {
@@ -197,12 +267,23 @@ bool CardListBase::doCopyCardAndLinkedCards() {
 }
 
 bool CardListBase::doPaste() {
-  if (!canPaste()) return false;
+  if (!allowModify()) return false;
   if (!wxTheClipboard->Open()) return false;
   bool ok = wxTheClipboard->GetData(*drop_target->data_object);
+  String text;
+  if (wxTheClipboard->IsSupported(wxDF_TEXT) || wxTheClipboard->IsSupported(wxDF_UNICODETEXT)) {
+    wxTextDataObject data;
+    if (wxTheClipboard->GetData(data)) {
+      text = data.GetText();
+    }
+  }
   wxTheClipboard->Close();
-  if (ok) return parseData(false);
-  return false;
+  if (ok && parseData(false)) return true;
+  vector<CardP> new_cards;
+  appendCardsFromText(set, text, new_cards);
+  if (new_cards.empty()) return false;
+  set->actions.addAction(make_unique<AddCardAction>(ADD, *set, new_cards));
+  return true;
 }
 
 bool CardListBase::doDelete() {
@@ -688,19 +769,55 @@ void CardListBase::onDrag(wxMouseEvent& ev) {
   }
 }
 
-void CardListBase::onContextMenu(wxContextMenuEvent&) {
+void CardListBase::showContextMenu(const wxPoint& pos) {
   if (allowModify()) {
     wxMenu m;
     add_menu_item_tr(&m, ID_EDIT_CUT, settings.darkModePrefix() + "cut", "cut_card");
     add_menu_item_tr(&m, ID_EDIT_COPY, "copy", "copy_card");
     add_menu_item_tr(&m, ID_CARD_AND_LINK_COPY, "card_copy", "copy card and links");
     add_menu_item_tr(&m, ID_EDIT_PASTE, "paste", "paste_card");
+    m.Enable(ID_EDIT_CUT,   canCut());
+    m.Enable(ID_EDIT_COPY,  canCopy());
+    m.Enable(ID_EDIT_PASTE, canPaste());
     m.AppendSeparator();
     add_menu_item_tr(&m, ID_CARD_ADD, "card_add", "add card");
     add_menu_item_tr(&m, ID_CARD_REMOVE, "card_del", "remove card");
     add_menu_item_tr(&m, ID_CARD_LINK, settings.darkModePrefix() + "card_link", "link card");
-    PopupMenu(&m);
+    if (pos == wxDefaultPosition) {
+      PopupMenu(&m);
+    } else {
+      PopupMenu(&m, pos);
+    }
   }
+}
+
+void CardListBase::onContextMenu(wxContextMenuEvent& ev) {
+#ifdef __WXGTK__
+  if (ev.GetPosition() != wxDefaultPosition) {
+    return;
+  }
+#endif
+  showContextMenu(wxDefaultPosition);
+}
+
+void CardListBase::onRightUp(wxMouseEvent& ev) {
+#ifdef __WXGTK__
+  showContextMenu(ev.GetPosition());
+#else
+  ev.Skip();
+#endif
+}
+
+void CardListBase::onCut(wxCommandEvent&) {
+  doCut();
+}
+
+void CardListBase::onCopy(wxCommandEvent&) {
+  doCopy();
+}
+
+void CardListBase::onPaste(wxCommandEvent&) {
+  doPaste();
 }
 
 void CardListBase::onItemActivate(wxListEvent& ev) {
@@ -739,6 +856,10 @@ BEGIN_EVENT_TABLE(CardListBase, ItemList)
   EVT_TIMER                (ID_DROP_TIMER,     CardListBase::OnDragTimer)
   EVT_CHAR                 (                   CardListBase::onChar)
   EVT_MOTION               (                   CardListBase::onDrag)
+  EVT_RIGHT_UP             (                   CardListBase::onRightUp)
+  EVT_MENU                 (ID_EDIT_CUT,       CardListBase::onCut)
+  EVT_MENU                 (ID_EDIT_COPY,      CardListBase::onCopy)
+  EVT_MENU                 (ID_EDIT_PASTE,     CardListBase::onPaste)
   EVT_MENU                 (ID_SELECT_COLUMNS, CardListBase::onSelectColumns)
   EVT_CONTEXT_MENU         (                   CardListBase::onContextMenu)
 END_EVENT_TABLE  ()

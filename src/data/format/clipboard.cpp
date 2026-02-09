@@ -18,6 +18,7 @@
 #include <script/scriptable.hpp>
 #include <wx/filename.h>
 #include <wx/sstream.h>
+#include <cstring>
 
 // ----------------------------------------------------------------------------- : Clipboard serialization
 
@@ -39,6 +40,41 @@ void deserialize_from_clipboard(T& object, Package& package, const String& data)
     reader.handle_greedy(object);
 }
 
+// ----------------------------------------------------------------------------- : SerializedClipboardDataObject
+
+SerializedClipboardDataObject::SerializedClipboardDataObject(const wxDataFormat& format)
+  : wxDataObjectSimple(format)
+{}
+
+void SerializedClipboardDataObject::SetText(const String& text) {
+  this->text = text;
+}
+
+const String& SerializedClipboardDataObject::GetText() const {
+  return text;
+}
+
+size_t SerializedClipboardDataObject::GetDataSize() const {
+  wxCharBuffer buffer = text.utf8_str();
+  return strlen(buffer.data()) + 1;
+}
+
+bool SerializedClipboardDataObject::GetDataHere(void* buf) const {
+  wxCharBuffer buffer = text.utf8_str();
+  memcpy(buf, buffer.data(), strlen(buffer.data()) + 1);
+  return true;
+}
+
+bool SerializedClipboardDataObject::SetData(size_t len, const void* buf) {
+  if (!buf) return false;
+  const char* data = static_cast<const char*>(buf);
+  if (len > 0 && data[len - 1] == '\0') {
+    --len;
+  }
+  text = String::FromUTF8(data, len);
+  return true;
+}
+
 // ----------------------------------------------------------------------------- : CardDataObject
 
 /// A wrapped cards for storing on the clipboard
@@ -47,7 +83,7 @@ struct WrappedCards {
   String        game_name;
   String        id;
   vector<CardP> cards;
-  
+
   DECLARE_REFLECTION();
 };
 
@@ -60,11 +96,11 @@ IMPLEMENT_REFLECTION(WrappedCards) {
   }
 }
 
+wxDataFormat CardsDataObject::format = _("application/x-mse-cards");
 
-wxDataFormat CardsDataObject::format(_("application/x-mse-cards"));
-
-CardsDataObject::CardsDataObject(const SetP& set, const String id, const vector<CardP>& cards) {
-  // set the stylesheet, so when deserializing we know whos style options we are reading
+CardsDataObject::CardsDataObject(const SetP& set, const String id, const vector<CardP>& cards)
+  : SerializedClipboardDataObject(format)
+{
   vector<bool> has_styling;
   for (size_t i = 0 ; i < cards.size() ; ++i) {
     has_styling.push_back(cards[i]->has_styling && !cards[i]->stylesheet);
@@ -74,18 +110,16 @@ CardsDataObject::CardsDataObject(const SetP& set, const String id, const vector<
   }
   WrappedCards data = { set->game.get(), set->game->name(), id, cards };
   SetText(serialize_for_clipboard(*set, data));
-  // restore cards
   for (size_t i = 0 ; i < cards.size() ; ++i) {
     if (has_styling[i]) {
       cards[i]->stylesheet = StyleSheetP();
     }
   }
-  SetFormat(format);
 }
 
-CardsDataObject::CardsDataObject() {
-  SetFormat(format);
-}
+CardsDataObject::CardsDataObject()
+  : SerializedClipboardDataObject(format)
+{}
 
 bool CardsDataObject::getCards(const SetP& set, const String id, vector<CardP>& out) {
   WrappedCards data = { set->game.get(), set->game->name() };
@@ -93,7 +127,6 @@ bool CardsDataObject::getCards(const SetP& set, const String id, vector<CardP>& 
   if (data.cards.empty()) return false;
   if (!id.empty() && data.id == id) return false;
   if (data.game_name == set->game->name()) {
-    // Cards are from the same game
     out = data.cards;
     return true;
   } else {
@@ -108,7 +141,7 @@ struct WrappedKeyword {
   Game*    expected_game;
   String   game_name;
   KeywordP keyword;
-  
+
   DECLARE_REFLECTION();
 };
 
@@ -120,48 +153,61 @@ IMPLEMENT_REFLECTION(WrappedKeyword) {
   }
 }
 
+wxDataFormat KeywordDataObject::format = _("application/x-mse-keyword");
 
-wxDataFormat KeywordDataObject::format(_("application/x-mse-keyword"));
-
-KeywordDataObject::KeywordDataObject(const SetP& set, const KeywordP& keyword) {
+KeywordDataObject::KeywordDataObject(const SetP& set, const KeywordP& keyword)
+  : SerializedClipboardDataObject(format)
+{
   WrappedKeyword data = { set->game.get(), set->game->name(), keyword };
   SetText(serialize_for_clipboard(*set, data));
-  SetFormat(format);
 }
 
-KeywordDataObject::KeywordDataObject() {
-  SetFormat(format);
-}
+KeywordDataObject::KeywordDataObject()
+  : SerializedClipboardDataObject(format)
+{}
 
 KeywordP KeywordDataObject::getKeyword(const SetP& set) {
   KeywordP keyword(new Keyword());
   WrappedKeyword data = { set->game.get(), set->game->name(), keyword};
   deserialize_from_clipboard(data, *set, GetText());
-  if (data.game_name != set->game->name()) return KeywordP(); // Keyword is from a different game
+  if (data.game_name != set->game->name()) return KeywordP();
   else                                     return keyword;
 }
 
 // ----------------------------------------------------------------------------- : Card on clipboard
 
 CardsOnClipboard::CardsOnClipboard(const SetP& set, const String id, const vector<CardP>& cards) {
-  // Conversion to image file
-  if (cards.size() < 6) {
+  // Keep the native MSE card format preferred so copy/paste inside MSE
+  // preserves all card data and carries the drag transaction id.
+  Add(new CardsDataObject(set, id, cards), true);
+
+  if (!cards.empty()) {
+    String text;
+    for (size_t i = 0; i < cards.size(); ++i) {
+      if (i > 0) text += _("\n");
+      text += cards[i]->identification();
+    }
+    Add(new wxTextDataObject(text));
+  }
+
+  if (cards.size() == 1) {
+    Add(new wxBitmapDataObject(export_bitmap(set, cards[0])));
+  }
+
+  if (cards.size() > 0 && cards.size() < 6) {
     Image img;
     if (cards.size() == 1) {
       img = export_image(set, cards[0]);
-    }
-    else {
+    } else {
       img = export_image(set, cards);
     }
     String temp_path = wxFileName::CreateTempFileName(_("mse")) + _(".png");
     img.SaveFile(temp_path, wxBITMAP_TYPE_PNG);
-    wxFileDataObject* fileData = new wxFileDataObject();
-    fileData->AddFile(temp_path);
-    Add(fileData);
-    wxImageDataObject* imgData = new wxImageDataObject();
-    imgData->SetImage(img);
-    Add(imgData);
+    wxFileDataObject* file_data = new wxFileDataObject();
+    file_data->AddFile(temp_path);
+    Add(file_data);
+    wxImageDataObject* image_data = new wxImageDataObject();
+    image_data->SetImage(img);
+    Add(image_data);
   }
-  // Conversion to serialized card format
-  Add(new CardsDataObject(set, id, cards), true);
 }

@@ -16,12 +16,12 @@
 #include <data/word_list.hpp>
 #include <util/reflect.hpp>
 #include <util/platform.hpp>
+#include <util/application_paths.hpp>
 #include <util/io/reader.hpp>
 #include <util/io/writer.hpp>
 #include <util/delayed_index_maps.hpp>
 #include <wx/filename.h>
 #include <wx/wfstream.h>
-#include <wx/stdpaths.h>
 
 // ----------------------------------------------------------------------------- : Extra types
 
@@ -39,7 +39,7 @@ IMPLEMENT_REFLECTION_ENUM(CheckUpdatesTargets) {
 }
 
 IMPLEMENT_REFLECTION_ENUM(InstallType) {
-  VALUE_N("default", INSTALL_DEFAULT); //default
+  VALUE_N("default", INSTALL_DEFAULT); // default
   VALUE_N("local",   INSTALL_LOCAL);
   VALUE_N("global",  INSTALL_GLOBAL);
 }
@@ -51,6 +51,12 @@ bool is_install_local(InstallType type) {
     #define DEFAULT_INSTALL_LOCAL true
   #endif
   return type == INSTALL_DEFAULT ? DEFAULT_INSTALL_LOCAL : type == INSTALL_LOCAL;
+}
+
+IMPLEMENT_REFLECTION_ENUM(ThemePreference) {
+  VALUE_N("system", THEME_SYSTEM); // default
+  VALUE_N("light",  THEME_LIGHT);
+  VALUE_N("dark",   THEME_DARK);
 }
 
 IMPLEMENT_REFLECTION_ENUM(FilenameConflicts) {
@@ -201,6 +207,7 @@ Settings::Settings()
   , set_window_height        (300)
   , card_notes_height        (40)
   , open_sets_in_new_window  (true)
+  , theme_preference         (THEME_SYSTEM)
   , symbol_grid_size         (30)
   , symbol_grid              (true)
   , symbol_grid_snap         (false)
@@ -301,7 +308,7 @@ IndexMap<FieldP,ValueP>& Settings::exportOptionsFor(const ExportTemplate& export
 
 /// Retrieve the directory to use for settings and other data files
 String user_settings_dir() {
-  String dir = wxStandardPaths::Get().GetUserDataDir();
+  String dir = app_user_data_dir();
   if (!wxDirExists(dir)) wxMkdir(dir);
   return dir + _("/");
 }
@@ -337,6 +344,7 @@ IMPLEMENT_REFLECTION_NO_SCRIPT(Settings) {
   REFLECT(set_window_height);
   REFLECT(card_notes_height);
   REFLECT(open_sets_in_new_window);
+  REFLECT(theme_preference);
   REFLECT(symbol_grid_size);
   REFLECT(symbol_grid);
   REFLECT(symbol_grid_snap);
