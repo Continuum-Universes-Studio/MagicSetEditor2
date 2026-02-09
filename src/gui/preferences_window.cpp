@@ -9,6 +9,7 @@
 #include <util/prec.hpp>
 #include <gui/preferences_window.hpp>
 #include <gui/update_checker.hpp>
+#include <gui/theme.hpp>
 #include <data/settings.hpp>
 #include <util/window_id.hpp>
 #include <util/io/package_manager.hpp>
@@ -41,6 +42,7 @@ public:
 private:
   wxComboBox* language;
   wxCheckBox* open_sets_in_new_window;
+  wxChoice* theme_choice;
 };
 
 // Preferences page for card viewing related settings
@@ -145,6 +147,7 @@ void PreferencesWindow::onOk(wxCommandEvent&) {
   for (size_t i = 0 ; i < count ; ++i) {
     static_cast<PreferencesPage*>(nb->GetPage(i))->store();
   }
+  apply_theme_to_all_windows();
   // close
   EndModal(wxID_OK);
 }
@@ -166,6 +169,7 @@ GlobalPreferencesPage::GlobalPreferencesPage(Window* parent)
   // init controls
   language = new wxComboBox(this, wxID_ANY, _(""), wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
   open_sets_in_new_window = new wxCheckBox(this, wxID_ANY, _BUTTON_("open sets in new window"));
+  theme_choice = new wxChoice(this, wxID_ANY);
   // set values
   vector<PackagedP> locales;
   package_manager.findMatching(_("*.mse-locale"), locales);
@@ -179,6 +183,10 @@ GlobalPreferencesPage::GlobalPreferencesPage(Window* parent)
     n++;
   }
   open_sets_in_new_window->SetValue(settings.open_sets_in_new_window);
+  theme_choice->Append(_LABEL_("theme system"));
+  theme_choice->Append(_LABEL_("theme light"));
+  theme_choice->Append(_LABEL_("theme dark"));
+  theme_choice->SetSelection(settings.theme_preference);
   // init sizer
   wxSizer* s = new wxBoxSizer(wxVERTICAL);
   s->SetSizeHints(this);
@@ -189,6 +197,11 @@ GlobalPreferencesPage::GlobalPreferencesPage(Window* parent)
     s->Add(s2, 0, wxEXPAND | wxALL, 8);
     wxSizer* s3 = new wxStaticBoxSizer(wxVERTICAL, this, _LABEL_("windows"));
       s3->Add(open_sets_in_new_window, 0, wxALL, 4);
+      wxSizer* s4 = new wxBoxSizer(wxHORIZONTAL);
+        s4->Add(new wxStaticText(this, wxID_ANY, _LABEL_("theme")), 0, wxALL & ~wxLEFT, 4);
+        s4->AddSpacer(2);
+        s4->Add(theme_choice, 0, wxEXPAND);
+      s3->Add(s4, 0, wxEXPAND | wxALL, 4);
     s->Add(s3, 0, wxEXPAND | (wxALL & ~wxTOP), 8);
   SetSizer(s);
 }
@@ -202,6 +215,10 @@ void GlobalPreferencesPage::store() {
   // set the_locale?
   // open_sets_in_new_window
   settings.open_sets_in_new_window = open_sets_in_new_window->GetValue();
+  int selection = theme_choice->GetSelection();
+  if      (selection == 1) settings.theme_preference = THEME_LIGHT;
+  else if (selection == 2) settings.theme_preference = THEME_DARK;
+  else                     settings.theme_preference = THEME_SYSTEM;
 }
 
 // ----------------------------------------------------------------------------- : Preferences page : display
