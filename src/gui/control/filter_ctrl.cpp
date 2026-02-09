@@ -10,6 +10,7 @@
 #include <gui/control/filter_ctrl.hpp>
 #include <gui/about_window.hpp> // for HoverButton
 #include <gui/drop_down_list.hpp>
+#include <gui/theme.hpp>
 
 // ----------------------------------------------------------------------------- : DropDownMRUList
 
@@ -38,10 +39,9 @@ FilterCtrl::FilterCtrl(wxWindow* parent, int id, String const& placeholder, Stri
   , placeholder(placeholder)
   , help_text(help_text)
 {
-  wxColour bg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
   #if !defined(__WXGTK__)
     // Note: in wxGTK, it is not possible to add child windows to standard controls
-    clear_button = new HoverButton(this, wxID_ANY, _("btn_clear_filter"), bg, false);
+    clear_button = new HoverButton(this, wxID_ANY, _("btn_clear_filter"), Color(), false);
     clear_button->SetCursor(*wxSTANDARD_CURSOR);
   #endif
   onSize();
@@ -72,15 +72,16 @@ void FilterCtrl::update() {
   changing = true;
   if (!value.empty() || hasFocus()) {
     SetValue(value);
-    wxColour fg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+    wxColour fg = theme_color(THEME_COLOR_TEXT);
     SetDefaultStyle(wxTextAttr(fg));
     SetForegroundColour(fg);
     wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
     SetFont(font);
   } else {
     SetValue(placeholder);
-    wxColour fg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
-    wxColour bg = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
+    ThemePalette palette = theme_palette();
+    wxColour fg = palette.text;
+    wxColour bg = palette.background;
     SetDefaultStyle(wxTextAttr(lerp(fg,bg,0.5)));
     SetForegroundColour(lerp(fg,bg,0.5));
     wxFont font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
