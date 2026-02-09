@@ -4,36 +4,31 @@ Magic Set Editor, or MSE for short, is a program with which you can design your 
 
 More information on https://magicseteditor.boards.net/
 
-Documentation on https://mseverse.miraheze.org/wiki/Category:MSE_Documentation
-
-
 ## Dependencies
 
 The code depends on
- * wxWidgets >= 3.3.1
+ * wxWidgets >= 3.0 (default GUI backend)
  * Qt6 Widgets (optional GUI backend via `-DUSE_QT6=ON`)
  * boost
  * hunspell
 
-
 ## Building on Windows with Visual Studio
 
 On windows, the program can be compiled with Visual Studio (recommended) or with mingw-gcc.
- * Visual Studio instructions up-to-date as of April 2024
+ * VS instructions up-to-date as of April 2024
  * Download and install [Visual Studio Community Edition](https://visualstudio.microsoft.com/vs/community/)
  * Download and install [vcpkg](https://github.com/microsoft/vcpkg)
- * Use vcpkg to install pkgconf, wxwidgets, boost, hunspell:
+ * Use vcpkg to install pkgconf, wxwidgets, boost, hunspell
  * For the Qt6 backend, also install Qt6 (for example `qtbase`)
 
+=======
 ````
-.\vcpkg install pkgconf wxwidgets[fonts] boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator boost-json hunspell --triplet=x64-windows-static
+.\vcpkg install pkgconf wxwidgets boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator hunspell --triplet=x64-windows-static
 ````
 and/or
 ````
-.\vcpkg install pkgconf wxwidgets[fonts] boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator boost-json hunspell --triplet=x86-windows-static
+.\vcpkg install pkgconf wxwidgets boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator hunspell --triplet=x86-windows-static
 ````
-(these two lines differ only by the triplet at the end. Use x64 for 64 bit operating systems, and x86 for 32 bit.)
-
 for Qt6 builds add:
 ````
 .\vcpkg install qtbase --triplet=x64-windows-static
@@ -43,22 +38,24 @@ then, regardless of your choice
 .\vcpkg integrate install
 ````
 
- * Inside Visual Studio go to File menu > Open > Folder... > select the Magic Set Editor source code root folder.
- * Select the configuration that you want to build (probably release x64-windows-static). Make sure you have installed all the packages with the corresponding triplet.
+ * Then just use "Open Folder" from inside visual studio to open the Magic Set Editor source code root folder.
+ * Select the configuration that you want to build (probably release x64-windows-static).
  * To build the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure settings in Visual Studio.
 
-![configuration](https://github.com/G-e-n-e-v-e-n-s-i-S/MagicSetEditor2/blob/main/resource/readme/configuration.png)
+![configuration](https://github.com/haganbmj/MagicSetEditor2/blob/master/resource/readme/configuration.png)
 
- * Just to the right of that, select magicseteditor.exe. (These options sometimes get de-selected. If you suddenly can't build anymore, make sure to re-select these.)
  * To build the app go to Build menu > build magicseteditor.exe
 
 Notes:
  * You will most likely get a message about being unable to open hunspell-1.7.lib because pkgconf forgets to add the actual path to HUNSPELL_LIBRARIES. If so, uncomment the noted line in CMakeLists.txt (line 31) and point it to the root vcpkg installation to find the correct hunspell-1.7.lib file.
 
-![hunspell](https://github.com/G-e-n-e-v-e-n-s-i-S/MagicSetEditor2/blob/main/resource/readme/hunspell.png)
-
- * For running tests you will also need to download and install perl (For example [Strawberry perl](http://strawberryperl.com/) or using [MSYS2](https://www.msys2.org/)). The tests can be run from inside visual studio
-
+ * You may need to work around [this bug](https://github.com/microsoft/vcpkg/issues/4756) by replacing `$VCPATH\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.16\Modules\FindwxWidgets.cmake` with the file from  https://github.com/CaeruleusAqua/vcpkg-wx-find (`$VCPATH` is usually `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7`)
+ * vcpkg by default installs 32 bit versions of libraries, use `vcpkg install PACKAGENAME --triplet=x64-windows` if you want to enable a 64 bit build.
+ * Similarly, to use a static build, use `vcpkg install PACKAGENAME --triplet=x32-windows` or `vcpkg install PACKAGENAME -triplet=x64-windows-static`.
+ 
+For running tests you will also need to
+ * Download and install perl (For example [Strawberry perl](http://strawberryperl.com/) or using [MSYS2](https://www.msys2.org/))
+The tests can be run from inside visual studio
 
 ## Building on Windows with GCC (MSYS2)
 
@@ -83,21 +80,15 @@ cmake --build build
 
  Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
 
-## Building on Linux / FreeBSD
+## Building on Linux
 
- * Install the dependencies:
+ * Install the dependencies; for example, on a Debian-based system:
 
 ```
-# debian 12+ / ubuntu 24.04+
-sudo apt install libboost-dev libboost-regex-dev libwxgtk3.2-dev libhunspell-dev qt6-base-dev cmake
-# debian 11 / ubuntu 22.04
-sudo apt install libboost-dev libboost-regex-dev libwxgtk3.0-gtk3-dev libhunspell-dev qt6-base-dev cmake
-# fedora / centos
-sudo dnf install boost-devel wxGTK-devel qt6-qtbase-devel hunspell-devel git cmake
-# archlinux / manjaro
-sudo pacman -Syu wxgtk3 qt6-base hunspell boost git cmake
-# freebsd
-sudo pkg install hunspell cmake wx30-gtk3 qt6-base boost-all
+sudo apt install g++
+sudo apt install libboost-dev libwxgtk3.0-gtk3-dev libhunspell-dev
+sudo apt install qt6-base-dev # only needed for the Qt6 backend
+sudo apt install libxcb-cursor0 # needed for Qt6 xcb platform plugin on some distros
 ```
 
 Then use cmake to build:
@@ -108,7 +99,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
 
- Use `-CMAKE_BUILD_TYPE=Debug` for a debug build.
+Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
 
 To build with the Qt6 backend instead of wxWidgets:
 
@@ -133,13 +124,23 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON -DCMAKE_PREFIX_PATH=
 cmake --build build
 ```
 
-### wx-config can't be found
-On old versions it's possible that cmake can't find wx-config, to solve this add the tool to the cmake command manually like this: `-DwxWidgets_CONFIG_EXECUTABLE=/usr/bin/wx-config-gtk3`
+## Building on FreeBSD
 
-### Installing resources
-Install the resource folder to the .magicseteditor dir: `mkdir -p $HOME/.magicseteditor && cp -rT ./resource $HOME/.magicseteditor/resource`
-Templates are installed to `~/.magicseteditor/data`. Fonts are installed to `~/.local/share/fonts`.
+ * Install the dependencies:
 
+```
+sudo pkg install hunspell cmake wx30-gtk3 boost-all
+```
+
+Then use cmake to build:
+
+```
+mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+cmake --build .
+```
+
+ Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
 
 ## Building on Mac OS
 
