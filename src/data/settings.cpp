@@ -16,12 +16,12 @@
 #include <data/word_list.hpp>
 #include <util/reflect.hpp>
 #include <util/platform.hpp>
+#include <util/application_paths.hpp>
 #include <util/io/reader.hpp>
 #include <util/io/writer.hpp>
 #include <util/delayed_index_maps.hpp>
 #include <wx/filename.h>
 #include <wx/wfstream.h>
-#include <wx/stdpaths.h>
 
 // ----------------------------------------------------------------------------- : Extra types
 
@@ -245,7 +245,7 @@ IndexMap<FieldP,ValueP>& Settings::exportOptionsFor(const ExportTemplate& export
 
 /// Retrieve the directory to use for settings and other data files
 String user_settings_dir() {
-  String dir = wxStandardPaths::Get().GetUserDataDir();
+  String dir = app_user_data_dir();
   if (!wxDirExists(dir)) wxMkdir(dir);
   return dir + _("/");
 }
