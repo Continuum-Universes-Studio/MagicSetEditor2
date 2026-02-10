@@ -69,6 +69,7 @@ file(GLOB_RECURSE core_common_sources CONFIGURE_DEPENDS
   src/render/*.cpp
   src/script/*.cpp
   src/util/*.cpp
+  src/gui_core/*.cpp
 )
 
 set(core_common_sources
@@ -76,6 +77,7 @@ set(core_common_sources
   src/main.cpp
   src/cli/cli_main.cpp
   src/cli/text_io_handler.cpp
+  src/gui/select_stylesheet.cpp
 )
 
 file(GLOB_RECURSE wx_gui_sources CONFIGURE_DEPENDS

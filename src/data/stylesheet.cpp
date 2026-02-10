@@ -47,7 +47,7 @@ StyleSheetP StyleSheet::byGameAndName(const Game& game, const String& name) {
     //}
     
     // load an alternative stylesheet
-    StyleSheetP ss = select_stylesheet(game, name);
+    StyleSheetP ss = gui::select_stylesheet(game, name);
     if (ss) {
       stylesheet_alternatives[full_name] = ss->relativeFilename();
       return ss;
