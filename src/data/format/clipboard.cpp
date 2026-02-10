@@ -4,7 +4,7 @@
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
 
-// ----------------------------------------------------------------------------- : Includes
+// ---------------------------------------------------------------------------- : Includes
 
 #include <util/prec.hpp>
 #include <data/format/clipboard.hpp>
@@ -20,7 +20,7 @@
 #include <wx/sstream.h>
 #include <cstring>
 
-// ----------------------------------------------------------------------------- : Clipboard serialization
+// ---------------------------------------------------------------------------- : Clipboard serialization
 
 /// Serialize an object to a string, clipboard_package will be set to the given package.
 template <typename T>
@@ -40,7 +40,7 @@ void deserialize_from_clipboard(T& object, Package& package, const String& data)
     reader.handle_greedy(object);
 }
 
-// ----------------------------------------------------------------------------- : SerializedClipboardDataObject
+// ---------------------------------------------------------------------------- : SerializedClipboardDataObject
 
 SerializedClipboardDataObject::SerializedClipboardDataObject(const wxDataFormat& format)
   : wxDataObjectSimple(format)
@@ -75,7 +75,7 @@ bool SerializedClipboardDataObject::SetData(size_t len, const void* buf) {
   return true;
 }
 
-// ----------------------------------------------------------------------------- : CardDataObject
+// ---------------------------------------------------------------------------- : CardDataObject
 
 /// A wrapped cards for storing on the clipboard
 struct WrappedCards {
@@ -134,7 +134,7 @@ bool CardsDataObject::getCards(const SetP& set, const String id, vector<CardP>& 
   }
 }
 
-// ----------------------------------------------------------------------------- : KeywordDataObject
+// ---------------------------------------------------------------------------- : KeywordDataObject
 
 /// A wrapped keyword for storing on the clipboard
 struct WrappedKeyword {
@@ -174,11 +174,9 @@ KeywordP KeywordDataObject::getKeyword(const SetP& set) {
   else                                     return keyword;
 }
 
-// ----------------------------------------------------------------------------- : Card on clipboard
+// ---------------------------------------------------------------------------- : Card on clipboard
 
 CardsOnClipboard::CardsOnClipboard(const SetP& set, const String id, const vector<CardP>& cards) {
-  // Keep the native MSE card format preferred so copy/paste inside MSE
-  // preserves all card data and carries the drag transaction id.
   Add(new CardsDataObject(set, id, cards), true);
 
   if (!cards.empty()) {
