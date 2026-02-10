@@ -10,6 +10,8 @@
 #include <QMainWindow>
 #include <QString>
 
+#include <memory>
+
 namespace gui_qt {
 
 class WelcomeWindow final : public QMainWindow {
@@ -17,9 +19,14 @@ public:
   WelcomeWindow();
 };
 
+class SetEditorControllerQt;
+
 class SetWindow final : public QMainWindow {
 public:
   explicit SetWindow(const QString& set_path);
+
+private:
+  std::unique_ptr<SetEditorControllerQt> controller_;
 };
 
 class SymbolWindow final : public QMainWindow {
