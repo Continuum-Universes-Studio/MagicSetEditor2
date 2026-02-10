@@ -360,6 +360,50 @@ void TextToggleReminderAction::perform(bool to_undo) {
 }
 
 
+// ----------------------------------------------------------------------------- : Replace all
+
+SimpleTextValueAction::SimpleTextValueAction(const Card* card, const TextValueP& value, const Defaultable<String>& new_value)
+  : ValueAction(value)
+  , new_value(new_value)
+{
+  setCard(card);
+}
+
+void SimpleTextValueAction::perform(bool to_undo) {
+  ValueAction::perform(to_undo);
+  TextValue& v = static_cast<TextValue&>(*valueP);
+  swap_value(v, new_value);
+  valueP->onAction(*this, to_undo); // notify value
+}
+
+bool SimpleTextValueAction::merge(const Action& action) {
+  TYPE_CASE(action, SimpleTextValueAction) {
+    if (&action.valueP == &valueP) {
+      return true;
+    }
+  }
+  return false;
+}
+
+ReplaceAllAction::~ReplaceAllAction() {}
+
+String ReplaceAllAction::getName(bool to_undo) const {
+  return _ACTION_("replace all");
+}
+
+void ReplaceAllAction::perform(bool to_undo) {
+  if (to_undo) {
+    for (auto it = actions.rbegin(); it != actions.rend(); ++it) {
+      it->perform(true);
+    }
+  } else {
+    FOR_EACH(a, actions) {
+      a.perform(false);
+    }
+  }
+}
+
+
 // ----------------------------------------------------------------------------- : Event
 
 String ScriptValueEvent::getName(bool) const {
