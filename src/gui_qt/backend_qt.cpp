@@ -7,6 +7,7 @@
 #include <gui/backend.hpp>
 
 #include <cli/cli_main.hpp>
+#include <cli/text_io_handler.hpp>
 #include <data/format/formats.hpp>
 #include <data/locale.hpp>
 #include <data/settings.hpp>
