@@ -112,9 +112,11 @@ private:
 /// A TextValueAction without the start and end stuff
 class SimpleTextValueAction : public ValueAction {
 public:
+  using ValueAction::merge;
+
   SimpleTextValueAction(const Card* card, const TextValueP& value, const Defaultable<String>& new_value);
   void perform(bool to_undo) override;
-  bool merge(const Action& action) override;
+  bool merge(const SimpleTextValueAction& action);
 private:
   Defaultable<String> new_value;
 };
