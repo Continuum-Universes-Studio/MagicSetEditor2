@@ -239,7 +239,6 @@ bool CardListBase::doCopy() {
   wxTheClipboard->Close();
   return ok;
 }
-
 bool CardListBase::doCopyCardAndLinkedCards() {
   if (!canCopy()) return false;
   vector<CardP> cards_selected;
