@@ -92,6 +92,7 @@ struct ScopedCleanup {
     SpellChecker::destroyAll();
   }
 };
+
 } // namespace
 
 class QtBackend final : public Backend {

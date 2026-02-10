@@ -26,20 +26,9 @@
 // ----------------------------------------------------------------------------- : Extra types
 
 IMPLEMENT_REFLECTION_ENUM(CheckUpdates) {
-  VALUE_N("always",   CHECK_ALWAYS);
-  VALUE_N("every 5",  CHECK_5); //default
-  VALUE_N("every 10", CHECK_10);
-  VALUE_N("never",    CHECK_NEVER);
-}
-
-IMPLEMENT_REFLECTION_ENUM(CheckUpdatesTargets) {
-  VALUE_N("update app",        CHECK_APP);
-  VALUE_N("update games",      CHECK_GAMES);
-  VALUE_N("update everything", CHECK_EVERYTHING); //default
-  VALUE_N("always",   CHECK_ALWAYS);
-  VALUE_N("every 5",  CHECK_5); //default
-  VALUE_N("every 10", CHECK_10);
-  VALUE_N("never",    CHECK_NEVER);
+  VALUE_N("if connected", CHECK_IF_CONNECTED); //default
+  VALUE_N("always",       CHECK_ALWAYS);
+  VALUE_N("never",        CHECK_NEVER);
 }
 
 IMPLEMENT_REFLECTION_ENUM(InstallType) {
@@ -64,13 +53,11 @@ IMPLEMENT_REFLECTION_ENUM(ThemePreference) {
 }
 
 IMPLEMENT_REFLECTION_ENUM(FilenameConflicts) {
-  VALUE_N("keep old",         CONFLICT_KEEP_OLD);
-  VALUE_N("overwrite",        CONFLICT_OVERWRITE);
-  VALUE_N("number",           CONFLICT_NUMBER);
-  VALUE_N("number overwrite", CONFLICT_NUMBER_OVERWRITE);
+  VALUE_N("keep old",      CONFLICT_KEEP_OLD);
+  VALUE_N("overwrite",    CONFLICT_OVERWRITE);
+  VALUE_N("number",      CONFLICT_NUMBER);
+  VALUE_N("number overwrite",  CONFLICT_NUMBER_OVERWRITE);
 }
-
-const vector<int> Settings::scale_choices = { 50,66,75,80,100,120,125,150,175,200 };
 
 const int COLUMN_NOT_INITIALIZED = -100000;
 
@@ -190,6 +177,7 @@ Settings::Settings()
   , set_window_height    (300)
   , card_notes_height    (40)
   , open_sets_in_new_window(true)
+  , theme_preference     (THEME_SYSTEM)
   , symbol_grid_size     (30)
   , symbol_grid          (true)
   , symbol_grid_snap     (false)
