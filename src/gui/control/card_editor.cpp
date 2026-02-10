@@ -421,7 +421,7 @@ ValueViewer* DataEditor::mousedOverViewer(const wxMouseEvent& ev, bool* over_lab
         if (over_label_out) *over_label_out = false;
         return v.get();
       } else if (nativeLook()) {
-        int y = ev.GetY() + GetScrollPos(wxVERTICAL);
+        int y = ev.GetY() + (CanScroll(wxVERTICAL) ? GetScrollPos(wxVERTICAL) : 0);
         if (y >= v->getStyle()->top && y < v->getStyle()->bottom) {
           if (over_label_out) *over_label_out = true;
           return v.get();
