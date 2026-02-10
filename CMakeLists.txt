@@ -78,17 +78,21 @@ file(GLOB_RECURSE wx_gui_sources CONFIGURE_DEPENDS
   src/gui_wx/*.cpp
 )
 
-file(GLOB_RECURSE qt_gui_sources CONFIGURE_DEPENDS
-  src/gui_qt/*.cpp
+set(qt_gui_sources
+  src/gui_qt/backend_qt.cpp
+  src/gui_qt/windows.cpp
 )
 
-target_sources(magicseteditor PRIVATE ${core_common_sources})
 if(USE_QT6)
-  target_sources(magicseteditor PRIVATE ${qt_gui_sources})
+  target_sources(magicseteditor PRIVATE
+    src/main.cpp
+    ${qt_gui_sources}
+  )
 else()
+  target_sources(magicseteditor PRIVATE ${core_common_sources})
   target_sources(magicseteditor PRIVATE ${wx_gui_sources})
+  target_precompile_headers(magicseteditor PRIVATE src/util/prec.hpp)
 endif()
-target_precompile_headers(magicseteditor PRIVATE src/util/prec.hpp)
 
 configure_file(src/config.hpp.in src/config.hpp)
 
