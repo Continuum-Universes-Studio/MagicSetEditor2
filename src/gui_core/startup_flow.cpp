@@ -15,15 +15,15 @@ namespace gui_core {
 namespace {
 String file_extension(const String& input) {
   String file = input;
-  while (!file.empty() && (file.back() == _('/') || file.back() == _('\\'))) {
-    file.pop_back();
+  while (!file.empty() && (file.Last() == _('/') || file.Last() == _('\\'))) {
+    file.RemoveLast();
   }
   size_t dot = file.find_last_of(_('.'));
   if (dot == String::npos) {
     return _("");
   }
   String ext = file.substr(dot + 1);
-  for (auto& ch : ext) ch = static_cast<Char>(towlower(ch));
+  ext.MakeLower();
   return ext;
 }
 
