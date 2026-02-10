@@ -6,7 +6,11 @@
 
 #include "windows.hpp"
 
+#include "set_editor_controller_qt.hpp"
+#include "set_editor_view_qt.hpp"
+
 #include <QLabel>
+#include <QMessageBox>
 #include <QVBoxLayout>
 
 namespace gui_qt {
@@ -24,6 +28,7 @@ QWidget* buildPlaceholder(const QString& title, const QString& message, QWidget*
 
 WelcomeWindow::WelcomeWindow() {
   setWindowTitle("Magic Set Editor - Welcome");
+  // TODO(Qt welcome route): Replace this placeholder with the real welcome workflow and recent file list.
   setCentralWidget(buildPlaceholder(
     "Welcome",
     "Qt6 backend placeholder. The full welcome experience is still implemented in wxWidgets.",
@@ -31,17 +36,27 @@ WelcomeWindow::WelcomeWindow() {
   resize(640, 480);
 }
 
-SetWindow::SetWindow(const QString& set_path) {
+SetWindow::SetWindow(const QString& set_path)
+  : controller_(new SetEditorControllerQt()) {
   setWindowTitle("Magic Set Editor - Set");
-  const QString message = set_path.isEmpty()
-    ? "Qt6 backend placeholder for the Set window."
-    : QString("Qt6 backend placeholder for the Set window.\nSet file: %1").arg(set_path);
-  setCentralWidget(buildPlaceholder("Set Editor", message, this));
+
+  auto* view = new SetEditorViewQt(*controller_, this);
+  setCentralWidget(view);
+
+  if (!set_path.isEmpty()) {
+    QString error_message;
+    if (!controller_->loadSetFromPath(set_path, error_message) && !error_message.isEmpty()) {
+      QMessageBox::critical(this, QStringLiteral("Open Set"), error_message);
+    }
+  }
+
+  view->refresh();
   resize(900, 600);
 }
 
 SymbolWindow::SymbolWindow(const QString& symbol_path) {
   setWindowTitle("Magic Set Editor - Symbol Editor");
+  // TODO(Qt symbol route): Replace this placeholder with a functional symbol editor integrated with core symbol/font logic.
   const QString message = symbol_path.isEmpty()
     ? "Qt6 backend placeholder for the Symbol Editor."
     : QString("Qt6 backend placeholder for the Symbol Editor.\nSymbol file: %1").arg(symbol_path);
@@ -52,6 +67,7 @@ SymbolWindow::SymbolWindow(const QString& symbol_path) {
 PackagesWindow::PackagesWindow(const QString& installer_path, QWidget* parent)
   : QDialog(parent) {
   setWindowTitle("Magic Set Editor - Package Installer");
+  // TODO(Qt installer route): Replace this placeholder with a Qt package installer UI using existing installer logic.
   auto* layout = new QVBoxLayout(this);
   layout->addWidget(new QLabel("Qt6 backend placeholder for the package installer.", this));
   if (!installer_path.isEmpty()) {
