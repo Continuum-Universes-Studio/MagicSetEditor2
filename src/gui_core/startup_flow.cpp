@@ -184,7 +184,7 @@ int run_startup_request(const StartupRequest& request, StartupPresenter& present
       size_t pos = out.find_last_of(_("/\\"));
       if (pos != String::npos) {
         path = out.substr(0, pos);
-        std::filesystem::create_directories(path.ToStdString());
+        std::filesystem::create_directories(toStdString(path));
         path += _("/x");
         out = out.substr(pos + 1);
       }
