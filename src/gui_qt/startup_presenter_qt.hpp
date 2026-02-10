@@ -3,7 +3,6 @@
 #include <gui_core/startup_flow.hpp>
 
 class QApplication;
-class QWidget;
 
 namespace gui_qt {
 
