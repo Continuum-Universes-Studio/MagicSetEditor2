@@ -1,6 +1,7 @@
 #include <gui/select_stylesheet.hpp>
 
 #include <gui_core/select_stylesheet_flow.hpp>
+#include <data/stylesheet.hpp>
 
 namespace gui {
 namespace {
