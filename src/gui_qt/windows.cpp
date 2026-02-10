@@ -6,11 +6,7 @@
 
 #include "windows.hpp"
 
-#include "set_editor_controller_qt.hpp"
-#include "set_editor_view_qt.hpp"
-
 #include <QLabel>
-#include <QMessageBox>
 #include <QVBoxLayout>
 
 namespace gui_qt {
@@ -36,21 +32,13 @@ WelcomeWindow::WelcomeWindow() {
   resize(640, 480);
 }
 
-SetWindow::SetWindow(const QString& set_path)
-  : controller_(new SetEditorControllerQt()) {
+SetWindow::SetWindow(const QString& set_path) {
   setWindowTitle("Magic Set Editor - Set");
-
-  auto* view = new SetEditorViewQt(*controller_, this);
-  setCentralWidget(view);
-
-  if (!set_path.isEmpty()) {
-    QString error_message;
-    if (!controller_->loadSetFromPath(set_path, error_message) && !error_message.isEmpty()) {
-      QMessageBox::critical(this, QStringLiteral("Open Set"), error_message);
-    }
-  }
-
-  view->refresh();
+  const QString message = set_path.isEmpty()
+    ? "Qt6 backend placeholder. The full set editor is still implemented in wxWidgets."
+    : QString("Qt6 backend placeholder. The full set editor is still implemented in wxWidgets.\nSet file: %1")
+        .arg(set_path);
+  setCentralWidget(buildPlaceholder("Set Editor", message, this));
   resize(900, 600);
 }
 
