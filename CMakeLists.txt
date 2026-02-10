@@ -10,9 +10,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 option(USE_QT6 "Build the Qt6 GUI backend" OFF)
 
 if(USE_QT6)
-  find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGL OpenGLWidgets Test)
+  find_package(Qt6 REQUIRED COMPONENTS Widgets)
 else()
-  find_package(wxWidgets 3.3.1 CONFIG REQUIRED)
+  find_package(wxWidgets 3 REQUIRED COMPONENTS core base net html)
 endif()
 
 find_package(Boost REQUIRED COMPONENTS regex)
@@ -42,6 +42,9 @@ message("-- Does this have a full path? If not, and it's just a file name, it's 
 
 include_directories("${PROJECT_BINARY_DIR}/src")
 include_directories("${PROJECT_SOURCE_DIR}/src")
+if(NOT USE_QT6)
+  include(${wxWidgets_USE_FILE})
+endif()
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${HUNSPELL_INCLUDE_DIRS})
 
@@ -49,9 +52,12 @@ include_directories(${HUNSPELL_INCLUDE_DIRS})
 
 add_executable(magicseteditor WIN32)
 if(USE_QT6)
+  target_compile_definitions(magicseteditor PRIVATE USE_QT6)
   target_link_libraries(${PROJECT_NAME} Qt6::Widgets)
+else()
+  target_compile_definitions(magicseteditor PRIVATE USE_WX)
+  target_link_libraries(${PROJECT_NAME} ${wxWidgets_LIBRARIES})
 endif()
-target_link_libraries(${PROJECT_NAME} ${wxWidgets_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${HUNSPELL_LIBRARIES})
 
@@ -61,8 +67,6 @@ file(GLOB_RECURSE core_common_sources CONFIGURE_DEPENDS
   src/render/*.cpp
   src/script/*.cpp
   src/util/*.cpp
-  src/gui_core/*.cpp
-  src/gui/*.cpp
 )
 
 set(core_common_sources
@@ -73,28 +77,19 @@ set(core_common_sources
 )
 
 file(GLOB_RECURSE wx_gui_sources CONFIGURE_DEPENDS
+  src/gui/*.cpp
   src/gui_wx/*.cpp
 )
 
-set(qt_gui_sources
-  src/gui_qt/backend_qt.cpp
-  src/gui_qt/windows.cpp
+file(GLOB_RECURSE qt_gui_sources CONFIGURE_DEPENDS
+  src/gui_qt/*.cpp
 )
 
+target_sources(magicseteditor PRIVATE ${core_common_sources})
 if(USE_QT6)
-  target_sources(magicseteditor PRIVATE
-    src/main.cpp
-    ${qt_gui_sources}
-  )
-  list(FILTER sources EXCLUDE REGEX "src/gui_wx/.*")
+  target_sources(magicseteditor PRIVATE ${qt_gui_sources})
 else()
-  target_sources(magicseteditor PRIVATE ${core_common_sources})
   target_sources(magicseteditor PRIVATE ${wx_gui_sources})
-  target_precompile_headers(magicseteditor PRIVATE src/util/prec.hpp)
-endif()
-target_sources(magicseteditor PRIVATE ${sources})
-if(USE_QT6)
-  target_sources(magicseteditor PRIVATE src/gui/util.cpp)
 endif()
 target_precompile_headers(magicseteditor PRIVATE src/util/prec.hpp)
 
