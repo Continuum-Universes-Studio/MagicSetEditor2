@@ -108,6 +108,15 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON
 cmake --build build
 ```
 
+If you previously built with a different backend (or pulled backend-related changes),
+start from a clean build directory to avoid stale objects causing link errors:
+
+```
+rm -rf build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DUSE_QT6=ON
+cmake --build build
+```
+
 If Qt6 is installed in a non-standard prefix, point CMake at the directory
 that contains `Qt6Config.cmake` (not the file itself), for example:
 
