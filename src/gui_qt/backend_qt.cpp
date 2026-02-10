@@ -14,6 +14,7 @@
 #include <data/set.hpp>
 #include <data/settings.hpp>
 #include <gui_qt/windows.hpp>
+#include <gui_wx/app_wx.hpp>
 #include <util/prec.hpp>
 #include <util/io/package_manager.hpp>
 #include <util/spell_checker.hpp>
@@ -135,6 +136,10 @@ class QtBackend final : public Backend {
 public:
   int run(int argc, char** argv) override {
     log_line("Starting Qt backend.");
+    if (argc <= 1 || (argc == 2 && std::string(argv[1]) == "--color")) {
+      log_line("No startup arguments provided; handing off to wxWidgets welcome window.");
+      return run_wx_app(argc, argv);
+    }
     qInstallMessageHandler(qt_message_handler);
     QApplication app(argc, argv);
     log_line("QApplication created.");
