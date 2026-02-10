@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-//+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
-//| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
-//| License:      GNU General Public License 2 or later (see file COPYING)     |
-//+----------------------------------------------------------------------------+
-=======
 //+----------------------------------------------------------------------------+
 //| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
@@ -272,4 +265,3 @@ BEGIN_EVENT_TABLE(SelectStyleSheetWindow, wxDialog)
   EVT_UPDATE_UI       (wxID_ANY,           SelectStyleSheetWindow::onUpdateUI)
   EVT_IDLE            (                    SelectStyleSheetWindow::onIdle)
 END_EVENT_TABLE  ()
-
