@@ -101,7 +101,7 @@ public:
 
     init_script_variables();
     init_file_formats();
-    cli.init();
+    cli.init(argc, argv);
     package_manager.init();
     settings.read();
     the_locale = Locale::byName(settings.locale);
