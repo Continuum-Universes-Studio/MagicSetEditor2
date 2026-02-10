@@ -362,7 +362,7 @@ void TextToggleReminderAction::perform(bool to_undo) {
 
 // ----------------------------------------------------------------------------- : Replace all
 
-SimpleTextValueAction::SimpleTextValueAction(const Card* card, const TextValueP& value, const Defaultable<String>& new_value)
+SimpleTextValueAction::SimpleTextValueAction(CardP const& card, const TextValueP& value, const Defaultable<String>& new_value)
   : ValueAction(value)
   , new_value(new_value)
 {
