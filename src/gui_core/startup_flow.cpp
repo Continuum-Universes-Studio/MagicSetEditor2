@@ -15,15 +15,15 @@ namespace gui_core {
 namespace {
 String file_extension(const String& input) {
   String file = input;
-  while (!file.empty() && (file.Last() == _('/') || file.Last() == _('\\'))) {
-    file.RemoveLast();
+  while (!file.empty() && (file.back() == _('/') || file.back() == _('\\'))) {
+    file.pop_back();
   }
   size_t dot = file.find_last_of(_('.'));
   if (dot == String::npos) {
     return _("");
   }
   String ext = file.substr(dot + 1);
-  ext.MakeLower();
+  for (auto& ch : ext) ch = static_cast<Char>(towlower(ch));
   return ext;
 }
 
@@ -184,7 +184,7 @@ int run_startup_request(const StartupRequest& request, StartupPresenter& present
       size_t pos = out.find_last_of(_("/\\"));
       if (pos != String::npos) {
         path = out.substr(0, pos);
-        std::filesystem::create_directories(toStdString(path));
+        std::filesystem::create_directories(path.ToStdString());
         path += _("/x");
         out = out.substr(pos + 1);
       }
