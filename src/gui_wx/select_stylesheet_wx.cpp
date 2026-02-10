@@ -1,6 +1,5 @@
 #include "select_stylesheet_wx.hpp"
 
-#include <data/stylesheet.hpp>
 #include <gui/new_window.hpp>
 #include <gui/select_stylesheet.hpp>
 #include <gui_core/select_stylesheet_flow.hpp>
