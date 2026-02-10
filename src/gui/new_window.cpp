@@ -265,4 +265,3 @@ BEGIN_EVENT_TABLE(SelectStyleSheetWindow, wxDialog)
   EVT_UPDATE_UI       (wxID_ANY,           SelectStyleSheetWindow::onUpdateUI)
   EVT_IDLE            (                    SelectStyleSheetWindow::onIdle)
 END_EVENT_TABLE  ()
-
