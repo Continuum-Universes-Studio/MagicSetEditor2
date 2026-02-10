@@ -11,10 +11,9 @@ find_package(wxWidgets 3.3.1 CONFIG REQUIRED)
 
 option(USE_QT6 "Build the Qt6 GUI backend" OFF)
 
+find_package(wxWidgets 3 REQUIRED COMPONENTS core base net html)
 if(USE_QT6)
   find_package(Qt6 REQUIRED COMPONENTS Widgets)
-else()
-  find_package(wxWidgets 3 REQUIRED COMPONENTS core base net html)
 endif()
 
 find_package(Boost REQUIRED COMPONENTS regex)
@@ -43,9 +42,7 @@ message("-- Does this have a full path? If not, and it's just a file name, it's 
 
 include_directories("${PROJECT_BINARY_DIR}/src")
 include_directories("${PROJECT_SOURCE_DIR}/src")
-if(NOT USE_QT6)
-  include(${wxWidgets_USE_FILE})
-endif()
+include(${wxWidgets_USE_FILE})
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${HUNSPELL_INCLUDE_DIRS})
 
@@ -58,8 +55,8 @@ if(USE_QT6)
   target_link_libraries(${PROJECT_NAME} Qt6::Widgets)
 else()
   target_compile_definitions(magicseteditor PRIVATE USE_WX)
-  target_link_libraries(${PROJECT_NAME} ${wxWidgets_LIBRARIES})
 endif()
+target_link_libraries(${PROJECT_NAME} ${wxWidgets_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${HUNSPELL_LIBRARIES})
 
@@ -70,6 +67,7 @@ file(GLOB_RECURSE core_common_sources CONFIGURE_DEPENDS
   src/script/*.cpp
   src/util/*.cpp
   src/gui_core/*.cpp
+  src/gui/*.cpp
 )
 
 set(core_common_sources
@@ -77,11 +75,9 @@ set(core_common_sources
   src/main.cpp
   src/cli/cli_main.cpp
   src/cli/text_io_handler.cpp
-  src/gui/select_stylesheet.cpp
 )
 
 file(GLOB_RECURSE wx_gui_sources CONFIGURE_DEPENDS
-  src/gui/*.cpp
   src/gui_wx/*.cpp
 )
 
