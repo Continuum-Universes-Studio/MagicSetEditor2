@@ -168,13 +168,6 @@ END_EVENT_TABLE  ()
 // ----------------------------------------------------------------------------- : SelectStyleSheetWindow
 
 
-#ifndef USE_QT6
-StyleSheetP select_stylesheet(const Game& game, const String& failed_name) {
-  SelectStyleSheetWindow wnd(nullptr, game, failed_name);
-  wnd.ShowModal();
-  return wnd.stylesheet;
-}
-#endif
 
 SelectStyleSheetWindow::SelectStyleSheetWindow(Window* parent, const Game& game, const String& failed_name)
   : wxDialog(parent, wxID_ANY, _TITLE_("select stylesheet"), wxDefaultPosition, wxSize(830,320), wxDEFAULT_DIALOG_STYLE)
@@ -265,3 +258,4 @@ BEGIN_EVENT_TABLE(SelectStyleSheetWindow, wxDialog)
   EVT_UPDATE_UI       (wxID_ANY,           SelectStyleSheetWindow::onUpdateUI)
   EVT_IDLE            (                    SelectStyleSheetWindow::onIdle)
 END_EVENT_TABLE  ()
+
