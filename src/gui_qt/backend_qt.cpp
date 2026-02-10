@@ -19,6 +19,7 @@
 #include <util/spell_checker.hpp>
 #include <wx/filename.h>
 #include <wx/filefn.h>
+#include <wx/init.h>
 
 #include <QApplication>
 #include <QDateTime>
@@ -137,6 +138,11 @@ public:
     qInstallMessageHandler(qt_message_handler);
     QApplication app(argc, argv);
     log_line("QApplication created.");
+    wxInitializer wx_init;
+    if (!wx_init) {
+      log_line("Failed to initialize wxWidgets.");
+      return EXIT_FAILURE;
+    }
 
     init_script_variables();
     init_file_formats();
