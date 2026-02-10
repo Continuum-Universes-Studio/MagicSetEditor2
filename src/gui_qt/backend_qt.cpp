@@ -17,12 +17,11 @@
 #include <util/prec.hpp>
 #include <util/io/package_manager.hpp>
 #include <util/spell_checker.hpp>
-#include <wx/filename.h>
-#include <wx/filefn.h>
-#include <wx/init.h>
 
 #include <QApplication>
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
 #include <QMessageLogContext>
 
 #include <chrono>
@@ -118,8 +117,15 @@ QString toQString(const String& value) {
   if (value.empty()) {
     return QString();
   }
-  const wxScopedCharBuffer utf8 = value.ToUTF8();
-  return QString::fromUtf8(utf8.data(), static_cast<qsizetype>(utf8.length()));
+  return QString::fromStdWString(value.ToStdWstring());
+}
+
+QString fileExtension(const String& value) {
+  QString file_path = toQString(value);
+  while (file_path.endsWith('/') || file_path.endsWith('\\')) {
+    file_path.chop(1);
+  }
+  return QFileInfo(file_path).suffix().toLower();
 }
 
 struct ScopedCleanup {
@@ -138,11 +144,6 @@ public:
     qInstallMessageHandler(qt_message_handler);
     QApplication app(argc, argv);
     log_line("QApplication created.");
-    wxInitializer wx_init;
-    if (!wx_init) {
-      log_line("Failed to initialize wxWidgets.");
-      return EXIT_FAILURE;
-    }
 
     init_script_variables();
     init_file_formats();
@@ -162,20 +163,20 @@ public:
       }
       if (!args.empty()) {
         const String& arg = args[0];
-        wxFileName f(arg.Mid(0, arg.find_last_not_of(_("\\/")) + 1));
-        if (f.GetExt() == _("mse-symbol")) {
+        const QString extension = fileExtension(arg);
+        if (extension == QStringLiteral("mse-symbol")) {
           auto* wnd = new gui_qt::SymbolWindow(toQString(arg));
           show_and_run(app, wnd);
           return EXIT_SUCCESS;
-        } else if (f.GetExt() == _("mse-set") || f.GetExt() == _("mse") || f.GetExt() == _("set")) {
+        } else if (extension == QStringLiteral("mse-set") || extension == QStringLiteral("mse") || extension == QStringLiteral("set")) {
           auto* wnd = new gui_qt::SetWindow(toQString(arg));
           show_and_run(app, wnd);
           return EXIT_SUCCESS;
-        } else if (f.GetExt() == _("mse-installer")) {
+        } else if (extension == QStringLiteral("mse-installer")) {
           gui_qt::PackagesWindow wnd(toQString(arg));
           wnd.exec();
           return EXIT_SUCCESS;
-        } else if (f.GetExt() == _("mse-script")) {
+        } else if (extension == QStringLiteral("mse-script")) {
           if (!run_script_file(arg)) return EXIT_FAILURE;
           if (cli.shown_errors()) return EXIT_FAILURE;
           return EXIT_SUCCESS;
@@ -259,8 +260,8 @@ public:
           bool quiet = false;
           for (size_t i = 1; i < args.size(); ++i) {
             String const& arg = args[i];
-            wxFileName f(arg);
-            if (f.GetExt() == _("mse-set") || f.GetExt() == _("mse") || f.GetExt() == _("set")) {
+            const QString extension = fileExtension(arg);
+            if (extension == QStringLiteral("mse-set") || extension == QStringLiteral("mse") || extension == QStringLiteral("set")) {
               set = import_set(arg);
             } else if (arg == _("-q") || arg == _("--quiet")) {
               quiet = true;
@@ -284,7 +285,10 @@ public:
           size_t pos = out.find_last_of(_("/\\"));
           if (pos != String::npos) {
             path = out.substr(0, pos);
-            if (!wxDirExists(path)) wxMkdir(path);
+            QDir dir;
+            if (!dir.exists(toQString(path))) {
+              dir.mkpath(toQString(path));
+            }
             path += _("/x");
             out = out.substr(pos + 1);
           }
