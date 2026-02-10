@@ -160,12 +160,17 @@ KeywordP KeywordDataObject::getKeyword(const SetP& set) {
 
 // ----------------------------------------------------------------------------- : Card on clipboard
 
-CardsOnClipboard::CardsOnClipboard(const SetP& set, const String id, const vector<CardP>& cards) {
-  wxBusyCursor busy;
-  // Conversion to image file
-  if (cards.size() < 6) {
-    Bitmap bmp;
-    Image img;
+CardsOnClipboard::CardsOnClipboard(const SetP& set, const vector<CardP>& cards) {
+  // Conversion to text format
+    if (!cards.empty()) {
+      String text;
+      for (size_t i = 0; i < cards.size(); ++i) {
+        if (i > 0) text += _("\n");
+        text += cards[i]->identification();
+      }
+      Add(new wxTextDataObject(text));
+    }
+  // Conversion to bitmap format
     if (cards.size() == 1) {
       img = export_image(set, cards[0], true, 1.0, 0.0, 0.0, &bmp);
     }
