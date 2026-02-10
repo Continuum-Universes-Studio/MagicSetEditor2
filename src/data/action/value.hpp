@@ -114,7 +114,7 @@ class SimpleTextValueAction : public ValueAction {
 public:
   SimpleTextValueAction(const Card* card, const TextValueP& value, const Defaultable<String>& new_value);
   void perform(bool to_undo) override;
-  bool merge(const SimpleTextValueAction& action);
+  bool merge(const Action& action) override;
 private:
   Defaultable<String> new_value;
 };
