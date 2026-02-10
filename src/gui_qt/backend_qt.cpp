@@ -21,8 +21,6 @@
 #include <QDateTime>
 #include <QMessageLogContext>
 
-#include <wx/app.h>
-
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
@@ -93,32 +91,6 @@ struct ScopedCleanup {
   }
 };
 
-class ScopedWxBootstrap {
-public:
-  ScopedWxBootstrap(int& argc, char** argv) {
-    if (!wxApp::GetInstance()) {
-      wxApp::SetInstance(new wxApp());
-      if (wxEntryStart(argc, argv)) {
-        started_ = true;
-      } else {
-        wxApp::SetInstance(nullptr);
-      }
-    }
-  }
-
-  ~ScopedWxBootstrap() {
-    if (started_) {
-      wxEntryCleanup();
-    }
-  }
-
-  bool ok() const {
-    return wxApp::GetInstance() != nullptr;
-  }
-
-private:
-  bool started_ = false;
-};
 } // namespace
 
 class QtBackend final : public Backend {
@@ -126,11 +98,6 @@ public:
   int run(int argc, char** argv) override {
     log_line("Starting Qt backend.");
     qInstallMessageHandler(qt_message_handler);
-    ScopedWxBootstrap wx_bootstrap(argc, argv);
-    if (!wx_bootstrap.ok()) {
-      log_line("Failed to initialize wxAppConsole for wxStandardPaths access.");
-      return EXIT_FAILURE;
-    }
     QApplication app(argc, argv);
 
     init_script_variables();
