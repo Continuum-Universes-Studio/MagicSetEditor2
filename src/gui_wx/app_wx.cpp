@@ -140,7 +140,12 @@ int MSEWxApp::OnRun() {
 
     const gui_core::StartupRequest request =
       gui_core::parse_startup_request(argc, argv, settings.install_type);
-    return gui_core::run_startup_request(request, presenter, argv[0]);
+    const wxScopedCharBuffer executable_name = argc > 0 ? argv[0].utf8_str() : wxScopedCharBuffer();
+    return gui_core::run_startup_request(
+      request,
+      presenter,
+      executable_name ? executable_name.data() : "magicseteditor"
+    );
 
   } CATCH_ALL_ERRORS(true);
   cli.print_pending_errors();
