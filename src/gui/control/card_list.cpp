@@ -14,6 +14,7 @@
 #include <data/game.hpp>
 #include <data/field.hpp>
 #include <data/field/choice.hpp>
+#include <data/field/text.hpp>
 #include <data/set.hpp>
 #include <data/card.hpp>
 #include <data/settings.hpp>
@@ -23,6 +24,7 @@
 #include <data/action/value.hpp>
 #include <util/window_id.hpp>
 #include <wx/clipbrd.h>
+#include <wx/tokenzr.h>
 
 DECLARE_POINTER_TYPE(ChoiceValue);
 
@@ -137,10 +139,75 @@ void CardListBase::getSelection(vector<CardP>& out) const {
 bool CardListBase::canCut()   const { return canDelete(); }
 bool CardListBase::canCopy()  const { return focusCount() > 0; }
 bool CardListBase::canPaste() const {
-  return allowModify() && wxTheClipboard->IsSupported(CardsDataObject::format);
+  if (!allowModify()) return false;
+  return wxTheClipboard->IsSupported(CardsDataObject::format)
+      || wxTheClipboard->IsSupported(wxDF_TEXT)
+      || wxTheClipboard->IsSupported(wxDF_UNICODETEXT);
 }
 bool CardListBase::canDelete() const {
   return allowModify() && focusCount() > 0; // TODO: check for selection?
+}
+
+static bool setCardNameFromText(const CardP& card, const String& name) {
+  FOR_EACH(v, card->data) {
+    if (v->fieldP->identifying) {
+      if (auto text_value = dynamic_cast<TextValue*>(v.get())) {
+        text_value->value = name;
+        return true;
+      }
+    }
+  }
+  FOR_EACH(v, card->data) {
+    if (auto text_value = dynamic_cast<TextValue*>(v.get())) {
+      text_value->value = name;
+      return true;
+    }
+  }
+  return false;
+}
+
+static void appendCardsFromText(const SetP& set, const String& text, vector<CardP>& out) {
+  wxStringTokenizer lines(text, _("\r\n"), wxTOKEN_STRTOK);
+  while (lines.HasMoreTokens()) {
+    String line = lines.GetNextToken();
+    line.Trim(true);
+    line.Trim(false);
+    if (line.empty()) continue;
+
+    size_t pos = 0;
+    while (pos < line.size() && wxIsspace(line[pos])) pos++;
+    size_t digits_start = pos;
+    while (pos < line.size() && wxIsdigit(line[pos])) pos++;
+
+    long count = 1;
+    String name = line;
+    if (pos > digits_start) {
+      String number = line.Mid(digits_start, pos - digits_start);
+      long parsed = 0;
+      if (number.ToLong(&parsed) && parsed > 0) {
+        size_t after = pos;
+        while (after < line.size() && wxIsspace(line[after])) after++;
+        if (after < line.size() && (line[after] == 'x' || line[after] == 'X')) {
+          after++;
+          while (after < line.size() && wxIsspace(line[after])) after++;
+        }
+        if (after < line.size()) {
+          name = line.Mid(after);
+          name.Trim(true);
+          name.Trim(false);
+          if (!name.empty()) {
+            count = parsed;
+          }
+        }
+      }
+    }
+
+    for (long i = 0; i < count; ++i) {
+      CardP card = make_intrusive<Card>(*set->game);
+      setCardNameFromText(card, name);
+      out.push_back(card);
+    }
+  }
 }
 
 bool CardListBase::doCopy() {
@@ -159,13 +226,23 @@ bool CardListBase::doPaste() {
   // get data
   if (!canPaste()) return false;
   if (!wxTheClipboard->Open()) return false;
-  CardsDataObject data;
-  bool ok = wxTheClipboard->GetData(data);
-  wxTheClipboard->Close();
-  if (!ok) return false;
-  // get cards
   vector<CardP> new_cards;
-  ok = data.getCards(set, new_cards);
+  bool ok = false;
+  if (wxTheClipboard->IsSupported(CardsDataObject::format)) {
+    CardsDataObject data;
+    ok = wxTheClipboard->GetData(data);
+    if (ok) {
+      ok = data.getCards(set, new_cards);
+    }
+  } else if (wxTheClipboard->IsSupported(wxDF_TEXT) || wxTheClipboard->IsSupported(wxDF_UNICODETEXT)) {
+    wxTextDataObject data;
+    ok = wxTheClipboard->GetData(data);
+    if (ok) {
+      appendCardsFromText(set, data.GetText(), new_cards);
+      ok = !new_cards.empty();
+    }
+  }
+  wxTheClipboard->Close();
   if (!ok) return false;
   // add card to set
   set->actions.addAction(make_unique<AddCardAction>(ADD, *set, new_cards));

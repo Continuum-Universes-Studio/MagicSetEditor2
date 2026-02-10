@@ -142,8 +142,14 @@ KeywordP KeywordDataObject::getKeyword(const SetP& set) {
 
 CardsOnClipboard::CardsOnClipboard(const SetP& set, const vector<CardP>& cards) {
   // Conversion to text format
-    // TODO
-    //Add( new TextDataObject(_("card"))) 
+    if (!cards.empty()) {
+      String text;
+      for (size_t i = 0; i < cards.size(); ++i) {
+        if (i > 0) text += _("\n");
+        text += cards[i]->identification();
+      }
+      Add(new wxTextDataObject(text));
+    }
   // Conversion to bitmap format
     if (cards.size() == 1) {
       Add(new wxBitmapDataObject(export_bitmap(set, cards[0])));
