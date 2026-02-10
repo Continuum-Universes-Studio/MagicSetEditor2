@@ -18,7 +18,7 @@ extern const Char *BRIGHT, *NORMAL, *PARAM, *FILE_EXT, *GRAY, *RED, *ENDL;
 /// Command line input / output handler
 class TextIOHandler {
 public:
-  void init();
+  void init(int argc = 0, char** argv = nullptr);
   
   /// Do we have a console to read/write from/to?
   bool haveConsole() const;

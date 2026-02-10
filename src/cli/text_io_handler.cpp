@@ -33,8 +33,10 @@ TextIOHandler cli;
   }
 #endif
 
-void TextIOHandler::init() {
+void TextIOHandler::init(int argc, char** argv) {
   bool have_stderr;
+  if (argc < 0) argc = 0;
+  if (!argv) argc = 0;
   #if defined(__WXMSW__)
     have_console = false;
     escapes = false;
@@ -43,8 +45,8 @@ void TextIOHandler::init() {
     have_stderr  = StdHandleOk(STD_ERROR_HANDLE);
     // Detect the --color flag, indicating we should allow escapes
     if (have_console) {
-      for (int i = 1 ; i < wxTheApp->argc ; ++i) {
-        if (String(wxTheApp->argv[i]) == _("--color")) {
+      for (int i = 1 ; i < argc ; ++i) {
+        if (String(argv[i]) == _("--color")) {
           escapes = true;
           break;
         }
@@ -56,9 +58,9 @@ void TextIOHandler::init() {
     have_stderr = false;
     // Use console mode if one of the cli flags is passed
     static const Char* redirect_flags[] = {_("-?"),_("--help"),_("-v"),_("--version"),_("--cli"),_("-c"),_("--export"),_("--create-installer")};
-    for (int i = 1 ; i < wxTheApp->argc ; ++i) {
+    for (int i = 1 ; i < argc ; ++i) {
       for (size_t j = 0 ; j < sizeof(redirect_flags)/sizeof(redirect_flags[0]) ; ++j) {
-        if (String(wxTheApp->argv[i]) == redirect_flags[j]) {
+        if (String(argv[i]) == redirect_flags[j]) {
           have_console = true;
           have_stderr = true;
           break;
