@@ -161,6 +161,9 @@ KeywordP KeywordDataObject::getKeyword(const SetP& set) {
 // ----------------------------------------------------------------------------- : Card on clipboard
 
 CardsOnClipboard::CardsOnClipboard(const SetP& set, const vector<CardP>& cards) {
+  // Keep the native MSE card format preferred so copy/paste inside MSE
+  // preserves all card data (not just the text fallback).
+  Add(new CardsDataObject(set, cards), true);
   // Conversion to text format
     if (!cards.empty()) {
       String text;
@@ -172,24 +175,6 @@ CardsOnClipboard::CardsOnClipboard(const SetP& set, const vector<CardP>& cards) 
     }
   // Conversion to bitmap format
     if (cards.size() == 1) {
-      img = export_image(set, cards[0], true, 1.0, 0.0, 0.0, &bmp);
+      Add(new wxBitmapDataObject(export_bitmap(set, cards[0])));
     }
-    else {
-      img = export_image(set, cards);
-      bmp = Bitmap(img);
-    }
-    //wxFileDataObject* fileData = new wxFileDataObject(); // needed for pasting on desktop, but slow
-    //String temp_path = wxFileName::CreateTempFileName(_("mse")) + _(".png");
-    //img.SaveFile(temp_path, wxBITMAP_TYPE_PNG);
-    //fileData->AddFile(temp_path);
-    //Add(fileData);
-    wxImageDataObject* imgData = new wxImageDataObject(); // needed for metadata
-    imgData->SetImage(img);
-    Add(imgData);
-    wxBitmapDataObject* bmpData = new wxBitmapDataObject(); // needed for pasting in MSPaint
-    bmpData->SetBitmap(bmp);
-    Add(bmpData);
-  }
-  // Conversion to serialized card format
-  Add(new CardsDataObject(set, id, cards), true);
 }
