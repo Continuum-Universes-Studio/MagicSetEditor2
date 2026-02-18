@@ -141,6 +141,9 @@ KeywordP KeywordDataObject::getKeyword(const SetP& set) {
 // ----------------------------------------------------------------------------- : Card on clipboard
 
 CardsOnClipboard::CardsOnClipboard(const SetP& set, const vector<CardP>& cards) {
+  // Keep the native MSE card format preferred so copy/paste inside MSE
+  // preserves all card data (not just the text fallback).
+  Add(new CardsDataObject(set, cards), true);
   // Conversion to text format
     if (!cards.empty()) {
       String text;
@@ -154,6 +157,4 @@ CardsOnClipboard::CardsOnClipboard(const SetP& set, const vector<CardP>& cards) 
     if (cards.size() == 1) {
       Add(new wxBitmapDataObject(export_bitmap(set, cards[0])));
     }
-  // Conversion to serialized card format
-    Add(new CardsDataObject(set, cards), true);
 }
