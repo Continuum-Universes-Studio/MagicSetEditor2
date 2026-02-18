@@ -1,6 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make card games                |
-//| Description:  Magic Set Editor - Program to make card games                |
+//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -12,6 +11,7 @@
 #include <gui/util.hpp>
 #include <gui/new_window.hpp>
 #include <gui/set/window.hpp>
+#include <gui/update_checker.hpp>
 #include <gui/packages_window.hpp>
 #include <gui/theme.hpp>
 #include <util/window_id.hpp>
@@ -32,8 +32,7 @@ bool __compare_package_name(const PackagedP& a, const PackagedP& b) {
 }
 WelcomeWindow::WelcomeWindow()
   : wxFrame(nullptr, wxID_ANY, _TITLE_("magic set editor"), wxDefaultPosition, wxSize(520,380), wxDEFAULT_DIALOG_STYLE | wxTAB_TRAVERSAL | wxCLIP_CHILDREN )
-  , logo (load_resource_image(settings.darkModePrefix() + _("about")))
-  , logo (load_resource_image(settings.darkModePrefix() + _("about")))
+  , logo (load_resource_image(_("about")))
 {
   SetIcon(load_resource_icon(_("app")));
 
@@ -42,6 +41,9 @@ WelcomeWindow::WelcomeWindow()
   // init controls
   wxControl* new_set   = new HoverButtonExt(this, ID_FILE_NEW,           load_resource_image(_("welcome_new")),     _BUTTON_("new set"),       _HELP_("new set"));
   wxControl* open_set  = new HoverButtonExt(this, ID_FILE_OPEN,          load_resource_image(_("welcome_open")),    _BUTTON_("open set"),      _HELP_("open set"));
+  #if !USE_OLD_STYLE_UPDATE_CHECKER
+  wxControl* updates   = new HoverButtonExt(this, ID_FILE_CHECK_UPDATES, load_resource_image(_("welcome_updates")), _BUTTON_("check updates"), _HELP_("check updates"));
+  #endif
   wxControl* open_last = nullptr;
   if (!settings.recent_sets.empty()) {
     const String& filename = settings.recent_sets.front();
@@ -57,6 +59,9 @@ WelcomeWindow::WelcomeWindow()
     s2->AddSpacer(100);
     s2->Add(new_set,   0, wxALL, 2);
     s2->Add(open_set,  0, wxALL, 2);
+    #if !USE_OLD_STYLE_UPDATE_CHECKER
+    s2->Add(updates,   0, wxALL, 2);
+    #endif
     if (open_last) s2->Add(open_last, 0, wxALL, 2);
     s2->AddStretchSpacer();
 
@@ -124,8 +129,7 @@ void WelcomeWindow::onSelectLanguage(wxCommandEvent&) {
 }
 
 void WelcomeWindow::onOpenSet(wxCommandEvent&) {
-  wxFileDialog* dlg = new wxFileDialog(this, _TITLE_("open set"), settings.default_set_dir, _(""), import_formats(), wxFD_OPEN);
-  wxFileDialog* dlg = new wxFileDialog(this, _TITLE_("open set"), settings.default_set_dir, _(""), import_formats(), wxFD_OPEN);
+  wxFileDialog* dlg = new wxFileDialog(this, _TITLE_("open set"), settings.default_set_dir, wxEmptyString, import_formats(), wxFD_OPEN);
   if (dlg->ShowModal() == wxID_OK) {
     settings.default_set_dir = dlg->GetDirectory();
     wxBusyCursor wait;
@@ -153,6 +157,12 @@ void WelcomeWindow::onOpenLast(wxCommandEvent&) {
   }
 }
 
+void WelcomeWindow::onCheckUpdates(wxCommandEvent&) {
+  Show(false); // hide, so the PackagesWindow will not use this window as its parent
+  (new PackagesWindow(nullptr))->Show();
+  Close();
+}
+
 void WelcomeWindow::close(const SetP& set) {
   if (!set) return;
   (new SetWindow(nullptr, set))->Show();
@@ -165,6 +175,7 @@ BEGIN_EVENT_TABLE(WelcomeWindow, wxFrame)
   EVT_BUTTON         (ID_FILE_OPEN,          WelcomeWindow::onOpenSet)
   EVT_BUTTON         (ID_FILE_RECENT,        WelcomeWindow::onOpenLast)
   EVT_COMBOBOX       (ID_SELECT_LANGUAGE,     WelcomeWindow::onSelectLanguage)
+  EVT_BUTTON         (ID_FILE_CHECK_UPDATES, WelcomeWindow::onCheckUpdates)
   EVT_PAINT          (                       WelcomeWindow::onPaint)
 //  EVT_IDLE           (                     WelcomeWindow::onIdle)
 END_EVENT_TABLE  ()
