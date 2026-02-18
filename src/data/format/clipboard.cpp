@@ -4,7 +4,7 @@
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
 
-// ---------------------------------------------------------------------------- : Includes
+// ----------------------------------------------------------------------------- : Includes
 
 #include <util/prec.hpp>
 #include <data/format/clipboard.hpp>
@@ -17,9 +17,8 @@
 #include <util/io/package.hpp>
 #include <script/scriptable.hpp>
 #include <wx/sstream.h>
-#include <cstring>
 
-// ---------------------------------------------------------------------------- : Clipboard serialization
+// ----------------------------------------------------------------------------- : Clipboard serialization
 
 /// Serialize an object to a string, clipboard_package will be set to the given package.
 template <typename T>
@@ -39,42 +38,7 @@ void deserialize_from_clipboard(T& object, Package& package, const String& data)
     reader.handle_greedy(object);
 }
 
-// ---------------------------------------------------------------------------- : SerializedClipboardDataObject
-
-SerializedClipboardDataObject::SerializedClipboardDataObject(const wxDataFormat& format)
-  : wxDataObjectSimple(format)
-{}
-
-void SerializedClipboardDataObject::SetText(const String& text) {
-  this->text = text;
-}
-
-const String& SerializedClipboardDataObject::GetText() const {
-  return text;
-}
-
-size_t SerializedClipboardDataObject::GetDataSize() const {
-  wxCharBuffer buffer = text.utf8_str();
-  return strlen(buffer.data()) + 1;
-}
-
-bool SerializedClipboardDataObject::GetDataHere(void* buf) const {
-  wxCharBuffer buffer = text.utf8_str();
-  memcpy(buf, buffer.data(), strlen(buffer.data()) + 1);
-  return true;
-}
-
-bool SerializedClipboardDataObject::SetData(size_t len, const void* buf) {
-  if (!buf) return false;
-  const char* data = static_cast<const char*>(buf);
-  if (len > 0 && data[len - 1] == '\0') {
-    --len;
-  }
-  text = String::FromUTF8(data, len);
-  return true;
-}
-
-// ---------------------------------------------------------------------------- : CardDataObject
+// ----------------------------------------------------------------------------- : CardDataObject
 
 /// A wrapped cards for storing on the clipboard
 struct WrappedCards {
@@ -96,11 +60,10 @@ IMPLEMENT_REFLECTION(WrappedCards) {
 
 wxDataFormat CardsDataObject::format = _("application/x-mse-cards");
 
-CardsDataObject::CardsDataObject(const SetP& set, const vector<CardP>& cards)
+CardsDataObject::CardsDataObject(const SetP& set, const String id, const vector<CardP>& cards)
   : SerializedClipboardDataObject(format)
 {
-  // set the stylesheet, so when deserializing we know whos style options we are reading
-  bool* has_styling = new bool[cards.size()];
+  vector<bool> has_styling;
   for (size_t i = 0 ; i < cards.size() ; ++i) {
     has_styling[i] = cards[i]->has_styling && !cards[i]->stylesheet;
     if (has_styling[i]) {
@@ -119,9 +82,9 @@ CardsDataObject::CardsDataObject(const SetP& set, const vector<CardP>& cards)
   delete [] has_styling;
 }
 
-CardsDataObject::CardsDataObject()
-  : SerializedClipboardDataObject(format)
-{}
+CardsDataObject::CardsDataObject() {
+  SetFormat(format);
+}
 
 bool CardsDataObject::getCards(const SetP& set, vector<CardP>& out) {
   WrappedCards data = { set->game.get(), set->game->name() };
@@ -136,7 +99,7 @@ bool CardsDataObject::getCards(const SetP& set, vector<CardP>& out) {
   }
 }
 
-// ---------------------------------------------------------------------------- : KeywordDataObject
+// ----------------------------------------------------------------------------- : KeywordDataObject
 
 /// A wrapped keyword for storing on the clipboard
 struct WrappedKeyword {
@@ -158,16 +121,15 @@ IMPLEMENT_REFLECTION(WrappedKeyword) {
 
 wxDataFormat KeywordDataObject::format = _("application/x-mse-keyword");
 
-KeywordDataObject::KeywordDataObject(const SetP& set, const KeywordP& keyword)
-  : SerializedClipboardDataObject(format)
-{
+KeywordDataObject::KeywordDataObject(const SetP& set, const KeywordP& keyword) {
   WrappedKeyword data = { set->game.get(), set->game->name(), keyword };
   SetText(serialize_for_clipboard(*set, data));
+  SetFormat(format);
 }
 
-KeywordDataObject::KeywordDataObject()
-  : SerializedClipboardDataObject(format)
-{}
+KeywordDataObject::KeywordDataObject() {
+  SetFormat(format);
+}
 
 KeywordP KeywordDataObject::getKeyword(const SetP& set) {
   KeywordP keyword(new Keyword());
@@ -177,7 +139,7 @@ KeywordP KeywordDataObject::getKeyword(const SetP& set) {
   else                                     return keyword;
 }
 
-// ---------------------------------------------------------------------------- : Card on clipboard
+// ----------------------------------------------------------------------------- : Card on clipboard
 
 CardsOnClipboard::CardsOnClipboard(const SetP& set, const String id, const vector<CardP>& cards) {
   Add(new CardsDataObject(set, id, cards), true);
@@ -188,7 +150,15 @@ CardsOnClipboard::CardsOnClipboard(const SetP& set, const String id, const vecto
       if (i > 0) text += _("\n");
       text += cards[i]->identification();
     }
-  // Conversion to bitmap format
+    Add(new wxTextDataObject(text));
+  }
+
+  if (cards.size() == 1) {
+    Add(new wxBitmapDataObject(export_bitmap(set, cards[0])));
+  }
+
+  if (cards.size() > 0 && cards.size() < 6) {
+    Image img;
     if (cards.size() == 1) {
       Add(new wxBitmapDataObject(export_bitmap(set, cards[0])));
     }
