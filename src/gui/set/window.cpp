@@ -50,7 +50,7 @@ SetWindow::SetWindow(Window* parent, const SetP& set)
   SetIcon(load_resource_icon(_("app")));
 
   // avoid flicker
-  SetBackgroundStyle(wxBG_STYLE_PAINT);
+  SetBackgroundStyle(wxBG_STYLE_SYSTEM);
 
   // initialize menu bar
   auto menuBar = new wxMenuBar();
