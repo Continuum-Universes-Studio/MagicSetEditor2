@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package(wxWidgets 3.3.1 CONFIG REQUIRED)
 find_package(Boost REQUIRED COMPONENTS regex)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGL OpenGLWidgets Test)
 
 find_package(PkgConfig)
 
