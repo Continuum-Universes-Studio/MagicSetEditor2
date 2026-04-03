@@ -61,7 +61,7 @@ IMPLEMENT_REFLECTION(WrappedCards) {
 }
 
 
-wxDataFormat CardsDataObject::format = _("application/x-mse-cards");
+wxDataFormat CardsDataObject::format(_("application/x-mse-cards"));
 
 CardsDataObject::CardsDataObject(const SetP& set, const String id, const vector<CardP>& cards) {
   // set the stylesheet, so when deserializing we know whos style options we are reading
@@ -121,7 +121,7 @@ IMPLEMENT_REFLECTION(WrappedKeyword) {
 }
 
 
-wxDataFormat KeywordDataObject::format = _("application/x-mse-keyword");
+wxDataFormat KeywordDataObject::format(_("application/x-mse-keyword"));
 
 KeywordDataObject::KeywordDataObject(const SetP& set, const KeywordP& keyword) {
   WrappedKeyword data = { set->game.get(), set->game->name(), keyword };
