@@ -691,10 +691,10 @@ void CardListBase::onDrag(wxMouseEvent& ev) {
 void CardListBase::onContextMenu(wxContextMenuEvent&) {
   if (allowModify()) {
     wxMenu m;
-    add_menu_item_tr(&m, wxID_CUT, settings.darkModePrefix() + "cut", "cut_card");
-    add_menu_item_tr(&m, wxID_COPY, "copy", "copy_card");
+    add_menu_item_tr(&m, ID_EDIT_CUT, settings.darkModePrefix() + "cut", "cut_card");
+    add_menu_item_tr(&m, ID_EDIT_COPY, "copy", "copy_card");
     add_menu_item_tr(&m, ID_CARD_AND_LINK_COPY, "card_copy", "copy card and links");
-    add_menu_item_tr(&m, wxID_PASTE, "paste", "paste_card");
+    add_menu_item_tr(&m, ID_EDIT_PASTE, "paste", "paste_card");
     m.AppendSeparator();
     add_menu_item_tr(&m, ID_CARD_ADD, "card_add", "add card");
     add_menu_item_tr(&m, ID_CARD_REMOVE, "card_del", "remove card");
