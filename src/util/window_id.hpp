@@ -1,6 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make card games                |
-//| Description:  Magic Set Editor - Program to make card games                |
+//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -109,32 +108,6 @@ enum ChildMenuID {
   ID_CARD_ROTATE_270,
   // CardList
   ID_SELECT_COLUMNS,
-  ID_CARD_LINK,
-  ID_CARD_AND_LINK_COPY,
-  ID_CARD_ADD_CSV,
-  ID_CARD_ADD_CSV_SEP,
-  ID_CARD_ADD_CSV_BROWSE,
-  ID_CARD_ADD_JSON,
-  ID_CARD_ADD_JSON_ARRAY,
-  ID_CARD_ADD_JSON_BROWSE,
-  ID_CARD_BULK,
-  ID_CARD_BULK_TYPE,
-  ID_CARD_BULK_FIELD,
-  ID_CARD_BULK_MODIFICATION,
-  ID_CARD_BULK_PREDICATE,
-  ID_CARD_LINK,
-  ID_CARD_AND_LINK_COPY,
-  ID_CARD_ADD_CSV,
-  ID_CARD_ADD_CSV_SEP,
-  ID_CARD_ADD_CSV_BROWSE,
-  ID_CARD_ADD_JSON,
-  ID_CARD_ADD_JSON_ARRAY,
-  ID_CARD_ADD_JSON_BROWSE,
-  ID_CARD_BULK,
-  ID_CARD_BULK_TYPE,
-  ID_CARD_BULK_FIELD,
-  ID_CARD_BULK_MODIFICATION,
-  ID_CARD_BULK_PREDICATE,
 
   // Keyword menu
   ID_KEYWORD_ADD = 6101,
@@ -147,17 +120,9 @@ enum ChildMenuID {
   ID_FORMAT_BOLD = 6201,
   ID_FORMAT_ITALIC,
   ID_FORMAT_UNDERLINE,
-  ID_FORMAT_STRIKETHROUGH,
-  ID_FORMAT_COLOR,
-  ID_FORMAT_BULLETPOINT,
-  ID_FORMAT_STRIKETHROUGH,
-  ID_FORMAT_COLOR,
-  ID_FORMAT_BULLETPOINT,
   ID_FORMAT_SYMBOL,
   ID_FORMAT_REMINDER,
   ID_INSERT_SYMBOL,
-  ID_FORMAT_FONT,
-  ID_FORMAT_FONT,
 
   // Spelling errors
   ID_SPELLING_ADD_TO_DICT = 6301,
@@ -220,20 +185,6 @@ enum ChildMenuID {
   // On cards panel
   ID_COLLAPSE_NOTES = 8001,
   ID_CARD_FILTER,
-  ID_CARD_COUNTER,
-  ID_CARD_LINK_TYPE,
-  ID_CARD_LINK_SELECT,
-  ID_CARD_LINK_UNLINK_1,
-  ID_CARD_LINK_UNLINK_2,
-  ID_CARD_LINK_UNLINK_3,
-  ID_CARD_LINK_UNLINK_4,
-  ID_CARD_COUNTER,
-  ID_CARD_LINK_TYPE,
-  ID_CARD_LINK_SELECT,
-  ID_CARD_LINK_UNLINK_1,
-  ID_CARD_LINK_UNLINK_2,
-  ID_CARD_LINK_UNLINK_3,
-  ID_CARD_LINK_UNLINK_4,
   
   // Style panel
   ID_STYLE_USE_FOR_ALL = 8011,
@@ -307,10 +258,6 @@ enum ControlID {
   ID_MOVE_DOWN,
   ID_SHOW,
   ID_HIDE,
-  // Card list drag'n'drop timer
-  ID_DROP_TIMER,
-  // Card list drag'n'drop timer
-  ID_DROP_TIMER,
   // Card select
   ID_SELECT_CARDS,
   ID_SELECTION_CHOICE,
@@ -325,8 +272,6 @@ enum ControlID {
   ID_PREVIEW,
   ID_SELECTOR,
   ID_SIZE,
-  ID_GRID,
-  ID_GRID,
   ID_LEFT,
   ID_TOP,
   ID_WIDTH,
@@ -344,8 +289,7 @@ enum ControlID {
   ID_SHARPEN,
   ID_SHARPEN_AMOUNT,
   // Internal window
-  ID_IMPORT_ZOOM,
-  ID_IMPORT_ZOOM,
+  ID_INTERNAL_SCALE,
   // Updates window
   ID_PACKAGE_LIST,
   ID_KEEP,
@@ -358,17 +302,5 @@ enum ControlID {
   ID_ADD_ITEM,
   ID_REMOVE_ITEM,
   ID_DEFAULTS,
-  ID_CARD_LINK_EDITOR,
-  ID_CARD_LINK_VIEWER,
-  ID_CARD_LINK_RELATION_1,
-  ID_CARD_LINK_RELATION_2,
-  ID_CARD_LINK_RELATION_3,
-  ID_CARD_LINK_RELATION_4,
-  ID_CARD_LINK_EDITOR,
-  ID_CARD_LINK_VIEWER,
-  ID_CARD_LINK_RELATION_1,
-  ID_CARD_LINK_RELATION_2,
-  ID_CARD_LINK_RELATION_3,
-  ID_CARD_LINK_RELATION_4,
 };
 
