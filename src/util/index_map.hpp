@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -149,8 +149,8 @@ public:
   IndexMap<Key,Value>& get(const String& name, const vector<Key>& init_with);
   /// Clear the delayed index map
   void clear();
-private:
   map<String, intrusive_ptr<DelayedIndexMapsData<Key,Value>>> data;
+private:
   friend class Reader;
   friend class Writer;
   friend class GetDefaultMember;

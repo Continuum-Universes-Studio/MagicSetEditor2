@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -9,6 +9,7 @@
 #include <util/prec.hpp>
 #include <gui/control/card_editor.hpp>
 #include <gui/value/editor.hpp>
+#include <gui/set/cards_panel.hpp>
 #include <gui/util.hpp>
 #include <data/field.hpp>
 #include <data/stylesheet.hpp>
@@ -360,6 +361,16 @@ void DataEditor::onMotion(wxMouseEvent& ev) {
   }
 }
 
+void DataEditor::onMouseEnter(wxMouseEvent& ev) {
+  ev.Skip();
+  if (GetId() == ID_CARD_LINK_EDITOR) {
+    CardsPanel* panel = dynamic_cast<CardsPanel*> (GetParent());
+    if (panel) {
+      panel->refreshCard(card);
+    }
+  }
+}
+
 void DataEditor::onMouseLeave(wxMouseEvent& ev) {
   // on mouse leave for editor
   if (hovered_viewer) {
@@ -370,7 +381,7 @@ void DataEditor::onMouseLeave(wxMouseEvent& ev) {
   }
   // clear status text
   wxFrame* frame = dynamic_cast<wxFrame*>( wxGetTopLevelParent(this) );
-  if (frame) frame->SetStatusText(wxEmptyString);
+  if (frame) frame->SetStatusText(_(""));
 }
 
 bool DataEditor::selectViewer(ValueViewer* v) {
@@ -462,6 +473,13 @@ void DataEditor::onChar(wxKeyEvent& ev) {
   } else {
     ev.Skip();
   }
+
+  if (GetId() == ID_CARD_LINK_EDITOR) {
+    CardsPanel* panel = dynamic_cast<CardsPanel*> (GetParent());
+    if (panel) {
+      panel->refreshCard(card);
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------- : Menu events
@@ -469,7 +487,7 @@ void DataEditor::onChar(wxKeyEvent& ev) {
 void DataEditor::onContextMenu(wxContextMenuEvent& ev) {
   if (current_editor) {
     wxMenu m;
-    add_menu_item_tr(&m, ID_EDIT_CUT, "cut", "cut");
+    add_menu_item_tr(&m, ID_EDIT_CUT, settings.darkModePrefix() + "cut", "cut");
     add_menu_item_tr(&m, ID_EDIT_COPY, "copy", "copy");
     add_menu_item_tr(&m, ID_EDIT_PASTE, "paste", "paste");
     m.Enable(ID_EDIT_CUT,   canCut());
@@ -503,6 +521,10 @@ void DataEditor::onFocus(wxFocusEvent& ev) {
       selectFirst();
     }
   }
+  CardsPanel* panel = dynamic_cast<CardsPanel*> (GetParent());
+  if (panel) {
+    panel->setFocusedEditor(this);
+  }
 }
 void DataEditor::onLoseFocus(wxFocusEvent& ev) {
   if (current_editor) {
@@ -520,6 +542,7 @@ BEGIN_EVENT_TABLE(DataEditor, CardViewer)
   EVT_RIGHT_DOWN     (DataEditor::onRightDown)
   EVT_MOTION         (DataEditor::onMotion)
   EVT_MOUSEWHEEL     (DataEditor::onMouseWheel)
+  EVT_ENTER_WINDOW   (DataEditor::onMouseEnter)
   EVT_LEAVE_WINDOW   (DataEditor::onMouseLeave)
   EVT_CONTEXT_MENU   (DataEditor::onContextMenu)
   EVT_MENU           (wxID_ANY, DataEditor::onMenu)

@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -50,11 +50,12 @@ public:
 class LineLayout : public IntrusivePtrVirtualBase {
 public:
   double width, top, height;
-  enum class Type { LINE, PARAGRAPH, BLOCK, ALL } type;
-  vector<LineLayoutP> lines, paragraphs, blocks;
+  enum class Type { LINE, CLAUSE, PARAGRAPH, BLOCK, ALL } type;
+  vector<LineLayoutP> lines, clauses, paragraphs, blocks;
 
   LineLayout() {}
   LineLayout(double width, double top, double height, Type type) : width(width), top(top), height(height), type(type) {}
+  inline double middle() const { return top+height/2.; }
   inline double bottom() const { return top+height; }
   void reflect(GetMember& gm) const;
 };
@@ -72,7 +73,7 @@ public:
   TextStyle(const TextFieldP&);
   DECLARE_STYLE_TYPE(Text);
   
-  Font font;                                  ///< Font to use for the text
+  FontRef font;                               ///< Font to use for the text
   SymbolFontRef symbol_font;                  ///< Symbol font for symbols in the text
   bool always_symbol;                         ///< Should everything be drawn as symbols?
   bool allow_formating;                       ///< Is formating (bold/italic/..) allowed?

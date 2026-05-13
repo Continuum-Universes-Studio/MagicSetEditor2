@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -38,16 +38,21 @@ IMPLEMENT_REFLECTION(TextField) {
 // ----------------------------------------------------------------------------- : TextStyle
 
 TextLayoutP dummy_layout() {
-  auto layout = make_intrusive<TextLayout>();
-  auto line = make_intrusive<LineLayout>(0, 0, 0, LineLayout::Type::LINE);
+  auto layout    = make_intrusive<TextLayout>();
+  auto line      = make_intrusive<LineLayout>(0, 0, 0, LineLayout::Type::LINE);
+  auto clause    = make_intrusive<LineLayout>(0, 0, 0, LineLayout::Type::CLAUSE);
   auto paragraph = make_intrusive<LineLayout>(0, 0, 0, LineLayout::Type::PARAGRAPH);
-  auto block = make_intrusive<LineLayout>(0, 0, 0, LineLayout::Type::BLOCK);
+  auto block     = make_intrusive<LineLayout>(0, 0, 0, LineLayout::Type::BLOCK);
+  clause   ->lines.push_back(line);
   paragraph->lines.push_back(line);
-  block->lines.push_back(line);
-  layout->lines.push_back(line);
-  block->paragraphs.push_back(paragraph);
-  layout->paragraphs.push_back(paragraph);
-  layout->blocks.push_back(block);
+  block    ->lines.push_back(line);
+  layout   ->lines.push_back(line);
+  paragraph->clauses.push_back(clause);
+  block    ->clauses.push_back(clause);
+  layout   ->clauses.push_back(clause);
+  block    ->paragraphs.push_back(paragraph);
+  layout   ->paragraphs.push_back(paragraph);
+  layout   ->blocks.push_back(block);
   return layout;
 }
 
@@ -127,8 +132,9 @@ void LineLayout::reflect(GetMember& handler) const {
   REFLECT(top);
   REFLECT(height);
   REFLECT_N("bottom", bottom());
-  REFLECT_N("middle", top + height/2);
+  REFLECT_N("middle", middle());
   if (type > Type::LINE) REFLECT(lines);
+  if (type > Type::CLAUSE) REFLECT(clauses);
   if (type > Type::PARAGRAPH) REFLECT(paragraphs);
   if (type > Type::BLOCK) REFLECT(blocks);
 }
@@ -206,7 +212,7 @@ void FakeTextValue::retrieve() {
   if (underlying) {
     value.assign(untagged ? escape(*underlying) : *underlying);
   } else {
-    value.assign(wxEmptyString);
+    value.assign(_(""));
   }
 }
 

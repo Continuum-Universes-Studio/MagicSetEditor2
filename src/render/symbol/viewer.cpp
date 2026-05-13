@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -70,11 +70,7 @@ typedef shared_ptr<wxMemoryDC> MemoryDCP;
 // Return a temporary DC with the same size as the parameter
 MemoryDCP getTempDC(DC& dc) {
   wxSize s = dc.GetSize();
-  #ifdef __WXMSW__
-    Bitmap buffer(s.GetWidth(), s.GetHeight(), 1);
-  #else
-    Bitmap buffer(s.GetWidth(), s.GetHeight(), 24);
-  #endif
+  Bitmap buffer(s.GetWidth(), s.GetHeight(), 24);
   MemoryDCP newDC(new wxMemoryDC);
   newDC->SelectObject(buffer);
   clearDC(*newDC, *wxBLACK_BRUSH);

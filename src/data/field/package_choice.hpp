@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -44,7 +44,7 @@ public:
   PackageChoiceStyle(const PackageChoiceFieldP& field);
   DECLARE_STYLE_TYPE(PackageChoice);
   
-  Font font;  ///< Font to use for the text
+  FontRef font;  ///< Font to use for the text
   
   int update(Context&) override;
 };

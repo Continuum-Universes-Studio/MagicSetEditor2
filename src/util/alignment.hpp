@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -27,7 +27,7 @@ enum Alignment {
   ALIGN_FILL          = ALIGN_STRETCH | ALIGN_JUSTIFY_WORDS | ALIGN_JUSTIFY_ALL,
   // horizontal fill modifiers
   ALIGN_IF_OVERFLOW   = 0x1000, // only fill if text_width > box_width
-  ALIGN_IF_SOFTBREAK  = 0x2000, // only fill before soft line breaks
+  ALIGN_IF_SOFTBREAK  = 0x2000, // only fill before soft line breaks and wraps
   // vertical
   ALIGN_TOP           = 0x100,
   ALIGN_MIDDLE        = 0x200,
@@ -57,6 +57,8 @@ RealPoint align_in_rect(Alignment align, const RealSize& to_align, const RealRec
 
 Alignment alignment_from_string(const String&);
 
+String alignment_to_string(const Alignment&);
+
 // ----------------------------------------------------------------------------- : Direction
 
 /// Direction to place something in
@@ -74,4 +76,6 @@ enum Direction {
 /// Move a point in a direction
 /** If the direction is horizontal the to_move.width is used, otherwise to_move.height */
 RealPoint move_in_direction(Direction dir, const RealPoint& point, const RealSize to_move, double spacing = 0);
+
+String direction_to_string(const Direction&);
 

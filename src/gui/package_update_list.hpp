@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -32,7 +32,7 @@ protected:
   // overridden methods from TreeList
   void initItems() override;
   void drawItem(DC& dc, size_t index, size_t column, int x, int y, bool selected) const override;
-  
+
   size_t columnCount() const override { return 3; }
   String columnText(size_t column) const override;
   int    columnWidth(size_t column) const override;
@@ -61,6 +61,7 @@ private:
       TYPE_GAME,
       TYPE_STYLESHEET,
       TYPE_EXPORT_TEMPLATE,
+      TYPE_IMPORT_TEMPLATE,
       TYPE_SYMBOL_FONT,
       TYPE_INCLUDE,
       TYPE_FONT,
@@ -74,7 +75,11 @@ private:
     bool highlight() const;
     
     static PackageType package_type(const PackageDescription& desc);
+
   };
+
+  bool CheckChildrenForUpdates(const TreeItem& ti) const;
+
   friend class PackageIconRequest;
 };
 

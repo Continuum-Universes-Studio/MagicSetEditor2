@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -8,6 +8,7 @@
 
 #include <util/prec.hpp>
 #include <gfx/gfx.hpp>
+#include <data/format/image_encoding.hpp>
 #include <util/error.hpp>
 
 // ----------------------------------------------------------------------------- : Resample passes
@@ -134,6 +135,9 @@ Image resample(const Image& img_in, int width, int height) {
     return img_out;
   }
 }
+Image resample(const Image& img_in, double zoom) {
+  return resample(img_in, (int)(img_in.GetWidth() * zoom), (int)(img_in.GetHeight() * zoom));
+}
 
 void resample_and_clip(const Image& img_in, Image& img_out, wxRect rect) {
   // mask to alpha
@@ -149,6 +153,13 @@ void resample_and_clip(const Image& img_in, Image& img_out, wxRect rect) {
     Image img_temp(img_out.GetWidth(), rect.height, false);
     resample_pass(img_in,   img_temp, offset_in, 0, rect.width,  1,                   img_temp.GetWidth(),  1,                   rect    .GetHeight(), img_in.GetWidth(), img_temp.GetWidth());
     resample_pass(img_temp, img_out,  0,         0, rect.height, img_temp.GetWidth(), img_out .GetHeight(), img_temp.GetWidth(), img_temp.GetWidth(),  1,                 1);
+  }
+  // transfer metadata
+  if (img_in.HasOption(wxIMAGE_OPTION_PNG_DESCRIPTION)) {
+    double scale_x = (double)img_out.GetWidth() / img_in.GetWidth();
+    double scale_y = (double)img_out.GetHeight() / img_in.GetHeight();
+    String metadata = transformAllEncodedRects(img_in.GetOption(wxIMAGE_OPTION_PNG_DESCRIPTION), RealRect::scale, scale_x, scale_y);
+    img_out.SetOption(wxIMAGE_OPTION_PNG_DESCRIPTION, metadata);
   }
 }
 

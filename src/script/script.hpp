@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -30,6 +30,7 @@ enum InstructionType
   // Variables
 ,  I_GET_VAR       = 4  ///< arg = var        : find a variable, push its value onto the stack, it is an error if the variable is not found
 ,  I_SET_VAR       = 5  ///< arg = var        : assign the top value from the stack to a variable (doesn't pop)
+,  I_SET_GLB       = 21 ///< arg = var        : assign the top value from the stack to a global variable (doesn't pop)
   // Objects
 ,  I_MEMBER_C      = 6  ///< arg = const name : finds a member of the top of the stack replaces the top of the stack with the member
 ,  I_LOOP          = 7  ///< arg = address    : loop over the elements of an iterator, which is the *second* element of the stack (this allows for combing the results of multiple iterations)

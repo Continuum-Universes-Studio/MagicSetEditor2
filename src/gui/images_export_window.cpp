@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -65,7 +65,7 @@ void ImagesExportWindow::onOk(wxCommandEvent&) {
   if (name.empty()) return;
   settings.default_export_dir = wxPathOnly(name);
   // Export
-  export_images(set, getSelection(), name, gs.images_export_filename, gs.images_export_conflicts);
+  export_image(set, getSelection(), name, gs.images_export_filename, gs.images_export_conflicts);
   // Done
   EndModal(wxID_OK);
 }

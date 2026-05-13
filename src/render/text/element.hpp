@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -25,24 +25,26 @@ class SymbolFontRef;
 /// Information on a linebreak
 enum class LineBreak {
   NO,    // no line break ever
-  MAYBE, // break here when in "direction:vertical" mode
-  SPACE, // optional line break (' ')
-  SOFT,  // always a line break, spacing as a soft break, doesn't end paragraphs
-  HARD,  // always a line break ('\n')
-  LINE,  // line break with a separator line (<line>)
+  MAYBE, // break here when in "direction:vertical" mode (break as WRAP)
+  SPACE, // optional line break, spacing as a soft break, ends a line,      ( )
+  WRAP,  // always a line break, spacing as a soft break, ends a line,      ( )
+  SOFT,  // always a line break, spacing as a soft break, ends a clause,    (<soft-line>\n</soft-line>)
+  HARD,  // always a line break, spacing as a hard break, ends a paragraph, (\n)
+  LINE,  // always a line break, spacing as a line break, ends a block,     (<line>\n</line>),          has separator
 };
 
 /// Information on a character in a TextElement
 struct CharInfo {
-  RealSize  size;             ///< Size of this character
-  LineBreak break_after : 16; ///< How/when to break after it?
-  bool      soft : 1;         ///< Is this a 'soft' character? soft characters are ignored for alignment
+  RealSize  size;        ///< Size of this character
+  LineBreak break_after; ///< How/when to break after it?
+  bool      soft : 1;    ///< Is this a 'soft' character? soft characters are ignored for alignment
+  bool      bullet : 1;  ///< Is this a bullet point?
   
   explicit CharInfo()
-    : break_after(LineBreak::NO), soft(true)
+    : break_after(LineBreak::NO), soft(true), bullet(false)
   {}
-  inline CharInfo(RealSize size, LineBreak break_after, bool soft = false)
-    : size(size), break_after(break_after), soft(soft)
+  inline CharInfo(RealSize size, LineBreak break_after, bool soft = false, bool bullet = false)
+    : size(size), break_after(break_after), soft(soft), bullet(bullet)
   {}
 };
 
@@ -58,7 +60,7 @@ public:
   /// Draw a subsection section of the text in the given rectangle
   /** xs give the x coordinates for each character
    *  this->start <= start < end <= this->end <= text.size() */
-  virtual void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end) const = 0;
+  virtual void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end, bool native_look) const = 0;
   /// Get information on all characters in the range [start...end) and store them in out
   virtual void getCharInfo(RotatedDC& dc, double scale, vector<CharInfo>& out) const = 0;
   /// Return the minimum scale factor allowed (starts at 1)
@@ -72,18 +74,18 @@ public:
 /// A text element that uses a normal font
 class FontTextElement : public TextElement {
 public:
-  FontTextElement(const String& content, size_t start, size_t end, const FontP& font, DrawWhat draw_as, LineBreak break_style)
+  FontTextElement(const String& content, size_t start, size_t end, const FontRefP& font, DrawWhat draw_as, LineBreak break_style)
     : TextElement(start, end), content(content)
     , font(font), draw_as(draw_as), break_style(break_style)
   {}
   
-  void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end) const override;
+  void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end, bool native_look) const override;
   void getCharInfo(RotatedDC& dc, double scale, vector<CharInfo>& out) const override;
   double minScale() const override;
   double scaleStep() const override;
 private:
   String    content;  ///< Text to show
-  FontP     font;
+  FontRefP  font;
   DrawWhat  draw_as;
   LineBreak break_style;
 };
@@ -96,7 +98,7 @@ public:
     , font(font), ctx(*ctx)
   {}
   
-  void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end) const override;
+  void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end, bool native_look) const override;
   void getCharInfo(RotatedDC& dc, double scale, vector<CharInfo>& out) const override;
   double minScale() const override;
   double scaleStep() const override;
@@ -113,7 +115,7 @@ class CompoundTextElement : public TextElement {
 public:
   CompoundTextElement(size_t start, size_t end) : TextElement(start, end) {}
   
-  void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end) const override;
+  void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end, bool native_look) const override;
   void getCharInfo(RotatedDC& dc, double scale, vector<CharInfo>& out) const override;
   double minScale() const override;
   double scaleStep() const override;
@@ -130,7 +132,7 @@ class AtomTextElement : public CompoundTextElement {
 public:
   AtomTextElement(size_t start, size_t end, Color background_color) : CompoundTextElement(start, end), background_color(background_color) {}
   
-  void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end) const override;
+  void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end, bool native_look) const override;
 private:
   Color background_color;
 };
@@ -140,18 +142,25 @@ class ErrorTextElement : public CompoundTextElement {
 public:
   ErrorTextElement(size_t start, size_t end) : CompoundTextElement(start, end) {}
   
-  void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end) const override;
+  void draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end, bool native_look) const override;
 };
 
 // ----------------------------------------------------------------------------- : TextElements
 
+class TextClause {
+public:
+  double margin_left = 0., margin_right = 0., margin_top = 0.;
+  size_t start = String::npos, end = String::npos;
+};
+
 class TextParagraph {
 public:
   optional<Alignment> alignment;
-  double margin_left = 0., margin_right = 0.;
-  double margin_top = 0.; //, margin_bottom = 0.; // TODO: more margin options?
+  bool before_bullet_found = false;
+  bool after_bullet_found = false;
+  size_t margin_before_bullet = 0; // position of the bullet tag
+  size_t margin_after_bullet = 0;  // position of the first character after the bullet tag
   size_t start = String::npos, end = String::npos;
-  size_t margin_end_char = 0; // end position of characters that are added to the margin (i.e. bullet points)
 };
 
 /// A list of text elements extracted from a string
@@ -159,8 +168,12 @@ class TextElements : public CompoundTextElement {
 public:
   TextElements() : CompoundTextElement(String::npos,String::npos) {}
 
-  /// Information on the paragraphs/blocks in the string
-  /// Text segments separated by newlines are considered paragraphs
+  /// Information on the clauses/paragraphs/blocks in the string
+  /// Text segments separated by wrapping are considered lines
+  /// Text segments separated by soft newlines are considered clauses
+  /// Text segments separated by hard newlines are considered paragraphs
+  /// Text segments separated by line newlines are considered blocks
+  vector<TextClause> clauses;
   vector<TextParagraph> paragraphs;
 
   void clear();

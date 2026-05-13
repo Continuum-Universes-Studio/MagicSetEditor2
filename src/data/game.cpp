@@ -1,5 +1,5 @@
-//+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+﻿//+----------------------------------------------------------------------------+
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -10,6 +10,7 @@
 #include <data/game.hpp>
 #include <data/field.hpp>
 #include <data/field/choice.hpp>
+#include <data/card_link.hpp>
 #include <data/keyword.hpp>
 #include <data/statistics.hpp>
 #include <data/pack.hpp>
@@ -48,7 +49,10 @@ IMPLEMENT_REFLECTION(Game) {
   }
   REFLECT_NO_SCRIPT(default_set_style);
   REFLECT_NO_SCRIPT(card_fields);
+  REFLECT_NO_SCRIPT(card_links);
   REFLECT_NO_SCRIPT(card_list_color_script);
+  REFLECT_NO_SCRIPT(import_script);
+  REFLECT_NO_SCRIPT(json_paths);
   REFLECT_NO_SCRIPT(statistics_dimensions);
   REFLECT_NO_SCRIPT(statistics_categories);
   REFLECT_COMPAT(<308, "pack_item", pack_types);
@@ -63,7 +67,24 @@ IMPLEMENT_REFLECTION(Game) {
   REFLECT_NO_SCRIPT(auto_replaces);
 }
 
+void Game::add_alt_name_or_warn(const String& alt_name, const String& field_name)
+{
+  String unified_name = unified_form(alt_name);
+  if (card_fields_alt_names.count(unified_name)) {
+    if (card_fields_alt_names[unified_name] != field_name) {
+      queue_message(MESSAGE_WARNING, _("Duplicate alt card field name ' ") + unified_name + _(" ' is both an alt for: ' ") + field_name + _(" ' and ' ") + card_fields_alt_names[unified_name] + _(" '."));
+    }
+  }
+  else {
+    card_fields_alt_names.emplace(unified_name, field_name);
+  }
+}
+
 void Game::validate(Version v) {
+  // check that we have at least one card field
+  if (card_fields.size() < 1) {
+    throw Error(_ERROR_1_("no card fields", name()));
+  }
   Packaged::validate(v);
   // automatic statistics dimensions
   {
@@ -93,6 +114,71 @@ void Game::validate(Version v) {
     pack->filter = OptionalScript(_("true"));
     pack->select = SELECT_NO_REPLACE;
     pack_types.push_back(pack);
+  }
+  // alternate card field names map
+  for (auto it = card_fields.begin(); it != card_fields.end(); ++it) {
+    FieldP field = *it;
+    String& field_name = field->name;
+    add_alt_name_or_warn(field_name, field_name);
+    add_alt_name_or_warn(field->card_list_name.default_, field_name);
+    add_alt_name_or_warn(field->card_list_name.get(), field_name);
+    for (auto it2 = field->alt_names.begin(); it2 != field->alt_names.end(); ++it2) {
+      add_alt_name_or_warn(*it2, field_name);
+    }
+  }
+  // front face/back face card link
+  card_links.insert(card_links.begin(), make_intrusive<CardLink>());
+  card_links[0]->selected.default_ = _("Front Face");
+  card_links[0]->selected.translations = std::unordered_map<String, String>{
+    {_("ch-s"),  _("卡片正面")},
+    {_("ch-t"),  _("卡片正面")},
+    {_("da"),    _("Forside")},
+    {_("de"),    _("Vorderseite")},
+    {_("en"),    _("Front Face")},
+    {_("es"),    _("Cara frontal")},
+    {_("fr"),    _("Face Avant")},
+    {_("it"),    _("Fronte")},
+    {_("jp"),    _("カードの表面")},
+    {_("ko"),    _("카드 앞면")},
+    {_("pl"),    _("Przód")},
+    {_("pt-br"), _("Frente")},
+    {_("ru"),    _("Лицевая сторона")}
+  };
+  card_links[0]->linked.default_ = _("Back Face");
+  card_links[0]->linked.translations = std::unordered_map<String, String>{
+    {_("ch-s"),  _("卡片背面")},
+    {_("ch-t"),  _("卡片背面")},
+    {_("da"),    _("Bagside")},
+    {_("de"),    _("Rückseite")},
+    {_("en"),    _("Back Face")},
+    {_("es"),    _("Cara posterior")},
+    {_("fr"),    _("Face Arrière")},
+    {_("it"),    _("Retro")},
+    {_("jp"),    _("カードの裏面")},
+    {_("ko"),    _("카드 뒷면")},
+    {_("pl"),    _("Tył")},
+    {_("pt-br"), _("Verso")},
+    {_("ru"),    _("Обратная сторона")}
+  };
+  // localized card link names map
+  for (auto it = card_links.begin(); it != card_links.end(); ++it) {
+    CardLinkP link = *it;
+    String selected_default = link->selected.default_;
+    for (auto selected_it = link->selected.translations.begin(); selected_it != link->selected.translations.end(); selected_it++) {
+      String selected_tr = unified_form(selected_it->second);
+      if (card_links_alt_names.find(selected_tr) != card_links_alt_names.end() && card_links_alt_names[selected_tr] != selected_default) {
+        queue_message(MESSAGE_WARNING, _ERROR_3_("link duplicate", selected_tr, card_links_alt_names[selected_tr], selected_default));
+      }
+      card_links_alt_names.emplace(selected_tr, selected_default);
+    }
+    String linked_default = link->linked.default_;
+    for (auto linked_it = link->linked.translations.begin(); linked_it != link->linked.translations.end(); linked_it++) {
+      String linked_tr = unified_form(linked_it->second);
+      if (card_links_alt_names.find(linked_tr) != card_links_alt_names.end() && card_links_alt_names[linked_tr] != linked_default) {
+        queue_message(MESSAGE_WARNING, _ERROR_3_("link duplicate", linked_tr, card_links_alt_names[linked_tr], linked_default));
+      }
+      card_links_alt_names.emplace(linked_tr, linked_default);
+    }
   }
 }
 

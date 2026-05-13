@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -12,6 +12,7 @@
 #include <util/error.hpp>
 #include <script/to_value.hpp> // for reflection
 #include <script/profiler.hpp> // for PROFILER
+#include <data/set.hpp>
 #include <wx/wfstream.h>
 #include <wx/zipstrm.h>
 #include <wx/dir.h>
@@ -98,6 +99,7 @@ void Package::save(bool remove_unused) {
 }
 
 void Package::saveAs(const String& name, bool remove_unused, bool as_directory) {
+  if (Set* s = dynamic_cast<Set*>(this)) s->referenceActionStackFiles();
   // type of package
   if (wxDirExists(name) || as_directory) {
     saveToDirectory(name, remove_unused, false);
@@ -110,6 +112,7 @@ void Package::saveAs(const String& name, bool remove_unused, bool as_directory) 
 }
 
 void Package::saveCopy(const String& name) {
+  if (Set* s = dynamic_cast<Set*>(this)) s->referenceActionStackFiles();
   saveToZipfile(name, true, true);
   clearKeepFlag();
 }
@@ -186,7 +189,7 @@ public:
 
 // ----------------------------------------------------------------------------- : Package : inside
 
-bool Package::existsIn(const String& file) {
+bool Package::contains(const String& file) {
   FileInfos::iterator it = files.find(normalize_internal_filename(file));
   if (it == files.end()) {
     // does it look like a relative filename?
@@ -224,8 +227,16 @@ unique_ptr<wxInputStream> Package::openIn(const String& file) {
   FileInfos::iterator it = files.find(normalize_internal_filename(file));
   if (it == files.end()) {
     // does it look like a relative filename?
-    if (filename.find(_(".mse-")) != String::npos) {
-      throw PackageError(_ERROR_2_("file not found package like", file, filename));
+    if (size_t pos = filename.find(_(".mse-")) != String::npos) {
+      // check for nested folder
+      pos = filename.find_last_of(_("/\\"));
+      String nestedFilename = filename + filename.SubString(pos, filename.size()) + wxFileName::GetPathSeparator() + file;
+      if (wxFileExists(nestedFilename)) {
+        throw PackageError(_ERROR_1_("nested folder", filename));
+      }
+      else {
+        throw PackageError(_ERROR_2_("file not found package like", file, filename));
+      }
     }
   }
   unique_ptr<wxInputStream> stream;
@@ -298,7 +309,7 @@ LocalFileName Package::newFileName(const String& prefix, const String& suffix) {
 void Package::referenceFile(const String& file) {
   if (file.empty()) return;
   FileInfos::iterator it = files.find(file);
-  if (it == files.end()) throw InternalError(_("referencing a nonexistant file"));
+  if (it == files.end()) throw InternalError(_("Referencing an inexistant file!"));
   it->second.keep = true;
 }
 
@@ -358,7 +369,7 @@ LocalFileName LocalFileName::fromReadString(String const& fn, String const& pref
   if (!fn.empty() && clipboard_package()) {
     // copy file into current package
     try {
-      LocalFileName local_name = clipboard_package()->newFileName(_("image"),_("")); // a new unique name in the package, assume it's an image
+      LocalFileName local_name = clipboard_package()->newFileName(_("image"), _("")); // a new unique name in the package, assume it's an image
       auto out_stream = clipboard_package()->openOut(local_name);
       auto in_stream  = Package::openAbsoluteFile(fn);
       out_stream->Write(*in_stream); // copy
@@ -395,7 +406,7 @@ void Package::loadZipStream() {
 }
 
 void Package::openDirectory(bool fast) {
-  if (!fast) openSubdir(wxEmptyString);
+  if (!fast) openSubdir(_(""));
 }
 
 void Package::openSubdir(const String& name) {
@@ -403,7 +414,7 @@ void Package::openSubdir(const String& name) {
   if (!d.IsOpened()) return; // ignore errors here
   // find files
   String f; // filename
-  for(bool ok = d.GetFirst(&f, wxEmptyString, wxDIR_FILES | wxDIR_HIDDEN) ; ok ; ok = d.GetNext(&f)) {
+  for(bool ok = d.GetFirst(&f, _(""), wxDIR_FILES | wxDIR_HIDDEN) ; ok ; ok = d.GetNext(&f)) {
     if (ignore_file(f)) continue;
     // add file to list of known files
     addFile(name + f);
@@ -412,7 +423,7 @@ void Package::openSubdir(const String& name) {
     modified = max(modified,file_time);
   }
   // find subdirs
-  for(bool ok = d.GetFirst(&f, wxEmptyString, wxDIR_DIRS | wxDIR_HIDDEN) ; ok ; ok = d.GetNext(&f)) {
+  for(bool ok = d.GetFirst(&f, _(""), wxDIR_DIRS | wxDIR_HIDDEN) ; ok ; ok = d.GetNext(&f)) {
     if (!f.empty() && f.GetChar(0) != _('.')) {
       // skip directories starting with '.', like ., .. and .svn
       openSubdir(name+f+_("/"));
@@ -567,7 +578,9 @@ template <> void Writer::handle(const PackageDependency& dep) {
 IMPLEMENT_REFLECTION(Packaged) {
   REFLECT(short_name);
   REFLECT(full_name);
+  REFLECT(folder_name);
   REFLECT_N("icon", icon_filename);
+  REFLECT_N("dark_icon", dark_icon_filename);
   REFLECT_NO_SCRIPT(position_hint);
   REFLECT(installer_group);
   REFLECT(version);
@@ -581,8 +594,17 @@ Packaged::Packaged()
 {}
 
 unique_ptr<wxInputStream> Packaged::openIconFile() {
-  if (!icon_filename.empty()) {
-    return openIn(icon_filename);
+  String filename = icon_filename;
+  if (!dark_icon_filename.empty()) {
+    if (settings.darkMode()) {
+      wxFileName fn (dark_icon_filename);
+      String extension = fn.GetExt();
+      filename = dark_icon_filename.Replace(extension, _("")) + "_dark" + extension;
+    }
+    else filename = dark_icon_filename;
+  }
+  if (!filename.empty()) {
+    return openIn(filename);
   } else {
     return unique_ptr<wxInputStream>();
   }
@@ -628,11 +650,11 @@ void Packaged::loadFully() {
   }
 }
 
-void Packaged::save() {
+void Packaged::save(bool remove_unused) {
   WITH_DYNAMIC_ARG(writing_package, this);
   writeFile(typeName(), *this, fileVersion());
   referenceFile(typeName());
-  Package::save();
+  Package::save(remove_unused);
 }
 void Packaged::saveAs(const String& package, bool remove_unused, bool as_directory) {
   WITH_DYNAMIC_ARG(writing_package, this);
@@ -648,10 +670,11 @@ void Packaged::saveCopy(const String& package) {
 }
 
 void Packaged::validate(Version) {
+  folder_name = name();
   // a default for the short name
   if (short_name.empty()) {
     if (!full_name.empty()) short_name = full_name;
-    short_name = name();
+    else short_name = folder_name;
   }
   // check dependencies
   FOR_EACH(dep, dependencies) {

@@ -11,6 +11,9 @@ These functions are built into the program, other [[type:function]]s can be defi
 | [[fun:to_color]]		Convert any value to a [[type:color]]
 | [[fun:to_image]]		Convert any value to an [[type:image]]
 | [[fun:to_date]]		Convert any value to a [[type:date]]
+| [[fun:to_json]]		Convert any value to JSON text.
+| [[fun:from_json]]		Convert JSON text to an MSE script value.
+| [[fun:make_map]]		Create a [[type:map]] from two [[type:list]]s
 | [[fun:type_name]]		Get the type of a value
 	
 ! Numbers			<<<
@@ -83,21 +86,35 @@ These functions are built into the program, other [[type:function]]s can be defi
 | [[fun:set_mask]]		Set the transparancy mask of an image.
 | [[fun:set_alpha]]		Change the transparency of an image.
 | [[fun:set_combine]]		Change how the image should be combined with the background.
-| [[fun:saturate]]		Saturate/desaturate an image.
+| [[fun:saturate_image]]		Saturate/desaturate an image.
 | [[fun:invert_image]]		Invert the colors of an image.
 | [[fun:recolor_image]]		Change the colors of an image to match the font color.
-| [[fun:enlarge]]		Enlarge an image by putting a border around it.
-| [[fun:crop]]			Crop an image, giving only a small subset of it.
-| [[fun:flip_horizontal]]	Flip an image horizontally.
-| [[fun:flip_vertical]]		Flip an image vertically.
+| [[fun:resize_image]]		Stretch or squeeze an image to a given height and width.
+| [[fun:enlarge_image]]		Enlarge an image by putting a border around it.
+| [[fun:crop_image]]		Crop an image, giving only a small subset of it.
+| [[fun:insert_image]]		Insert an image inside another.
+| [[fun:flip_image]]	Flip an image horizontally or vertically.
 | [[fun:rotate_image]]		Rotate an image.
-| [[fun:drop_shadow]]		Add a drop shadow to an image.
-| [[fun:symbol_variation]]	Render a variation of a [[type:symbol]].
-| [[fun:built_in_image]]	Return an image built into the program.
+| [[fun:add_stroke_effect]]		Add a stroke effect around an image.
+| [[fun:add_bleed_edge]]		Add a crude print bleed edge around an image.
+| [[fun:add_drop_shadow]]		Add a drop shadow to an image.
+| [[fun:dimensions_of]]		Get the width and height of an image.
+| [[fun:symbol_variation]]		Render a variation of a [[type:symbol]].
+| [[fun:import_image]]		Load an image from outside the data folder.
+| [[fun:download_image]]		Download an image from a URL.
+| [[fun:built_in_image]]		Return an image built into the program.
 	
 ! Cards				<<<
 | [[fun:new_card]]		Construct a new [[type:card]] object.
+| [[fun:add_card_to_set]]		Add a [[type:card]] to a [[type:set]].
 | [[fun:get_card_styling]]		Get the styling data of a [[type:card]].
+| [[fun:get_card_stylesheet]]	Get the stylesheet of a [[type:card]].
+| [[fun:get_card_export_settings]]	Get the zoom, angle and bleed size at which the card will be exported.
+| [[fun:get_card_from_uid]]		Find the [[type:card]] with the given uid.
+| [[fun:get_cards_from_link]]		Find all [[type:card]]s that have the given link type to the given [[type:card]].
+| [[fun:get_front_face]]		Find a [[type:card]] that has the link type "Front Face" to the given [[type:card]].
+| [[fun:get_back_face]]		Find a [[type:card]] that has the link type "Back Face" to the given [[type:card]].
+| [[fun:has_link]]		Determine if the given [[type:card]] has a link of the given type.
 	
 ! HTML export			<<<
 | [[fun:to_html]]		Convert [[type:tagged text]] to html.
@@ -109,6 +126,10 @@ These functions are built into the program, other [[type:function]]s can be defi
 | [[fun:write_set_file]]	Write a MSE set file to the output directory.
 	
 ! Other functions		<<<
+| [[fun:get_mse_version]]			Get the MSE app version.
+| [[fun:get_mse_locale]]			Get the name of the currently selected locale.
+| [[fun:get_mse_path]]			Get the MSE app folder absolute path.
+| [[fun:get_mse_dark_mode]]			Check if the app is displayed in dark mode or light mode.
 | [[fun:trace]]			Output a message for debugging purposes.
 | [[fun:assert]]		Check a condition for debugging purposes.
 | [[fun:warning]]		Output a warning message.

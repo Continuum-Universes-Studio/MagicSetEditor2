@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -110,10 +110,12 @@ String Error::what() const {
 
 InternalError::InternalError(const String& str)
   : Error(
-    _("An internal error occured:\n\n") +
-    str + _("\n")
-    _("Please save your work (use 'save as' to so you don't overwrite things)\n")
-    _("and restart Magic Set Editor.\n\n")
+    _("An internal error occurred:\n\n") +
+    str + _("\n\n")
+    _("Please save your work (use 'save as' so you don't overwrite things)\n")
+    _("and restart Magic Set Editor.\n")
+    _("You can also find a backup of your last save in the same folder as your set file\n")
+    _("called 'SETNAME.mse-set.bak'. Rename it to 'SETNAME-backup.mse-set' to open it.\n")
     _("You should leave a bug report on https://github.com/twanvl/MagicSetEditor2/issues/\n")
     _("Press Ctrl+C to copy this message to the clipboard.")
   )
@@ -177,6 +179,9 @@ void queue_message(MessageType type, String const& msg) {
   wxMutexLocker lock(crit_error_handling);
   // Only show errors in the main thread
   message_queue.push_front(make_pair(type,msg));
+}
+void qm(String const& msg) {
+  queue_message(MESSAGE_ERROR, msg);
 }
 
 void handle_error(const Error& e) {

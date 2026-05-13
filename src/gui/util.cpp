@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -81,7 +81,7 @@ struct FakeEvtHandlerClass : public wxEvtHandler {
     ev.Skip();
   }
   void onControlLeave(wxMouseEvent& ev) {
-    set_status_text((wxWindow*)ev.GetEventObject(), wxEmptyString);
+    set_status_text((wxWindow*)ev.GetEventObject(), _(""));
     ev.Skip();
   }
 };
@@ -360,9 +360,9 @@ wxIcon load_resource_icon(const String& name) {
     return wxIcon(_("icon/") + name);
   #else
     static String path = wxStandardPaths::Get().GetDataDir() + _("/resource/icon/");
-        static String local_path = wxStandardPaths::Get().GetUserDataDir() + _("/resource/icon/");
-        if (wxFileExists(path + name + _(".ico"))) return wxIcon(path + name + _(".ico"), wxBITMAP_TYPE_ICO);
-        else return wxIcon(local_path + name + _(".ico"), wxBITMAP_TYPE_ICO);
+    static String local_path = wxStandardPaths::Get().GetUserDataDir() + _("/resource/icon/");
+    if (wxFileExists(path + name + _(".ico"))) return wxIcon(path + name + _(".ico"), wxBITMAP_TYPE_ICO);
+    else return wxIcon(local_path + name + _(".ico"), wxBITMAP_TYPE_ICO);
   #endif
 }
 

@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -26,7 +26,9 @@ StyleSheet::StyleSheet()
 StyleSheetP StyleSheet::byGameAndName(const Game& game, const String& name) {
   /// Alternative stylesheets for game
   static map<String, String> stylesheet_alternatives;
-  String full_name = game.name() + _("-") + name + _(".mse-style");
+  String full_name = name;
+  if (!full_name.EndsWith(_(".mse-style"))) full_name = full_name + _(".mse-style");
+  if (!full_name.StartsWith(game.name() + _("-"))) full_name = game.name() + _("-") + full_name;
   try {
     map<String, String>::const_iterator it = stylesheet_alternatives.find(full_name);
     if (it != stylesheet_alternatives.end()) {
@@ -36,10 +38,14 @@ StyleSheetP StyleSheet::byGameAndName(const Game& game, const String& name) {
     }
   } catch (PackageNotFoundError& e) {
     queue_message(MESSAGE_ERROR, _("Missing stylesheet: ") + full_name);
-    if (stylesheet_for_reading()) {
-      // we already have a stylesheet higher up, so just return a null pointer
-      return StyleSheetP();
-    }
+
+    // This causes a freeze when the set contains two cards that use the same missing StyleSheet, and the second one has styling_data
+    // Also, it's probably better to ask the user for an alternative for each missing StyleSheet individually
+    //if (stylesheet_for_reading()) {
+    //  // we already have a stylesheet higher up, so just return a null pointer
+    //  return StyleSheetP();
+    //}
+    
     // load an alternative stylesheet
     StyleSheetP ss = gui::select_stylesheet(game, name);
     if (ss) {
@@ -116,12 +122,7 @@ IMPLEMENT_REFLECTION(StyleSheet) {
   // extra card fields
   REFLECT(extra_card_fields);
   REFLECT_IF_READING {
-    if (extra_card_style.init(extra_card_fields)) {
-      // if a value is not editable, don't save it
-      FOR_EACH(f, extra_card_fields) {
-        if (!f->editable) f->save_value = false;
-      }
-    }
+    extra_card_style.init(extra_card_fields);
   }
   REFLECT(extra_card_style);
 }

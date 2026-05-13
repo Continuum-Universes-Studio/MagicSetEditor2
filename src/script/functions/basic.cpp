@@ -1,6 +1,5 @@
-
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -8,8 +7,11 @@
 // ----------------------------------------------------------------------------- : Includes
 
 #include <util/prec.hpp>
+#include <util/version.hpp>
 #include <script/functions/functions.hpp>
 #include <script/functions/util.hpp>
+#include <script/functions/construction_helper.hpp>
+#include <script/functions/json.hpp>
 #include <util/tagged_string.hpp>
 #include <util/spec_sort.hpp>
 #include <util/error.hpp>
@@ -18,8 +20,31 @@
 #include <data/card.hpp>
 #include <data/game.hpp>
 #include <random>
+#include <wx/filename.h>
+#include <wx/stdpaths.h>
+#include <wx/wfstream.h>
+#include <boost/json.hpp>
 
 // ----------------------------------------------------------------------------- : Debugging
+
+SCRIPT_FUNCTION(get_mse_version) {
+  SCRIPT_RETURN(app_version.toString());
+}
+
+SCRIPT_FUNCTION(get_mse_path) {
+  wxFileName app_path(wxStandardPaths::Get().GetExecutablePath());
+  String app_folder = app_path.GetPath();
+  app_folder.Replace("\\", "/");
+  SCRIPT_RETURN(app_folder);
+}
+
+SCRIPT_FUNCTION(get_mse_locale) {
+  SCRIPT_RETURN(settings.locale);
+}
+
+SCRIPT_FUNCTION(get_mse_dark_mode) {
+  SCRIPT_RETURN(settings.darkMode());
+}
 
 SCRIPT_FUNCTION(trace) {
   SCRIPT_PARAM_C(String, input);
@@ -240,6 +265,23 @@ SCRIPT_FUNCTION(to_date) {
 SCRIPT_FUNCTION(to_code) {
   SCRIPT_PARAM_C(ScriptValueP, input);
   SCRIPT_RETURN(input->toCode());
+}
+
+SCRIPT_FUNCTION(to_json) {
+  SCRIPT_PARAM_C(ScriptValueP, input);
+  SCRIPT_PARAM_C(Set*, set);
+  SCRIPT_PARAM_DEFAULT(bool, pretty_print, true);
+  SCRIPT_PARAM_DEFAULT(bool, console_print, false);
+  boost::json::value jv = mse_to_json(input, set);
+  if (console_print) queue_message(MESSAGE_INFO, json_pretty_print(jv));
+  if (pretty_print) return to_script(json_pretty_print(jv));
+  else              return to_script(json_ugly_print(jv));
+}
+
+SCRIPT_FUNCTION(from_json) {
+  SCRIPT_PARAM_C(ScriptValueP, input);
+  SCRIPT_PARAM_C(Set*, set);
+  return json_to_mse(input, set);
 }
 
 SCRIPT_FUNCTION(type_name) {
@@ -469,9 +511,9 @@ SCRIPT_FUNCTION(remove_tags) {
 /** 0 based index, -1 if not found */
 int position_in_vector(const ScriptValueP& of, const ScriptValueP& in, const ScriptValueP& order_by, const ScriptValueP& filter) {
   ScriptType of_t = of->type(), in_t = in->type();
-  if (of_t == SCRIPT_STRING || in_t == SCRIPT_STRING) {
+  if (of_t == SCRIPT_STRING && in_t == SCRIPT_STRING) {
     // string finding
-    return (int)of->toString().find(in->toString()); // (int)npos == -1
+    return (int)in->toString().find(of->toString()); // (int)npos == -1
   } else if (order_by || filter) {
     ScriptObject<Set*>*  s = dynamic_cast<ScriptObject<Set*>* >(in.get());
     ScriptObject<CardP>* c = dynamic_cast<ScriptObject<CardP>*>(of.get());
@@ -669,6 +711,30 @@ SCRIPT_FUNCTION(random_select_many) {
   return ret;
 }
 
+SCRIPT_FUNCTION(make_map) {
+  SCRIPT_PARAM(ScriptValueP, keys);
+  SCRIPT_PARAM(ScriptValueP, values);
+  ScriptValueP keys_it = keys->makeIterator();
+  ScriptValueP key;
+  ScriptValueP values_it = values->makeIterator();
+  ScriptValueP value;
+  ScriptCustomCollectionP map = make_intrusive<ScriptCustomCollection>();
+  while (key = keys_it->next()) {
+    if (key == script_nil) continue;
+    if (value = values_it->next()) {
+      map->key_value[key->toString()] = value;
+    }
+    else {
+      queue_message(MESSAGE_WARNING, "More keys than values given in function make_map!");
+      break;
+    }
+  }
+  if (value = values_it->next()) {
+    queue_message(MESSAGE_WARNING, "More values than keys given in function make_map!");
+  }
+  return map;
+}
+
 SCRIPT_FUNCTION(get_card_styling) {
   SCRIPT_PARAM_C(ScriptValueP, input);
   SCRIPT_PARAM_C(ScriptValueP, set);
@@ -678,6 +744,197 @@ SCRIPT_FUNCTION(get_card_styling) {
     return to_script(&s->getValue()->stylingDataFor(c->getValue()));
   }
   throw ScriptError(_("invalid set or card argument"));
+}
+
+SCRIPT_FUNCTION(get_card_stylesheet) {
+  SCRIPT_PARAM_C(ScriptValueP, input);
+  SCRIPT_PARAM_C(ScriptValueP, set);
+  ScriptObject<CardP>* c = dynamic_cast<ScriptObject<CardP>*>(input.get());
+  ScriptObject<Set*>* s = dynamic_cast<ScriptObject<Set*>*>(set.get());
+  if (s && c) {
+    return to_script(s->getValue()->stylesheetForP(c->getValue()));
+  }
+  throw ScriptError(_("invalid set or card argument"));
+}
+
+SCRIPT_FUNCTION(get_card_export_settings) {
+  SCRIPT_PARAM_C(ScriptValueP, input);
+  SCRIPT_PARAM_C(ScriptValueP, set);
+  ScriptObject<CardP>* c = dynamic_cast<ScriptObject<CardP>*>(input.get());
+  ScriptObject<Set*>* s = dynamic_cast<ScriptObject<Set*>*>(set.get());
+  if (s && c) {
+    Settings::ExportSettings card_settings = settings.exportSettingsFor(s->getValue()->stylesheetFor(c->getValue()));
+    ScriptCustomCollectionP ret(new ScriptCustomCollection());
+    ret->value.push_back(to_script(lround(card_settings.zoom * 100)));
+    ret->value.push_back(to_script(lround(rad_to_deg(card_settings.angle_radians))));
+    ret->value.push_back(to_script(lround(card_settings.bleed_pixels)));
+    return ret;
+  }
+  throw ScriptError(_("invalid set or card argument"));
+}
+
+SCRIPT_FUNCTION(get_card_from_uid) {
+  SCRIPT_PARAM_C(Set*, set);
+  SCRIPT_PARAM_C(String, input);
+  SCRIPT_RETURN(Card::getUIDCard(*set, input));
+}
+
+SCRIPT_FUNCTION(get_cards_from_link) {
+  SCRIPT_PARAM_C(Set*, set);
+  SCRIPT_PARAM_C(ScriptValueP, input);
+  CardP input_card = nullptr;
+  if (ScriptObject<CardP>* ic = dynamic_cast<ScriptObject<CardP>*>(input.get())) {
+    input_card = ic->getValue();
+  }
+  else if (input->type() == SCRIPT_STRING) {
+    input_card = Card::getUIDCard(*set, input->toString());
+  }
+  if (!input_card) {
+    queue_message(MESSAGE_ERROR, _ERROR_("could not find input"));
+    return script_nil;
+  }
+  SCRIPT_PARAM(String, linked_relation);
+  ScriptCustomCollectionP ret(new ScriptCustomCollection());
+  vector<CardP> other_cards = input_card->getLinkedRelationCards(*set, linked_relation);
+  if (other_cards.size() > 0) {
+    FOR_EACH(other_card, other_cards) {
+      ret->value.push_back(to_script(other_card));
+    }
+  }
+  else if (set->game->card_links_alt_names.find(linked_relation) != set->game->card_links_alt_names.end()) {
+    other_cards = input_card->getLinkedRelationCards(*set, set->game->card_links_alt_names[linked_relation]);
+    FOR_EACH(other_card, other_cards) {
+      ret->value.push_back(to_script(other_card));
+    }
+  }
+  return ret;
+}
+
+SCRIPT_FUNCTION(get_front_face) {
+  SCRIPT_PARAM_C(Set*, set);
+  SCRIPT_PARAM_C(ScriptValueP, input);
+  CardP input_card = nullptr;
+  if (ScriptObject<CardP>* ic = dynamic_cast<ScriptObject<CardP>*>(input.get())) {
+    input_card = ic->getValue();
+  }
+  else if (input->type() == SCRIPT_STRING) {
+    input_card = Card::getUIDCard(*set, input->toString());
+  }
+  if (!input_card) {
+    queue_message(MESSAGE_ERROR, _ERROR_("could not find input"));
+    return script_nil;
+  }
+  vector<CardP> other_cards = input_card->getLinkedRelationCards(*set, "Front Face");
+  if (other_cards.size() == 0) return script_nil;
+  if (other_cards.size() > 1) queue_message(MESSAGE_WARNING, _ERROR_1_("multiple front faces", input_card->identification()));
+  SCRIPT_RETURN(other_cards[0]);
+}
+
+SCRIPT_FUNCTION(get_back_face) {
+  SCRIPT_PARAM_C(Set*, set);
+  SCRIPT_PARAM_C(ScriptValueP, input);
+  CardP input_card = nullptr;
+  if (ScriptObject<CardP>* ic = dynamic_cast<ScriptObject<CardP>*>(input.get())) {
+    input_card = ic->getValue();
+  }
+  else if (input->type() == SCRIPT_STRING) {
+    input_card = Card::getUIDCard(*set, input->toString());
+  }
+  if (!input_card) {
+    queue_message(MESSAGE_ERROR, _ERROR_("could not find input"));
+    return script_nil;
+  }
+  vector<CardP> other_cards = input_card->getLinkedRelationCards(*set, "Back Face");
+  if (other_cards.size() == 0) return script_nil;
+  if (other_cards.size() > 1) queue_message(MESSAGE_WARNING, _ERROR_1_("multiple back faces", input_card->identification()));
+  SCRIPT_RETURN(other_cards[0]);
+}
+
+SCRIPT_FUNCTION(add_link) {
+  SCRIPT_PARAM_C(Set*, set);
+  SCRIPT_PARAM_C(ScriptValueP, input);
+  CardP input_card = nullptr;
+  if (ScriptObject<CardP>* ic = dynamic_cast<ScriptObject<CardP>*>(input.get())) {
+    input_card = ic->getValue();
+  }
+  else if (input->type() == SCRIPT_STRING) {
+    input_card = Card::getUIDCard(*set, input->toString());
+  }
+  if (!input_card) {
+    queue_message(MESSAGE_ERROR, _ERROR_("could not find input"));
+    return script_nil;
+  }
+  SCRIPT_PARAM(ScriptValueP, linked_card);
+  CardP other_card = nullptr;
+  if (ScriptObject<CardP>* c = dynamic_cast<ScriptObject<CardP>*>(linked_card.get())) {
+    other_card = c->getValue();
+  }
+  else if (linked_card->type() == SCRIPT_STRING) {
+    other_card = Card::getUIDCard(*set, linked_card->toString());
+  }
+  if (!other_card) {
+    queue_message(MESSAGE_WARNING, _ERROR_("could not find linked"));
+    return script_nil;
+  }
+  SCRIPT_PARAM(String, selected_relation);
+  SCRIPT_PARAM(String, linked_relation);
+  input_card->addLink(*set, other_card, selected_relation, linked_relation);
+  SCRIPT_RETURN(other_card);
+}
+
+SCRIPT_FUNCTION(remove_links) {
+  SCRIPT_PARAM_C(Set*, set);
+  ScriptCustomCollectionP ret(new ScriptCustomCollection());
+  SCRIPT_PARAM_C(ScriptValueP, input);
+  CardP input_card = nullptr;
+  if (ScriptObject<CardP>* ic = dynamic_cast<ScriptObject<CardP>*>(input.get())) {
+    input_card = ic->getValue();
+  }
+  else if (input->type() == SCRIPT_STRING) {
+    input_card = Card::getUIDCard(*set, input->toString());
+  }
+  if (!input_card) {
+    queue_message(MESSAGE_ERROR, _ERROR_("could not find input"));
+    return ret;
+  }
+  vector<CardP> other_cards;
+  SCRIPT_PARAM_DEFAULT(ScriptValueP, linked_card, script_nil);
+  if (linked_card != script_nil) {
+    CardP other_card = nullptr;
+    if (ScriptObject<CardP>* c = dynamic_cast<ScriptObject<CardP>*>(linked_card.get())) {
+      other_card = c->getValue();
+    }
+    else if (linked_card->type() == SCRIPT_STRING) {
+      other_card = Card::getUIDCard(*set, linked_card->toString());
+    }
+    if (!other_card) {
+      queue_message(MESSAGE_WARNING, _ERROR_("could not find linked"));
+    }
+    else other_cards.push_back(other_card);
+  }
+  SCRIPT_PARAM_DEFAULT(ScriptValueP, linked_relation, script_nil);
+  if (linked_relation != script_nil) {
+    if (linked_relation->type() == SCRIPT_STRING) {
+      vector<CardP> other_other_cards = input_card->getLinkedRelationCards(*set, linked_relation->toString());
+      other_cards.insert(other_cards.end(), other_other_cards.begin(), other_other_cards.end());
+    }
+  }
+  FOR_EACH(other_card, other_cards) {
+    input_card->removeLink(other_card);
+    ret->value.push_back(to_script(other_card));
+  }
+  return ret;
+}
+
+SCRIPT_FUNCTION(has_link) {
+  SCRIPT_PARAM_C(CardP, input);
+  SCRIPT_PARAM(String, linked_relation);
+  SCRIPT_RETURN(
+    input->linked_relation_1 == linked_relation ||
+    input->linked_relation_2 == linked_relation ||
+    input->linked_relation_3 == linked_relation ||
+    input->linked_relation_4 == linked_relation
+  );
 }
 
 // ----------------------------------------------------------------------------- : Keywords
@@ -752,69 +1009,86 @@ SCRIPT_FUNCTION(rule) {
 // ----------------------------------------------------------------------------- : Init
 
 void init_script_basic_functions(Context& ctx) {
+  // app info
+  ctx.setVariable(_("get_mse_version"),           script_get_mse_version);
+  ctx.setVariable(_("get_mse_locale"),            script_get_mse_locale);
+  ctx.setVariable(_("get_mse_path"),              script_get_mse_path);
+  ctx.setVariable(_("get_mse_dark_mode"),         script_get_mse_dark_mode);
   // debugging
-  ctx.setVariable(_("trace"),                script_trace);
-  ctx.setVariable(_("warning"),              script_warning);
-  ctx.setVariable(_("error"),                script_error);
-  ctx.setVariable(_("exists_in_package"),    script_exists_in_package);
+  ctx.setVariable(_("trace"),                     script_trace);
+  ctx.setVariable(_("warning"),                   script_warning);
+  ctx.setVariable(_("error"),                     script_error);
+  ctx.setVariable(_("exists_in_package"),         script_exists_in_package);
   // conversion
-  ctx.setVariable(_("to_string"),            script_to_string);
-  ctx.setVariable(_("to_int"),               script_to_int);
-  ctx.setVariable(_("to_real"),              script_to_real);
-  ctx.setVariable(_("to_number"),            script_to_number);
-  ctx.setVariable(_("to_boolean"),           script_to_boolean);
-  ctx.setVariable(_("to_color"),             script_to_color);
-  ctx.setVariable(_("to_date"),              script_to_date);
-  ctx.setVariable(_("to_code"),              script_to_code);
-  ctx.setVariable(_("type_name"),            script_type_name);
-  ctx.setVariable(_("get_card_styling"),     script_get_card_styling);
+  ctx.setVariable(_("to_string"),                 script_to_string);
+  ctx.setVariable(_("to_int"),                    script_to_int);
+  ctx.setVariable(_("to_real"),                   script_to_real);
+  ctx.setVariable(_("to_number"),                 script_to_number);
+  ctx.setVariable(_("to_boolean"),                script_to_boolean);
+  ctx.setVariable(_("to_color"),                  script_to_color);
+  ctx.setVariable(_("to_date"),                   script_to_date);
+  ctx.setVariable(_("to_code"),                   script_to_code);
+  ctx.setVariable(_("to_json"),                   script_to_json);
+  ctx.setVariable(_("from_json"),                 script_from_json);
+  ctx.setVariable(_("type_name"),                 script_type_name);
+  ctx.setVariable(_("make_map"),                  script_make_map);
+  ctx.setVariable(_("get_card_styling"),          script_get_card_styling);
+  ctx.setVariable(_("get_card_stylesheet"),       script_get_card_stylesheet);
+  ctx.setVariable(_("get_card_export_settings"),  script_get_card_export_settings);
+  ctx.setVariable(_("get_card_from_uid"),         script_get_card_from_uid);
+  ctx.setVariable(_("get_cards_from_link"),       script_get_cards_from_link);
+  ctx.setVariable(_("get_back_face"),             script_get_back_face);
+  ctx.setVariable(_("get_front_face"),            script_get_front_face);
+  ctx.setVariable(_("has_link"),                  script_has_link);
+  ctx.setVariable(_("add_link"),                  script_add_link);
+  ctx.setVariable(_("remove_links"),              script_remove_links);
   // math
-  ctx.setVariable(_("abs"),                  script_abs);
-  ctx.setVariable(_("random_real"),          script_random_real);
-  ctx.setVariable(_("random_int"),           script_random_int);
-  ctx.setVariable(_("random_boolean"),       script_random_boolean);
-  ctx.setVariable(_("sin"),                  script_sin);
-  ctx.setVariable(_("cos"),                  script_cos);
-  ctx.setVariable(_("tan"),                  script_tan);
-  ctx.setVariable(_("sin_deg"),              script_sin_deg);
-  ctx.setVariable(_("cos_deg"),              script_cos_deg);
-  ctx.setVariable(_("tan_deg"),              script_tan_deg);
-  ctx.setVariable(_("exp"),                  script_exp);
-  ctx.setVariable(_("log"),                  script_log);
-  ctx.setVariable(_("log10"),                script_log10);
-  ctx.setVariable(_("sqrt"),                 script_sqrt);
-  ctx.setVariable(_("pow"),                  script_pow);
+  ctx.setVariable(_("abs"),                       script_abs);
+  ctx.setVariable(_("random_real"),               script_random_real);
+  ctx.setVariable(_("random_int"),                script_random_int);
+  ctx.setVariable(_("random_boolean"),            script_random_boolean);
+  ctx.setVariable(_("sin"),                       script_sin);
+  ctx.setVariable(_("cos"),                       script_cos);
+  ctx.setVariable(_("tan"),                       script_tan);
+  ctx.setVariable(_("sin_deg"),                   script_sin_deg);
+  ctx.setVariable(_("cos_deg"),                   script_cos_deg);
+  ctx.setVariable(_("tan_deg"),                   script_tan_deg);
+  ctx.setVariable(_("exp"),                       script_exp);
+  ctx.setVariable(_("log"),                       script_log);
+  ctx.setVariable(_("log10"),                     script_log10);
+  ctx.setVariable(_("sqrt"),                      script_sqrt);
+  ctx.setVariable(_("pow"),                       script_pow);
   // string
-  ctx.setVariable(_("to_upper"),             script_to_upper);
-  ctx.setVariable(_("to_lower"),             script_to_lower);
-  ctx.setVariable(_("to_title"),             script_to_title);
-  ctx.setVariable(_("reverse"),              script_reverse);
-  ctx.setVariable(_("trim"),                 script_trim);
-  ctx.setVariable(_("substring"),            script_substring);
-  ctx.setVariable(_("contains"),             script_contains);
-  ctx.setVariable(_("format"),               script_format);
-  ctx.setVariable(_("format_rule"),          make_intrusive<ScriptRule>(script_format));
-  ctx.setVariable(_("curly_quotes"),         script_curly_quotes);
-  ctx.setVariable(_("regex_escape"),         script_regex_escape);
-  ctx.setVariable(_("sort_text"),            script_sort_text);
-  ctx.setVariable(_("sort_rule"),            make_intrusive<ScriptRule>(script_sort_text));
+  ctx.setVariable(_("to_upper"),                  script_to_upper);
+  ctx.setVariable(_("to_lower"),                  script_to_lower);
+  ctx.setVariable(_("to_title"),                  script_to_title);
+  ctx.setVariable(_("reverse"),                   script_reverse);
+  ctx.setVariable(_("trim"),                      script_trim);
+  ctx.setVariable(_("substring"),                 script_substring);
+  ctx.setVariable(_("contains"),                  script_contains);
+  ctx.setVariable(_("format"),                    script_format);
+  ctx.setVariable(_("format_rule"),               make_intrusive<ScriptRule>(script_format));
+  ctx.setVariable(_("curly_quotes"),              script_curly_quotes);
+  ctx.setVariable(_("regex_escape"),              script_regex_escape);
+  ctx.setVariable(_("sort_text"),                 script_sort_text);
+  ctx.setVariable(_("sort_rule"),                 make_intrusive<ScriptRule>(script_sort_text));
   // tagged string
-  ctx.setVariable(_("tag_contents"),         script_tag_contents);
-  ctx.setVariable(_("remove_tag"),           script_remove_tag);
-  ctx.setVariable(_("remove_tags"),          script_remove_tags);
-  ctx.setVariable(_("tag_contents_rule"),    make_intrusive<ScriptRule>(script_tag_contents));
-  ctx.setVariable(_("tag_remove_rule"),      make_intrusive<ScriptRule>(script_remove_tag));
+  ctx.setVariable(_("tag_contents"),              script_tag_contents);
+  ctx.setVariable(_("remove_tag"),                script_remove_tag);
+  ctx.setVariable(_("remove_tags"),               script_remove_tags);
+  ctx.setVariable(_("tag_contents_rule"),         make_intrusive<ScriptRule>(script_tag_contents));
+  ctx.setVariable(_("tag_remove_rule"),           make_intrusive<ScriptRule>(script_remove_tag));
   // collection
-  ctx.setVariable(_("position"),             script_position_of);
-  ctx.setVariable(_("length"),               script_length);
-  ctx.setVariable(_("number_of_items"),      script_number_of_items); // deprecated
-  ctx.setVariable(_("filter_list"),          script_filter_list);
-  ctx.setVariable(_("sort_list"),            script_sort_list);
-  ctx.setVariable(_("random_shuffle"),       script_random_shuffle);
-  ctx.setVariable(_("random_select"),        script_random_select);
-  ctx.setVariable(_("random_select_many"),   script_random_select_many);
+  ctx.setVariable(_("position"),                  script_position_of);
+  ctx.setVariable(_("length"),                    script_length);
+  ctx.setVariable(_("number_of_items"),           script_number_of_items); // deprecated
+  ctx.setVariable(_("filter_list"),               script_filter_list);
+  ctx.setVariable(_("sort_list"),                 script_sort_list);
+  ctx.setVariable(_("random_shuffle"),            script_random_shuffle);
+  ctx.setVariable(_("random_select"),             script_random_select);
+  ctx.setVariable(_("random_select_many"),        script_random_select_many);
   // keyword
-  ctx.setVariable(_("expand_keywords"),      script_expand_keywords);
-  ctx.setVariable(_("expand_keywords_rule"), make_intrusive<ScriptRule>(script_expand_keywords));
-  ctx.setVariable(_("keyword_usage"),        script_keyword_usage);
+  ctx.setVariable(_("expand_keywords"),           script_expand_keywords);
+  ctx.setVariable(_("expand_keywords_rule"),      make_intrusive<ScriptRule>(script_expand_keywords));
+  ctx.setVariable(_("keyword_usage"),             script_keyword_usage);
 }
