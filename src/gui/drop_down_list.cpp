@@ -68,6 +68,7 @@ DropDownList::DropDownList(Window* parent, bool is_submenu, ValueViewer* viewer)
   , hider (is_submenu ? nullptr : new DropDownHider(*this))
   , hider2(is_submenu ? nullptr : new DropDownHider(*this))
   , close_on_mouse_out(false)
+  , visible_start(0)
 {
   if (is_submenu) {
     parent_menu = &dynamic_cast<DropDownList&>(*GetParent());
@@ -262,8 +263,12 @@ void DropDownList::ensureSelectedItemVisible() {
   }
 }
 void DropDownList::scrollTo(int pos) {
-  visible_start = max(0, min(GetVirtualSize().y - GetSize().y, pos));
+  int new_visible_start = max(0, min(GetVirtualSize().y - GetClientSize().y, pos));
+  if (new_visible_start == visible_start) return;
+  visible_start = new_visible_start;
+#if !defined(__WXGTK__)
   SetScrollPos(wxVERTICAL, visible_start);
+#endif
   Refresh(false);
 }
 

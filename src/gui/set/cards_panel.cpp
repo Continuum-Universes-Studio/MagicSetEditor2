@@ -386,21 +386,24 @@ bool CardsPanel::canCopy()  const { CUT_COPY_PASTE(canCopy,  return) }
 void CardsPanel::doCut()          { CUT_COPY_PASTE(doCut,    return (void)) }
 void CardsPanel::doCopy()         { CUT_COPY_PASTE(doCopy,   return (void)) }
 
-// always alow pasting cards, even if something else is selected
+// Always allow pasting native card data, even if something else is selected.
+// Plain text paste belongs to the focused control first, because the card list
+// also accepts text as card names.
 bool CardsPanel::canPaste() const {
-  if (card_list->canPaste()) return true;
+  if (card_list->canPasteCards()) return true;
   int id = focused_control(this);
-  if      (id == ID_EDITOR) return editor->canPaste();
-  else if (id == ID_NOTES)  return notes->canPaste();
-  else                      return false;
+  if      (id == ID_EDITOR && editor->canPaste()) return true;
+  else if (id == ID_NOTES  && notes->canPaste())  return true;
+  else                                            return card_list->canPaste();
 }
 void CardsPanel::doPaste() {
-  if (card_list->canPaste()) {
+  if (card_list->canPasteCards()) {
     card_list->doPaste();
   } else {
     int id = focused_control(this);
-    if      (id == ID_EDITOR) editor->doPaste();
-    else if (id == ID_NOTES)  notes->doPaste();
+    if      (id == ID_EDITOR && editor->canPaste()) editor->doPaste();
+    else if (id == ID_NOTES  && notes->canPaste())  notes->doPaste();
+    else                                            card_list->doPaste();
   }
 }
 

@@ -82,8 +82,43 @@ FontP Font::make(int add_flags, bool add_underline, String const* other_family, 
   return f;
 }
 
-static const String BOLD_STRING   = _(" Bold");
+static const String BOLD_STRING         = _(" Bold");
+static const String ITALIC_STRING       = _(" Italic");
+static const String OBLIQUE_STRING      = _(" Oblique");
+static const String BOLD_ITALIC_STRING  = _(" Bold Italic");
+static const String BOLD_OBLIQUE_STRING = _(" Bold Oblique");
+static const String DASH_ITALIC_STRING  = _("-Italic");
+static const String DASH_OBLIQUE_STRING = _("-Oblique");
+
+static bool removeSuffix(String& text, const String& suffix) {
+  if (!text.EndsWith(suffix)) return false;
+  text = text.Left(text.length() - suffix.length());
+  return true;
+}
+
+static void normalizeFontFace(String& familyName, wxFontWeight& weight, wxFontStyle& style) {
+  #ifdef __WXGTK__
+    if (removeSuffix(familyName, BOLD_ITALIC_STRING) || removeSuffix(familyName, BOLD_OBLIQUE_STRING)) {
+      weight = wxFONTWEIGHT_BOLD;
+      style = wxFONTSTYLE_ITALIC;
+      return;
+    }
+  #endif
+  if (removeSuffix(familyName, BOLD_STRING)) {
+    weight = wxFONTWEIGHT_BOLD;
+  }
+  #ifdef __WXGTK__
+    if (removeSuffix(familyName, ITALIC_STRING)
+     || removeSuffix(familyName, OBLIQUE_STRING)
+     || removeSuffix(familyName, DASH_ITALIC_STRING)
+     || removeSuffix(familyName, DASH_OBLIQUE_STRING)) {
+      style = wxFONTSTYLE_ITALIC;
+    }
+  #endif
+}
+
 wxFont Font::toWxFont(double scale) const {
+  double point_size = scale * size;
   int size_i = to_int(scale * size);
   wxFontWeight weight_i = flags & FONT_BOLD   ? wxFONTWEIGHT_BOLD  : wxFONTWEIGHT_NORMAL;
   wxFontStyle style_i  = flags & FONT_ITALIC ? wxFONTSTYLE_ITALIC : wxFONTSTYLE_NORMAL;
@@ -98,23 +133,29 @@ wxFont Font::toWxFont(double scale) const {
     }
   } else if (name().empty()) {
     font = *wxNORMAL_FONT;
-    font.SetPointSize(size > 1 ? size_i : int(scale * font.GetPointSize()));
-    return font;
+    point_size = size > 1 ? point_size : scale * font.GetPointSize();
+    font.SetPointSize(to_int(point_size));
   } else if (flags & FONT_ITALIC && !italic_name().empty()) {
-    font = wxFont(size_i, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, weight_i, underline(), italic_name());
+    #ifdef __WXGTK__
+      String familyName = italic_name();
+      wxFontStyle italic_style_i = wxFONTSTYLE_ITALIC;
+      normalizeFontFace(familyName, weight_i, italic_style_i);
+      font = wxFont(size_i, wxFONTFAMILY_DEFAULT, italic_style_i, weight_i, underline(), familyName);
+    #else
+      font = wxFont(size_i, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, weight_i, underline(), italic_name());
+    #endif
   } else {
     String familyName = name();
-    if(familyName.EndsWith(BOLD_STRING)) {
-      familyName = familyName.Left(familyName.length() - BOLD_STRING.length());
-      weight_i = wxFONTWEIGHT_BOLD;
-    }
+    normalizeFontFace(familyName, weight_i, style_i);
     font = wxFont(size_i, wxFONTFAMILY_DEFAULT, style_i, weight_i, underline(), familyName);
   }
   // fix size
-  #ifdef __WXMSW__
-    // make it independent of screen dpi, always use 96 dpi
-    // TODO: do something more sensible, and more portable
-    font.SetPixelSize(wxSize(0, -(int)(scale*size*96.0/72.0 + 0.5) ));
+  #if defined(__WXMSW__) || defined(__WXGTK__)
+    // Card/template fonts are sized in 96-DPI pixels. wxGTK point fonts follow
+    // desktop DPI scaling, which makes preview text too large on HiDPI displays.
+    int pixel_height = (int)(point_size * 96.0 / 72.0 + 0.5);
+    if (pixel_height < 1) pixel_height = 1;
+    font.SetPixelSize(wxSize(0, pixel_height));
   #endif
   return font;
 }

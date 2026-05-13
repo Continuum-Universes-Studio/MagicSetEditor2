@@ -102,7 +102,7 @@ void KeywordList::updateUsageStatistics() {
 bool KeywordList::canDelete() const { return !getKeyword()->fixed; }
 bool KeywordList::canCopy()   const { return !!selected_item; }
 bool KeywordList::canPaste()  const {
-  return wxTheClipboard->IsSupported(KeywordDataObject::format);
+  return clipboard_is_supported(KeywordDataObject::format);
 }
 
 bool KeywordList::doCopy() {

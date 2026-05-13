@@ -13,6 +13,7 @@
 // ----------------------------------------------------------------------------- : Includes
 
 #include <util/prec.hpp>
+#include <wx/dataobj.h>
 
 class RotatedDC;
 class RealRect;
@@ -21,6 +22,9 @@ class RealRect;
 
 /// Id of the control that has the focus in the given window, or -1 if no control has the focus
 int focused_control(const Window* window);
+
+/// Check clipboard format support while respecting platforms that require the clipboard to be open.
+bool clipboard_is_supported(const wxDataFormat& format);
 
 /// (Try to) set the status text of a parent of window
 void set_status_text(Window* window, const String& text);

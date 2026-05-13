@@ -12,6 +12,7 @@
 #include <util/rotation.hpp>
 #include <wx/renderer.h>
 #include <wx/stdpaths.h>
+#include <wx/clipbrd.h>
 #include <gfx/gfx.hpp>
 
 #if wxUSE_UXTHEME && defined(__WXMSW__)
@@ -36,6 +37,13 @@ int focused_control(const Window* window) {
   } else {
     return -1; // no window has the focus, or it has a different parent/ancestor
   }
+}
+
+bool clipboard_is_supported(const wxDataFormat& format) {
+  if (!wxTheClipboard->Open()) return false;
+  bool supported = wxTheClipboard->IsSupported(format);
+  wxTheClipboard->Close();
+  return supported;
 }
 
 void set_status_text(Window* wnd, const String& s) {

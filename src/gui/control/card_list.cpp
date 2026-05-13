@@ -138,11 +138,14 @@ void CardListBase::getSelection(vector<CardP>& out) const {
 
 bool CardListBase::canCut()   const { return canDelete(); }
 bool CardListBase::canCopy()  const { return focusCount() > 0; }
+bool CardListBase::canPasteCards() const {
+  return allowModify() && clipboard_is_supported(CardsDataObject::format);
+}
 bool CardListBase::canPaste() const {
   if (!allowModify()) return false;
-  return wxTheClipboard->IsSupported(CardsDataObject::format)
-      || wxTheClipboard->IsSupported(wxDF_TEXT)
-      || wxTheClipboard->IsSupported(wxDF_UNICODETEXT);
+  return canPasteCards()
+      || clipboard_is_supported(wxDF_TEXT)
+      || clipboard_is_supported(wxDF_UNICODETEXT);
 }
 bool CardListBase::canDelete() const {
   return allowModify() && focusCount() > 0; // TODO: check for selection?
@@ -224,7 +227,7 @@ bool CardListBase::doCopy() {
 }
 bool CardListBase::doPaste() {
   // get data
-  if (!canPaste()) return false;
+  if (!allowModify()) return false;
   if (!wxTheClipboard->Open()) return false;
   vector<CardP> new_cards;
   bool ok = false;
@@ -234,7 +237,8 @@ bool CardListBase::doPaste() {
     if (ok) {
       ok = data.getCards(set, new_cards);
     }
-  } else if (wxTheClipboard->IsSupported(wxDF_TEXT) || wxTheClipboard->IsSupported(wxDF_UNICODETEXT)) {
+  }
+  if (!ok && (wxTheClipboard->IsSupported(wxDF_TEXT) || wxTheClipboard->IsSupported(wxDF_UNICODETEXT))) {
     wxTextDataObject data;
     ok = wxTheClipboard->GetData(data);
     if (ok) {
@@ -464,17 +468,53 @@ void CardListBase::onDrag(wxMouseEvent& ev) {
   }
 }
 
-void CardListBase::onContextMenu(wxContextMenuEvent&) {
+void CardListBase::showContextMenu(const wxPoint& pos) {
   if (allowModify()) {
     wxMenu m;
     add_menu_item_tr(&m, ID_EDIT_CUT, "cut", "cut_card");
     add_menu_item_tr(&m, ID_EDIT_COPY, "copy", "copy_card");
     add_menu_item_tr(&m, ID_EDIT_PASTE, "paste", "paste_card");
+    m.Enable(ID_EDIT_CUT,   canCut());
+    m.Enable(ID_EDIT_COPY,  canCopy());
+    m.Enable(ID_EDIT_PASTE, canPaste());
     m.AppendSeparator();
     add_menu_item_tr(&m, ID_CARD_ADD, "card_add", "add card");
     add_menu_item_tr(&m, ID_CARD_REMOVE, "card_del", "remove card");
-    PopupMenu(&m);
+    if (pos == wxDefaultPosition) {
+      PopupMenu(&m);
+    } else {
+      PopupMenu(&m, pos);
+    }
   }
+}
+
+void CardListBase::onContextMenu(wxContextMenuEvent& ev) {
+#ifdef __WXGTK__
+  if (ev.GetPosition() != wxDefaultPosition) {
+    return;
+  }
+#endif
+  showContextMenu(wxDefaultPosition);
+}
+
+void CardListBase::onRightUp(wxMouseEvent& ev) {
+#ifdef __WXGTK__
+  showContextMenu(ev.GetPosition());
+#else
+  ev.Skip();
+#endif
+}
+
+void CardListBase::onCut(wxCommandEvent&) {
+  doCut();
+}
+
+void CardListBase::onCopy(wxCommandEvent&) {
+  doCopy();
+}
+
+void CardListBase::onPaste(wxCommandEvent&) {
+  doPaste();
 }
 
 void CardListBase::onItemActivate(wxListEvent& ev) {
@@ -490,6 +530,10 @@ BEGIN_EVENT_TABLE(CardListBase, ItemList)
   EVT_LIST_ITEM_ACTIVATED    (wxID_ANY,      CardListBase::onItemActivate)
   EVT_CHAR          (          CardListBase::onChar)
   EVT_MOTION          (          CardListBase::onDrag)
+  EVT_RIGHT_UP      (                   CardListBase::onRightUp)
+  EVT_MENU          (ID_EDIT_CUT,      CardListBase::onCut)
+  EVT_MENU          (ID_EDIT_COPY,     CardListBase::onCopy)
+  EVT_MENU          (ID_EDIT_PASTE,    CardListBase::onPaste)
   EVT_MENU          (ID_SELECT_COLUMNS,  CardListBase::onSelectColumns)
   EVT_CONTEXT_MENU            (                   CardListBase::onContextMenu)
 END_EVENT_TABLE  ()
