@@ -18,6 +18,7 @@
 #include <script/scriptable.hpp>
 #include <wx/filename.h>
 #include <wx/sstream.h>
+#include <cstring>
 
 // ----------------------------------------------------------------------------- : Clipboard serialization
 
@@ -37,6 +38,41 @@ void deserialize_from_clipboard(T& object, Package& package, const String& data)
   Reader reader(stream, nullptr, _("clipboard"));
   WITH_DYNAMIC_ARG(clipboard_package, &package);
     reader.handle_greedy(object);
+}
+
+// ----------------------------------------------------------------------------- : SerializedClipboardDataObject
+
+SerializedClipboardDataObject::SerializedClipboardDataObject(const wxDataFormat& format)
+  : wxDataObjectSimple(format)
+{}
+
+void SerializedClipboardDataObject::SetText(const String& text) {
+  this->text = text;
+}
+
+const String& SerializedClipboardDataObject::GetText() const {
+  return text;
+}
+
+size_t SerializedClipboardDataObject::GetDataSize() const {
+  wxCharBuffer buffer = text.utf8_str();
+  return strlen(buffer.data()) + 1;
+}
+
+bool SerializedClipboardDataObject::GetDataHere(void* buf) const {
+  wxCharBuffer buffer = text.utf8_str();
+  memcpy(buf, buffer.data(), strlen(buffer.data()) + 1);
+  return true;
+}
+
+bool SerializedClipboardDataObject::SetData(size_t len, const void* buf) {
+  if (!buf) return false;
+  const char* data = static_cast<const char*>(buf);
+  if (len > 0 && data[len - 1] == '\0') {
+    --len;
+  }
+  text = String::FromUTF8(data, len);
+  return true;
 }
 
 // ----------------------------------------------------------------------------- : CardDataObject
@@ -63,8 +99,8 @@ IMPLEMENT_REFLECTION(WrappedCards) {
 
 wxDataFormat CardsDataObject::format(wxString("application/x-mse-cards"));
 
-CardsDataObject::CardsDataObject(const SetP& set, const String& id, const vector<CardP>& cards)
-  : wxCustomDataObject(format)
+CardsDataObject::CardsDataObject(const SetP& set, const vector<CardP>& cards)
+  : SerializedClipboardDataObject(format)
 {
   // set the stylesheet, so when deserializing we know whos style options we are reading
   vector<bool> has_styling;
@@ -92,7 +128,7 @@ CardsDataObject::CardsDataObject(const SetP& set, const String& id, const vector
 }
 
 CardsDataObject::CardsDataObject()
-  : wxCustomDataObject(format)
+  : SerializedClipboardDataObject(format)
 {}
 
 bool CardsDataObject::getCards(const SetP& set, const String& id, vector<CardP>& out) {
@@ -140,15 +176,16 @@ IMPLEMENT_REFLECTION(WrappedKeyword) {
 
 wxDataFormat KeywordDataObject::format(wxString("application/x-mse-keyword"));
 
-KeywordDataObject::KeywordDataObject(const SetP& set, const KeywordP& keyword) {
+KeywordDataObject::KeywordDataObject(const SetP& set, const KeywordP& keyword)
+  : SerializedClipboardDataObject(format)
+{
   WrappedKeyword data = { set->game.get(), set->game->name(), keyword };
   SetText(serialize_for_clipboard(*set, data));
-  SetFormat(format);
 }
 
-KeywordDataObject::KeywordDataObject() {
-  SetFormat(format);
-}
+KeywordDataObject::KeywordDataObject()
+  : SerializedClipboardDataObject(format)
+{}
 
 KeywordP KeywordDataObject::getKeyword(const SetP& set) {
   KeywordP keyword(new Keyword());

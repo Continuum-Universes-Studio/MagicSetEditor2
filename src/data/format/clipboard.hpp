@@ -17,8 +17,24 @@ DECLARE_POINTER_TYPE(Keyword);
 
 // ----------------------------------------------------------------------------- : CardDataObject
 
+/// Custom serialized string data for native MSE clipboard formats.
+class SerializedClipboardDataObject : public wxDataObjectSimple {
+protected:
+  SerializedClipboardDataObject(const wxDataFormat& format);
+
+  void SetText(const String& text);
+  const String& GetText() const;
+
+  size_t GetDataSize() const override;
+  bool GetDataHere(void* buf) const override;
+  bool SetData(size_t len, const void* buf) override;
+
+private:
+  String text;
+};
+
 /// The data format for cards on the clipboard
-class CardsDataObject : public wxCustomDataObject {
+class CardsDataObject : public SerializedClipboardDataObject {
 public:
   /// Name of the format of MSE cards
   static wxDataFormat format;
@@ -39,7 +55,7 @@ private:
 // ----------------------------------------------------------------------------- : KeywordDataObject
 
 /// The data format for keywords on the clipboard
-class KeywordDataObject : public wxTextDataObject {
+class KeywordDataObject : public SerializedClipboardDataObject {
 public:
   /// Name of the format of MSE keywords
   static wxDataFormat format;

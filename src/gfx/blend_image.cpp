@@ -84,14 +84,17 @@ void mask_blend(Image& img1, const Image& img2, const Image& mask) {
   if (img2.GetWidth() != width || img2.GetHeight() != height) {
     throw Error(_ERROR_3_("blending different sizes", "masked_blend", String()<<width<<_("x")<<height, String()<<img2.GetWidth()<<_("x")<<img2.GetHeight()));
   }
+  Image mask_resampled;
+  const Image* mask_image = &mask;
   if (mask.GetWidth() != width || mask.GetHeight() != height) {
-    throw Error(_ERROR_3_("blending different mask", "masked_blend", String()<<width<<_("x")<<height, String()<<mask.GetWidth()<<_("x")<<mask.GetHeight()));
+    mask_resampled = resample(mask, width, height);
+    mask_image = &mask_resampled;
   }
 
   UInt size = width * height;
   // these have the following structure:
   // [pixel1red, pixel1green, pixel1blue, pixel2red, pixel2green, pixel2blue, pixel3red, etc...]
-  Byte *data1 = img1.GetData(), *data2 = img2.GetData(), *dataM = mask.GetData();
+  Byte *data1 = img1.GetData(), *data2 = img2.GetData(), *dataM = mask_image->GetData();
   // for each subpixel...
   for (UInt i = 0; i < (size * 3); ++i) {
     data1[i] = (data1[i] * dataM[i] + data2[i] * (255 - dataM[i])) / 255;
@@ -124,9 +127,17 @@ void set_alpha(Image& img, const Image& img_alpha) {
 }
 
 void set_alpha(Image& img, Byte* al, const wxSize& alpha_size) {
-  int width = img.GetWidth(), height = img.GetHeight();
-  if (width != alpha_size.GetWidth() || height != alpha_size.GetHeight()) {
-    throw Error(_ERROR_3_("blending different mask", "set_alpha", String()<<width<<_("x")<<height, String()<<alpha_size.GetWidth()<<_("x")<<alpha_size.GetHeight()));
+  if (img.GetWidth() != alpha_size.GetWidth() || img.GetHeight() != alpha_size.GetHeight()) {
+    Image alpha_image(alpha_size.GetWidth(), alpha_size.GetHeight(), false);
+    Byte* data = alpha_image.GetData();
+    size_t alpha_pixels = alpha_size.GetWidth() * alpha_size.GetHeight();
+    for (size_t i = 0 ; i < alpha_pixels ; ++i) {
+      data[3 * i    ] = al[i];
+      data[3 * i + 1] = al[i];
+      data[3 * i + 2] = al[i];
+    }
+    set_alpha(img, alpha_image);
+    return;
   }
   if (!img.HasAlpha()) {
     // copy
