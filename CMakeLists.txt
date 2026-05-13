@@ -2,22 +2,17 @@ cmake_minimum_required(VERSION 3.13)
 
 project(magicseteditor VERSION 2.6.0)
 
+project(magicseteditor VERSION 2.6.0)
+
 add_definitions(-DUNOFFICIAL_BUILD)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-find_package(wxWidgets 3.3.1 CONFIG REQUIRED)
-
-option(USE_QT6 "Build the Qt6 GUI backend" OFF)
-
-if(USE_QT6)
-  find_package(Qt6 REQUIRED COMPONENTS Widgets)
-else()
-  find_package(wxWidgets 3 REQUIRED COMPONENTS core base net html)
-endif()
-
+find_package(wxWidgets 3.3.1 REQUIRED COMPONENTS core base net html)
+include(${wxWidgets_USE_FILE})
 find_package(Boost REQUIRED COMPONENTS regex)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets OpenGL OpenGLWidgets Test)
 
 find_package(PkgConfig)
 
@@ -50,53 +45,11 @@ include_directories(${HUNSPELL_INCLUDE_DIRS})
 
 add_executable(magicseteditor WIN32)
 target_link_libraries(${PROJECT_NAME} PRIVATE wxWidgets::wxWidgets ${Boost_LIBRARIES} ${HUNSPELL_LIBRARIES})
-if(USE_QT6)
-  target_compile_definitions(magicseteditor PRIVATE USE_QT6)
-  target_link_libraries(${PROJECT_NAME} Qt6::Widgets)
-else()
-  include(${wxWidgets_USE_FILE})
-  target_compile_definitions(magicseteditor PRIVATE USE_WX)
-  target_link_libraries(${PROJECT_NAME} ${wxWidgets_LIBRARIES})
-endif()
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} ${HUNSPELL_LIBRARIES})
 
-file(GLOB_RECURSE core_common_sources CONFIGURE_DEPENDS
-  src/data/*.cpp
-  src/gfx/*.cpp
-  src/render/*.cpp
-  src/script/*.cpp
-  src/util/*.cpp
-  src/gui_core/*.cpp
-  src/gui/*.cpp
-)
-
-set(core_common_sources
-  ${core_common_sources}
-  src/main.cpp
-  src/cli/cli_main.cpp
-  src/cli/text_io_handler.cpp
-)
-
-file(GLOB_RECURSE wx_gui_sources CONFIGURE_DEPENDS
-  src/gui_wx/*.cpp
-)
-
-set(qt_gui_sources
-  src/gui_qt/backend_qt.cpp
-  src/gui_qt/windows.cpp
-)
-
-if(USE_QT6)
-  target_sources(magicseteditor PRIVATE
-    src/main.cpp
-    ${qt_gui_sources}
-  )
-else()
-  target_sources(magicseteditor PRIVATE ${core_common_sources})
-  target_sources(magicseteditor PRIVATE ${wx_gui_sources})
-  target_precompile_headers(magicseteditor PRIVATE src/util/prec.hpp)
-endif()
+file(GLOB_RECURSE sources src/*.cpp)
+list(FILTER sources EXCLUDE REGEX win32_cli_wrapper.cpp)
+target_sources(magicseteditor PRIVATE ${sources})
+target_precompile_headers(magicseteditor PRIVATE src/util/prec.hpp)
 
 configure_file(src/config.hpp.in src/config.hpp)
 
@@ -165,6 +118,11 @@ endif()
 add_executable(magicseteditor-updater WIN32)
 target_link_libraries(magicseteditor-updater PRIVATE wxWidgets::wxWidgets)
 target_sources(magicseteditor-updater PRIVATE src_updater/main.cpp src_updater/win32_res.rc src_updater/updater.ico)
+# Magic Set Editor Updater executable
+
+add_executable(magicseteditor-updater WIN32)
+target_link_libraries(magicseteditor-updater PRIVATE wxWidgets::wxWidgets)
+target_sources(magicseteditor-updater PRIVATE src_updater/main.cpp src_updater/win32_res.rc src_updater/updater.ico)
 
 # warnings
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
@@ -176,7 +134,7 @@ endif()
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT magicseteditor)
 
 # Static linking on windows
-if(NOT USE_QT6 AND DEFINED VCPKG_TARGET_TRIPLET AND VCPKG_TARGET_TRIPLET MATCHES ".*-static")
+if (${VCPKG_TARGET_TRIPLET} MATCHES ".*-static")
   message("Static linking")
   set(CompilerFlags CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELWITHDEBINFO CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE)
   foreach(CompilerFlag ${CompilerFlags})
