@@ -6,7 +6,18 @@
 
 #include <gui/backend.hpp>
 
-#include <gui_qt/windows.hpp>
+#include <cli/cli_main.hpp>
+#include <cli/text_io_handler.hpp>
+#include <data/format/formats.hpp>
+#include <data/locale.hpp>
+#include <data/settings.hpp>
+#include <gui_core/startup_flow.hpp>
+#include <gui_qt/select_stylesheet_qt.hpp>
+#include <gui_qt/startup_presenter_qt.hpp>
+#include <util/io/package_manager.hpp>
+#include <util/spell_checker.hpp>
+#include <wx/filename.h>
+#include <wx/filefn.h>
 
 #include <QApplication>
 #include <QDateTime>
@@ -16,7 +27,6 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
-#include <string>
 
 namespace gui {
 
@@ -75,67 +85,13 @@ void qt_message_handler(QtMsgType type, const QMessageLogContext& context, const
   log_line(output);
 }
 
-QString to_qstring(const char* arg) {
-  return arg ? QString::fromLocal8Bit(arg) : QString();
-}
-
-enum class StartupRoute {
-  ShowWelcome,
-  OpenSymbolFile,
-  OpenSetFile,
-  OpenInstaller,
-  ShowHelp,
+struct ScopedCleanup {
+  ~ScopedCleanup() {
+    settings.write();
+    package_manager.destroy();
+    SpellChecker::destroyAll();
+  }
 };
-
-StartupRoute route_for_argument(const QString& argument) {
-  if (argument.endsWith(".mse-symbol", Qt::CaseInsensitive)) return StartupRoute::OpenSymbolFile;
-  if (argument.endsWith(".mse-set", Qt::CaseInsensitive) || argument.endsWith(".mse", Qt::CaseInsensitive) ||
-      argument.endsWith(".set", Qt::CaseInsensitive)) {
-    return StartupRoute::OpenSetFile;
-  }
-  if (argument.endsWith(".mse-installer", Qt::CaseInsensitive)) return StartupRoute::OpenInstaller;
-  if (argument == "--help" || argument == "-?" || argument == "-h") return StartupRoute::ShowHelp;
-  return StartupRoute::ShowWelcome;
-}
-
-int show_help(const char* executable_name) {
-  log_line(std::string("Help requested for executable: ") + (executable_name ? executable_name : "magicseteditor"));
-  return EXIT_SUCCESS;
-}
-
-int run_route(QApplication& app, StartupRoute route, const QString& argument, const char* executable_name) {
-  if (route == StartupRoute::ShowHelp) {
-    return show_help(executable_name);
-  }
-
-  QWidget* window = nullptr;
-  switch (route) {
-    case StartupRoute::ShowWelcome:
-      window = new gui_qt::WelcomeWindow();
-      break;
-    case StartupRoute::OpenSymbolFile:
-      window = new gui_qt::SymbolWindow(argument);
-      break;
-    case StartupRoute::OpenSetFile:
-      window = new gui_qt::SetWindow(argument);
-      break;
-    case StartupRoute::OpenInstaller: {
-      auto* dialog = new gui_qt::PackagesWindow(argument);
-      dialog->show();
-      window = dialog;
-      break;
-    }
-    case StartupRoute::ShowHelp:
-      return EXIT_SUCCESS;
-  }
-
-  if (!window) {
-    return EXIT_FAILURE;
-  }
-
-  window->show();
-  return app.exec();
-}
 
 } // namespace
 
@@ -146,9 +102,23 @@ public:
     qInstallMessageHandler(qt_message_handler);
     QApplication app(argc, argv);
 
-    const QString argument = argc > 1 ? to_qstring(argv[1]) : QString();
-    const StartupRoute route = route_for_argument(argument);
-    return run_route(app, route, argument, argv[0]);
+    init_script_variables();
+    init_file_formats();
+    cli.init();
+    package_manager.init();
+    settings.read();
+    the_locale = Locale::byName(settings.locale);
+    gui_qt::install_missing_stylesheet_presenter();
+    ScopedCleanup cleanup;
+
+    try {
+      gui_qt::QtStartupPresenter presenter(app);
+      const gui_core::StartupRequest request =
+        gui_core::parse_startup_request(argc, argv, settings.install_type);
+      return gui_core::run_startup_request(request, presenter, argv[0]);
+    } CATCH_ALL_ERRORS(true);
+    cli.print_pending_errors();
+    return EXIT_FAILURE;
   }
 };
 

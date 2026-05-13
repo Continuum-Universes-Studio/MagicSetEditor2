@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -12,13 +12,15 @@
 #include <util/string.hpp>
 #include <vector>
 
+DECLARE_POINTER_TYPE(Action);
+
 // ----------------------------------------------------------------------------- : Action
 
 /// Base class for actions that can be stored in an ActionStack.
 /** An action is something that can be done to modify an object.
  *  It must store the necessary information to also undo the action.
  */
-class Action {
+class Action : public IntrusivePtrVirtualBase, public IntrusiveFromThis<Action> {
 public:
   virtual ~Action() {};
   
@@ -103,11 +105,12 @@ public:
   /// Tell all listeners about an action
   void tellListeners(const Action&, bool undone);
   
-private:
   /// Actions to be undone.
   vector<unique_ptr<Action>> undo_actions;
   /// Actions to be redone
   vector<unique_ptr<Action>> redo_actions;
+
+private:
   /// Point at which the file was saved, corresponds to the top of the undo stack at that point
   const Action* save_point;
   /// Was the last thing the user did addAction? (as opposed to undo/redo)

@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -104,6 +104,11 @@ ScriptValueP Context::eval(const Script& script, bool useScope) {
         // Set a variable
         case I_SET_VAR: {
           setVariable((Variable)i.data, stack.back());
+          break;
+        }
+        // Set a global variable
+        case I_SET_GLB: {
+          setGlobalVariable((Variable)i.data, stack.back());
           break;
         }
         
@@ -270,13 +275,26 @@ void Context::setVariable(Variable name, const ScriptValueP& value) {
     assert((size_t)name < variable_names.size());
   #endif
   VariableValue& var = variables[name];
-  if (var.level < level) {
+  if (var.level < level && !var.global_scope) {
     // keep shadow copy
     Binding bind = {name, var};
     shadowed.push_back(bind);
   }
+  if (!var.global_scope) {
+    var.global_scope = false;
+  }
   var.level = level;
   var.value = value;
+}
+
+void Context::setGlobalVariable(Variable name, const ScriptValueP& value) {
+#ifdef _DEBUG
+  assert((size_t)name < variable_names.size());
+#endif
+  VariableValue& var = variables[name];
+  var.level = level;
+  var.value = value;
+  var.global_scope = true;
 }
 
 ScriptValueP Context::getVariable(const String& name) {
@@ -486,14 +504,16 @@ void instrBinary (BinaryInstructionType  i, ScriptValueP& a, const ScriptValueP&
       a = to_script(a->toDouble() / b->toDouble());
       break;
     case I_DIV:
-      if (at == SCRIPT_DOUBLE || bt == SCRIPT_DOUBLE) {
+      if (b->toDouble() == 0.0) a = to_script(a->toDouble() / b->toDouble());
+      else if (at == SCRIPT_DOUBLE || bt == SCRIPT_DOUBLE) {
         a = to_script((int)(a->toDouble() / b->toDouble()));
       } else {
         a = to_script(a->toInt() / b->toInt());
       }
       break;
     case I_MOD:
-      if (at == SCRIPT_DOUBLE || bt == SCRIPT_DOUBLE) {
+      if (b->toDouble() == 0.0) a = to_script(a->toDouble() / b->toDouble());
+      else if (at == SCRIPT_DOUBLE || bt == SCRIPT_DOUBLE) {
         a = to_script(fmod(a->toDouble(), b->toDouble()));
       } else {
         a = to_script(a->toInt() % b->toInt());

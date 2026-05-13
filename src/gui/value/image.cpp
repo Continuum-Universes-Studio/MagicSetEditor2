@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -11,6 +11,8 @@
 #include <gui/image_slice_window.hpp>
 #include <data/format/clipboard.hpp>
 #include <data/action/value.hpp>
+#include <data/card.hpp>
+#include <data/stylesheet.hpp>
 #include <wx/clipbrd.h>
 #include <gui/util.hpp>
 
@@ -19,8 +21,20 @@
 IMPLEMENT_VALUE_EDITOR(Image) {}
 
 bool ImageValueEditor::onLeftDClick(const RealPoint&, wxMouseEvent&) {
-  String filename = wxFileSelector(_("Open image file"), settings.default_image_dir, _(""), _(""),
-                                 _("All images|*.bmp;*.jpg;*.jpeg;*.png;*.gif;*.tif;*.tiff|Windows bitmaps (*.bmp)|*.bmp|JPEG images (*.jpg;*.jpeg)|*.jpg;*.jpeg|PNG images (*.png)|*.png|GIF images (*.gif)|*.gif|TIFF images (*.tif;*.tiff)|*.tif;*.tiff"),
+  String directory = settings.default_image_dir;
+  String filename = _("");
+  CardP card = parent.getCard();
+  String cardname = card ? card->identification() : _("clipboard"); // use card.uid instead of card->identification() ?
+  if (ImageSliceWindow::previously_used_settings_path.find(cardname) != ImageSliceWindow::previously_used_settings_path.end()) {
+    String filepath = ImageSliceWindow::previously_used_settings_path[cardname];
+    size_t pos = filepath.rfind(wxFileName::GetPathSeparator());
+    if (pos != String::npos) {
+      directory = filepath.substr(0, pos+1);
+      filename = filepath.substr(pos+1);
+    }
+  }
+  filename = wxFileSelector(_("Open image file"), directory, filename, _(""),
+                                 _("All images|*.bmp;*.jpg;*.jpeg;*.png;*.webp;*.gif;*.tif;*.tiff|Windows bitmaps (*.bmp)|*.bmp|JPEG images (*.jpg;*.jpeg)|*.jpg;*.jpeg|PNG images (*.png)|*.png|WebP images (*.webp)|*.webp|GIF images (*.gif)|*.gif|TIFF images (*.tif;*.tiff)|*.tif;*.tiff"),
                                  wxFD_OPEN, wxGetTopLevelParent(&editor()));
   if (!filename.empty()) {
     settings.default_image_dir = wxPathOnly(filename);
@@ -29,29 +43,32 @@ bool ImageValueEditor::onLeftDClick(const RealPoint&, wxMouseEvent&) {
       wxLogNull noLog;
       image = wxImage(filename);
     }
-    sliceImage(image);
+    if (!image.Ok()) queue_message(MESSAGE_ERROR, _ERROR_("can't load image"));
+    else sliceImage(image, filename, cardname);
   }
   return true;
 }
 
-void ImageValueEditor::sliceImage(const Image& image) {
+void ImageValueEditor::sliceImage(const Image& image, const String& filename, const String& cardname) {
   if (!image.Ok()) return;
+  // determine import scale based on the user's settings.
+  double import_scale = 1.0;
+  StyleSheetP stylesheet = editor().getCard()->stylesheet;
+  if (!stylesheet) stylesheet = editor().getSet()->stylesheet;
+  if (stylesheet) import_scale = settings.importScaleSettingsFor(*stylesheet);
+  RealSize target_size = RealSize(style().getSize() * import_scale);
+  target_size = RealSize((int)target_size.width, (int)target_size.height);
   // mask
-  GeneratedImage::Options options((int)style().width, (int)style().height, &parent.getStylePackage(), &parent.getLocalPackage());
+  GeneratedImage::Options options((int)target_size.width, (int)target_size.height, &parent.getStylePackage(), &parent.getLocalPackage());
   AlphaMask mask;
-  style().mask.getNoCache(options,mask);
+  style().mask.getNoCache(options, mask);
   // slice
-  ImageSliceWindow s(wxGetTopLevelParent(&editor()), image, style().getSize(), mask);
+  ImageSliceWindow s(wxGetTopLevelParent(&editor()), image, filename, cardname, target_size, mask);
   // clicked ok?
   if (s.ShowModal() == wxID_OK) {
     // store the image into the set
-    LocalFileName new_image_file = getLocalPackage().newFileName(field().name, settings.internal_image_extension ? _(".png") : _("")); // a new unique name in the package
-
-    // Specify a desired size based on the stylesheet and a scale multiplier defined within the user's settings.
-    // Storing at a greater than 100% resolution allows for better exports >100%, but may change how images look when filters (sharpen) are applied.
-    // It also disrupts some of the patterns in use for doing popout planeswalkers since you have to do the math at both scales.
-    // Additionally, this bloats the set file size as even under-resolution images are upscaled to the new minimum size.
-    Image img = s.getImage(settings.internal_scale);
+    LocalFileName new_image_file = getLocalPackage().newFileName(field().name, _(".png")); // a new unique name in the package
+    Image img = s.getImage();
     img.SaveFile(getLocalPackage().nameOut(new_image_file), wxBITMAP_TYPE_PNG); // always use PNG images, see #69. Disk space is cheap anyway.
     addAction(value_action(valueP(), new_image_file));
   }
@@ -88,7 +105,9 @@ bool ImageValueEditor::doPaste() {
   wxTheClipboard->Close();
   if (!ok)  return false;
   // slice
-  sliceImage(data.GetBitmap().ConvertToImage());
+  CardP card = parent.getCard();
+  String cardname = card ? card->identification() : _("clipboard");
+  sliceImage(data.GetBitmap().ConvertToImage(), _("clipboard"), cardname);
   return true;
 }
 

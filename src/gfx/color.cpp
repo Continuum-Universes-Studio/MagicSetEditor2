@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -62,6 +62,10 @@ optional<Color> parse_color(const String& v) {
     return nullopt;
   } else if (v == _("transparent")) {
     return Color(0,0,0,0);
+  } else if (v == _("silver")) {
+    return Color(200,200,200);
+  } else if (v == _("gold")) {
+    return Color(200,180,0);
   } else {
     // Try to find a named color
     wxColour c = wxTheColourDatabase->Find(v);

@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -12,10 +12,10 @@
 
 // ----------------------------------------------------------------------------- : SymbolTextElement
 
-void SymbolTextElement::draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end) const {
+void SymbolTextElement::draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end, bool native_look) const {
   if (!(what & DRAW_NORMAL)) return;
   if (font.font) {
-    font.font->draw(dc, ctx, rect, font.size * scale, font.alignment, content.substr(start - this->start, end-start));
+    font.font->draw(dc, ctx, rect, scale, font, content.substr(start - this->start, end-start));
   }
 }
 

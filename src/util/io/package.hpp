@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -13,6 +13,7 @@
 #include <util/error.hpp>
 #include <util/file_utils.hpp>
 #include <util/vcs.hpp>
+#include <data/format/image_encoding.hpp>
 
 class Package;
 class wxFileInputStream;
@@ -133,15 +134,15 @@ public:
   // --------------------------------------------------- : Managing the inside of the package
 
   /// Check if a file is in the package.
-  bool existsIn(const String& file);
-  inline bool existsIn(const LocalFileName& file) {
-      return existsIn(file.fn);
+  bool contains(const String& file);
+  inline bool contains(const LocalFileName& file) {
+    return contains(file.fn);
   }
 
   /// Open an input stream for a file in the package.
   unique_ptr<wxInputStream> openIn(const String& file);
   inline unique_ptr<wxInputStream> openIn(const LocalFileName& file) {
-      return openIn(file.fn);
+    return openIn(file.fn);
   }
 
   /// Open an output stream for a file in the package.
@@ -266,14 +267,16 @@ public:
   Packaged();
   virtual ~Packaged() {}
 
-  Version version;      ///< Version number of this package
-  Version compatible_version;  ///< Earliest version number this package is compatible with
-  String installer_group;    ///< Group to place this package in in the installer
-  String short_name;      ///< Short name of this package
-  String full_name;      ///< Name of this package, for menus etc.
-  String icon_filename;    ///< Filename of icon to use in package lists
-  vector<PackageDependencyP> dependencies;  ///< Dependencies of this package
-  int    position_hint;    ///< A hint for the package list
+  Version version;                         ///< Version number of this package
+  Version compatible_version;              ///< Earliest version number this package is compatible with
+  String installer_group;                  ///< Group to place this package in in the installer
+  String short_name;                       ///< Short name of this package
+  String full_name;                        ///< Name of this package, for menus etc.
+  String folder_name;                      ///< Name of the folder this package is loaded from.
+  String icon_filename;                    ///< Filename of icon to use in package lists
+  String dark_icon_filename;               ///< Filename of icon to use in package lists, when a variant for dark mode is needed
+  vector<PackageDependencyP> dependencies; ///< Dependencies of this package
+  int    position_hint;                    ///< A hint for the package list
 
   /// Get an input stream for the package icon, if there is any
   unique_ptr<wxInputStream> openIconFile();
@@ -284,7 +287,7 @@ public:
   void open(const String& package, bool just_header = false);
   /// Ensure the package is fully loaded.
   void loadFully();
-  void save();
+  void save(bool remove_unused = true);
   void saveAs(const String& package, bool remove_unused = true, bool as_directory = false);
   void saveCopy(const String& package);
 

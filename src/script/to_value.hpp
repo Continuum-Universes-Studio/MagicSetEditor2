@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -185,7 +185,6 @@ public:
     compare_ptr = value;
     return COMPARE_AS_POINTER;
   }
-private:
   /// Store a pointer to a collection, collections are only ever used for structures owned outside the script
   const Collection* value;
 };
@@ -224,6 +223,9 @@ public:
   ScriptValueP getMember(const String& name) const override;
   ScriptValueP getIndex(int index) const override;
   ScriptValueP makeIterator() const override;
+  ScriptValueP getA() { return a; }
+  ScriptValueP getB() { return b; }
+
   int itemCount() const override { return a->itemCount() + b->itemCount(); }
   /// Collections can be compared by comparing pointers
   CompareWhat compareAs(String&, void const*& compare_ptr) const override {

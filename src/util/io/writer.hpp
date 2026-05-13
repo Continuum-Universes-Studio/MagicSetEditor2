@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -17,6 +17,7 @@
 template <typename T> class Defaultable;
 template <typename T> class Scriptable;
 DECLARE_POINTER_TYPE(Game);
+DECLARE_POINTER_TYPE(Updater);
 DECLARE_POINTER_TYPE(StyleSheet);
 
 // ----------------------------------------------------------------------------- : Writer
@@ -25,8 +26,9 @@ DECLARE_POINTER_TYPE(StyleSheet);
 class Writer {
 public:
   /// Construct a writer that writes to the given output stream
+  Writer(OutputStream& output);
   Writer(OutputStream& output, Version file_app_version);
-  
+
   /// Tell the reflection code we are not reading
   static constexpr bool isReading = false;
   static constexpr bool isWriting = true;
@@ -71,12 +73,13 @@ public:
   template <typename T> void handle(const Scriptable<T>&);
   // special behaviour
   void handle(const GameP&);
+  void handle(const UpdaterP&);
   void handle(const StyleSheetP&);
   
-private:
-  // --------------------------------------------------- : Data
   /// Indentation of the current block
   int indentation;
+private:
+  // --------------------------------------------------- : Data
   /// Blocks opened to which nothing has been written
   vector<const Char*> pending_opened;
   

@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -53,9 +53,11 @@ protected:
   
 private:
   DECLARE_EVENT_TABLE();
-  
+
   void onPaint(wxPaintEvent&);
-  
+
+  void onClick(wxMouseEvent&);
+
   Bitmap buffer;     ///< Off-screen buffer we draw to
   bool   up_to_date; ///< Is the buffer up to date?
   

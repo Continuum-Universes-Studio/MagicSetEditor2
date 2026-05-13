@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -20,8 +20,8 @@
 #include <gui/control/card_viewer.hpp>
 #include <gui/control/gallery_list.hpp>
 #include <gui/about_window.hpp>
-#include <gui/update_checker.hpp>
 #include <gui/packages_window.hpp>
+#include <gui/downloadable_installers.hpp>
 #include <gui/new_window.hpp>
 #include <gui/preferences_window.hpp>
 #include <gui/print_window.hpp>
@@ -50,7 +50,7 @@ SetWindow::SetWindow(Window* parent, const SetP& set)
   SetIcon(load_resource_icon(_("app")));
 
   // avoid flicker
-  SetBackgroundStyle(wxBG_STYLE_PAINT);
+  SetBackgroundStyle(wxBG_STYLE_SYSTEM);
 
   // initialize menu bar
   auto menuBar = new wxMenuBar();
@@ -58,17 +58,17 @@ SetWindow::SetWindow(Window* parent, const SetP& set)
     add_menu_item_tr(menuFile, ID_FILE_NEW, "new", "new_set");
     add_menu_item_tr(menuFile, ID_FILE_OPEN, "open", "open_set");
     add_menu_item_tr(menuFile, ID_FILE_SAVE, "save", "save_set");
-    add_menu_item_tr(menuFile, ID_FILE_SAVE_AS, nullptr, "save_set_as");
-    add_menu_item_tr(menuFile, ID_FILE_SAVE_AS_DIRECTORY, nullptr, "save_set_as_directory");
+    add_menu_item_tr(menuFile, ID_FILE_SAVE_AS, "save", "save_set_as");
+    add_menu_item_tr(menuFile, ID_FILE_SAVE_AS_DIRECTORY, "save", "save_set_as_directory");
     add_menu_item_tr(menuFile, wxID_ANY, "export", "export", wxITEM_NORMAL, makeExportMenu());
     menuFile->AppendSeparator();
-    add_menu_item_tr(menuFile, ID_FILE_CHECK_UPDATES, nullptr, "check_updates");
+    add_menu_item_tr(menuFile, ID_FILE_CHECK_UPDATES, "check_updates", "check_updates");
     #if USE_SCRIPT_PROFILING
     add_menu_item_tr(menuFile, ID_FILE_PROFILER, nullptr, "show_profiler");
     #endif
 //    menuFile->Append(ID_FILE_INSPECT,          _("Inspect Internal Data..."),  _("Shows a the data in the set using a tree structure"));
 //    menuFile->AppendSeparator();
-    add_menu_item_tr(menuFile, ID_FILE_RELOAD, nullptr, "reload_data");
+    add_menu_item_tr(menuFile, ID_FILE_RELOAD, "reload_data", "reload_data");
     menuFile->AppendSeparator();
     add_menu_item_tr(menuFile, ID_FILE_PRINT_PREVIEW, "print_preview", "print_preview");
     add_menu_item_tr(menuFile, ID_FILE_PRINT, "print", "print");
@@ -79,21 +79,21 @@ SetWindow::SetWindow(Window* parent, const SetP& set)
   menuBar->Append(menuFile, _MENU_("file"));
   
   auto menuEdit = new wxMenu();
-    add_menu_item(menuEdit, ID_EDIT_UNDO, "undo", _MENU_1_("undo",wxEmptyString),  _HELP_("undo"));
-    add_menu_item(menuEdit, ID_EDIT_REDO, "redo", _MENU_1_("redo",wxEmptyString),  _HELP_("redo"));
+    add_menu_item(menuEdit, ID_EDIT_UNDO, settings.darkModePrefix() + "undo", _MENU_1_("undo",_("")),  _HELP_("undo"));
+    add_menu_item(menuEdit, ID_EDIT_REDO, settings.darkModePrefix() + "redo", _MENU_1_("redo",_("")),  _HELP_("redo"));
     menuEdit->AppendSeparator();
-    add_menu_item_tr(menuEdit, ID_EDIT_CUT, "cut", "cut");
+    add_menu_item_tr(menuEdit, ID_EDIT_CUT, settings.darkModePrefix() + "cut", "cut");
     add_menu_item_tr(menuEdit, ID_EDIT_COPY, "copy", "copy");
     add_menu_item_tr(menuEdit, ID_EDIT_PASTE, "paste", "paste");
     menuEdit->AppendSeparator();
     add_menu_item_tr(menuEdit, ID_EDIT_SELECT_ALL, nullptr, "select_all");
     menuEdit->AppendSeparator();
-    add_menu_item_tr(menuEdit, ID_EDIT_FIND, "find", "find");
-    add_menu_item_tr(menuEdit, ID_EDIT_FIND_NEXT, nullptr, "find_next");
-    add_menu_item_tr(menuEdit, ID_EDIT_REPLACE, nullptr, "replace");
-    add_menu_item_tr(menuEdit, ID_EDIT_AUTO_REPLACE, nullptr, "auto_replace");
+    add_menu_item_tr(menuEdit, ID_EDIT_FIND,         settings.darkModePrefix() + "find", "find");
+    add_menu_item_tr(menuEdit, ID_EDIT_FIND_NEXT,    settings.darkModePrefix() + "find", "find_next");
+    add_menu_item_tr(menuEdit, ID_EDIT_REPLACE,      settings.darkModePrefix() + "find", "replace");
+    add_menu_item_tr(menuEdit, ID_EDIT_AUTO_REPLACE, settings.darkModePrefix() + "find", "auto_replace");
     menuEdit->AppendSeparator();
-    add_menu_item_tr(menuEdit, ID_EDIT_PREFERENCES, nullptr, "preferences");
+    add_menu_item_tr(menuEdit, ID_EDIT_PREFERENCES, settings.darkModePrefix() + "preferences", "preferences");
   menuBar->Append(menuEdit, _MENU_("edit"));
   
   auto menuWindow = new wxMenu();
@@ -102,8 +102,9 @@ SetWindow::SetWindow(Window* parent, const SetP& set)
   menuBar->Append(menuWindow, _MENU_("window"));
   
   auto menuHelp = new wxMenu();
-    add_menu_item_tr(menuHelp, ID_HELP_INDEX, "help", "index");
+    //add_menu_item_tr(menuHelp, ID_HELP_INDEX, "help", "index"); // not implemented
     add_menu_item_tr(menuHelp, ID_HELP_WEBSITE, nullptr, "website");
+    add_menu_item_tr(menuHelp, ID_HELP_DOCUMENTATION, nullptr, "documentation");
     add_menu_item_tr(menuHelp, ID_HELP_ABOUT, nullptr, "about");
   menuBar->Append(menuHelp, _MENU_("help"));
   
@@ -122,12 +123,12 @@ SetWindow::SetWindow(Window* parent, const SetP& set)
   tb->AddSeparator();
   add_tool_tr(tb, ID_FILE_EXPORT, "export", "export");
   tb->AddSeparator();
-  add_tool_tr(tb, ID_EDIT_CUT, "cut", "cut");
+  add_tool_tr(tb, ID_EDIT_CUT, settings.darkModePrefix() + "cut", "cut");
   add_tool_tr(tb, ID_EDIT_COPY, "copy", "copy");
   add_tool_tr(tb, ID_EDIT_PASTE, "paste", "paste");
   tb->AddSeparator();
-  add_tool(tb, ID_EDIT_UNDO, "undo", {}, _TOOLTIP_1_("undo", {}), _HELP_("undo"));
-  add_tool(tb, ID_EDIT_REDO, "redo", {}, _TOOLTIP_1_("redo", {}), _HELP_("redo"));
+  add_tool(tb, ID_EDIT_UNDO, settings.darkModePrefix() + "undo", {}, _TOOLTIP_1_("undo", {}), _HELP_("undo"));
+  add_tool(tb, ID_EDIT_REDO, settings.darkModePrefix() + "redo", {}, _TOOLTIP_1_("redo", {}), _HELP_("redo"));
   tb->AddSeparator();
   tb->Realize();
   
@@ -145,13 +146,13 @@ SetWindow::SetWindow(Window* parent, const SetP& set)
   #endif
   
   // panels
-  addPanel(menuWindow, tabBar, new CardsPanel     (this, wxID_ANY), 0, _("window_cards"),      _("cards tab"));
-  addPanel(menuWindow, tabBar, new StylePanel     (this, wxID_ANY), 1, _("window_style"),      _("style tab"));
-  addPanel(menuWindow, tabBar, new SetInfoPanel   (this, wxID_ANY), 2, _("window_set_info"),   _("set info tab"));
-  addPanel(menuWindow, tabBar, new KeywordsPanel  (this, wxID_ANY), 3, _("window_keywords"),   _("keywords tab"));
-  addPanel(menuWindow, tabBar, new StatsPanel     (this, wxID_ANY), 4, _("window_statistics"), _("stats tab"));
-  addPanel(menuWindow, tabBar, new RandomPackPanel(this, wxID_ANY), 5, _("window_random_pack"),_("random pack tab"));
-  addPanel(menuWindow, tabBar, new ConsolePanel   (this, wxID_ANY), 6, _("window_console"),    _("console tab"));
+  addPanel(menuWindow, tabBar, new CardsPanel     (this, wxID_ANY), 0,                             _("window_cards"),      _("cards tab"));
+  addPanel(menuWindow, tabBar, new StylePanel     (this, wxID_ANY), 1,                             _("window_style"),      _("style tab"));
+  addPanel(menuWindow, tabBar, new SetInfoPanel   (this, wxID_ANY), 2, settings.darkModePrefix() + _("window_set_info"),   _("set info tab"));
+  addPanel(menuWindow, tabBar, new KeywordsPanel  (this, wxID_ANY), 3, settings.darkModePrefix() + _("window_keywords"),   _("keywords tab"));
+  addPanel(menuWindow, tabBar, new StatsPanel     (this, wxID_ANY), 4,                             _("window_statistics"), _("stats tab"));
+  addPanel(menuWindow, tabBar, new RandomPackPanel(this, wxID_ANY), 5,                             _("window_random_pack"),_("random pack tab"));
+  addPanel(menuWindow, tabBar, new ConsolePanel   (this, wxID_ANY), 6,                             _("window_console"),    _("console tab"));
   selectPanel(ID_WINDOW_CARDS); // select cards panel
   
   // loose ends
@@ -532,7 +533,7 @@ void SetWindow::onUpdateUI(wxUpdateUIEvent& ev) {
     case ID_WINDOW_KEYWORDS: ev.Enable(set->game->has_keywords);  break;
     case ID_WINDOW_RANDOM_PACK: ev.Enable(!set->game->pack_types.empty());  break;
     // help
-    case ID_HELP_INDEX     : ev.Enable(false);            break; // not implemented
+    //case ID_HELP_INDEX     : ev.Enable(false);            break; // not implemented
     // other
     default:
       // items created by the panel, and cut/copy/paste and find/replace
@@ -554,7 +555,7 @@ void SetWindow::updateRecentSets() {
       // add new item
       wxMenu* file_menu = mb->GetMenu(0);
       size_t pos = file_menu->GetMenuItemCount() - 2; // last two items are separator and exit
-      file_menu->Insert(pos, ID_FILE_RECENT + i, String(_("&")) << (i+1) << _(" ") << file, wxEmptyString);
+      file_menu->Insert(pos, ID_FILE_RECENT + i, String(_("&")) << (i+1) << _(" ") << file, _(""));
     }
     i++;
   }
@@ -831,6 +832,10 @@ void SetWindow::onHelpWebsite(wxCommandEvent&) {
   wxLaunchDefaultBrowser(settings.website_url);
 }
 
+void SetWindow::onHelpDocumentation(wxCommandEvent&) {
+  wxLaunchDefaultBrowser(settings.documentation_url);
+}
+
 void SetWindow::onHelpAbout(wxCommandEvent&) {
   AboutWindow wnd(this);
   wnd.ShowModal();
@@ -849,7 +854,7 @@ void SetWindow::onMenuOpen(wxMenuEvent& ev) {
 
 void SetWindow::onIdle(wxIdleEvent& ev) {
   // Stuff that must be done in the main thread
-  show_update_dialog(this);
+  downloadable_installers.show_update_dialog(this);
 }
 
 // ----------------------------------------------------------------------------- : Event table
@@ -889,8 +894,9 @@ BEGIN_EVENT_TABLE(SetWindow, wxFrame)
   EVT_MENU      (ID_EDIT_PREFERENCES,  SetWindow::onEditPreferences)
   EVT_MENU      (ID_WINDOW_NEW,      SetWindow::onWindowNewWindow)
   EVT_TOOL_RANGE    (ID_WINDOW_MIN, ID_WINDOW_MAX, SetWindow::onWindowSelect)
-  EVT_MENU      (ID_HELP_INDEX,      SetWindow::onHelpIndex)
+  //EVT_MENU      (ID_HELP_INDEX,      SetWindow::onHelpIndex) // not implemented
   EVT_MENU      (ID_HELP_WEBSITE,    SetWindow::onHelpWebsite)
+  EVT_MENU      (ID_HELP_DOCUMENTATION, SetWindow::onHelpDocumentation)
   EVT_MENU      (ID_HELP_ABOUT,      SetWindow::onHelpAbout)
   EVT_MENU_OPEN    (            SetWindow::onMenuOpen)
   EVT_TOOL_RANGE    (ID_CHILD_MIN, ID_CHILD_MAX,   SetWindow::onChildMenu)

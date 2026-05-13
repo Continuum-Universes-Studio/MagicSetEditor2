@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -42,26 +42,29 @@ public:
   Field();
   virtual ~Field();
   
-  size_t    index;            ///< Used by IndexMap
-  String    name;             ///< Name of the field, for refering to it from scripts and files
-  LocalizedString caption;    ///< Caption for NativeLookEditor
-  LocalizedString description;///< Description, used in status bar
-  String    icon_filename;    ///< Filename for an icon (for list of fields)
-  bool      editable;         ///< Can values of this field be edited?
-  bool      save_value;       ///< Should values of this field be written to files? Can be false for script generated fields.
-  bool      show_statistics;  ///< Should this field appear as a group by choice in the statistics panel?
-  int       position_hint;    ///< Position in the statistics list
-  bool      identifying;      ///< Does this field give Card::identification()?
-  int       card_list_column; ///< What column to use in the card list?
-  UInt      card_list_width;  ///< Width of the card list column (pixels).
-  bool      card_list_visible;///< Is this field shown in the card list?
-  bool      card_list_allow;  ///< Is this field allowed to appear in the card list?
-  LocalizedString  card_list_name; ///< Name to use in card list.
-  Alignment card_list_align;  ///< Alignment of the card list colummn.
-  OptionalScript sort_script; ///< The script to use when sorting this, if not the value.
-  Dependencies dependent_scripts; ///< Scripts that depend on values of this field
-  String package_relative_filename;
-  
+  size_t          index;                     ///< Used by IndexMap
+  String          name;                      ///< Name of the field, for refering to it from scripts and files
+  vector<String>  alt_names;                 ///< Other names this field might go by, mainly in CSV files
+  LocalizedString caption;                   ///< Caption for NativeLookEditor
+  LocalizedString description;               ///< Description, used in status bar
+  String          icon_filename;             ///< Filename for an icon (for list of fields)
+  String          dark_icon_filename;        ///< Filename for an icon (for list of fields) when a variant for dark mode is necessary
+  bool            editable;                  ///< Can values of this field be edited?
+  bool            save_value;                ///< Should values of this field be written to files? Can be false for script generated fields.
+  bool            show_statistics;           ///< Should this field appear as a group by choice in the statistics panel?
+  int             position_hint;             ///< Position in the statistics list
+  bool            identifying;               ///< Does this field give Card::identification()?
+  int             card_list_column;          ///< What column to use in the card list?
+  UInt            card_list_width;           ///< Width of the card list column (pixels).
+  bool            card_list_visible;         ///< Is this field shown in the card list?
+  bool            card_list_allow;           ///< Is this field allowed to appear in the card list?
+  LocalizedString card_list_name;            ///< Name to use in card list.
+  Alignment       card_list_align;           ///< Alignment of the card list colummn.
+  OptionalScript  sort_script;               ///< The script to use when sorting this, if not the value.
+  OptionalScript  import_script;             ///< The script to apply to the supplied value, when creating a new card.
+  Dependencies    dependent_scripts;         ///< Scripts that depend on values of this field
+  String          package_relative_filename;
+
   /// Creates a new Value corresponding to this Field
   virtual ValueP newValue() = 0;
   /// Creates a new Style corresponding to this Field
@@ -100,15 +103,15 @@ public:
   Style(const FieldP&);
   virtual ~Style();
   
-  const FieldP       fieldP;          ///< Field this style is for, should have the right type!
+  const FieldP         fieldP;        ///< Field this style is for, should have the right type!
   
-  int                z_index;         ///< Stacking of values of this field, higher = on top
-  int                tab_index;       ///< Tab index in editor
-  Scriptable<double> left,  top;      ///< Position of this field
-  Scriptable<double> width, height;   ///< Position of this field
-  Scriptable<double> right, bottom;   ///< Position of this field
-  Scriptable<Degrees> angle;          ///< Rotation of the box
-  Scriptable<bool>   visible;         ///< Is this field visible?
+  int                  z_index;       ///< Stacking of values of this field, higher = on top
+  int                  tab_index;     ///< Tab index in editor
+  Scriptable<double>   left,  top;    ///< Position of this field
+  Scriptable<double>   right, bottom; ///< Position of this field
+  Scriptable<double>   width, height; ///< Size of this field
+  Scriptable<Degrees>  angle;         ///< Rotation of the box
+  Scriptable<bool>     visible;       ///< Is this field visible?
   CachedScriptableMask mask;          ///< Mask image
   
   enum AutomaticSide {
@@ -120,9 +123,42 @@ public:
   } automatic_side : 8;  ///< Which of (left, width,  right) and (top,  height, bottom) is determined automatically?
   bool content_dependent;  ///< Does this style depend on content properties?
   
-  inline RealPoint getPos()  const { return RealPoint(left, top); }
-  inline RealSize  getSize() const { return RealSize(width, height); }
-  inline RealRect  getExternalRect() const { return RealRect(left, top, width, height); }
+  inline RealPoint   getPos()  const { return RealPoint(left, top); }
+  inline RealSize    getSize() const { return RealSize(width, height); }
+  inline RealRect    getExternalRect() const { return RealRect(left, top, width, height); }
+  inline RealRect    getCanonicalExternalRect() const {
+    if (almost_equal(angle, 90.0)) {
+      if (automatic_side & Style::AutomaticSide::AUTO_LEFT) {
+        if (automatic_side & Style::AutomaticSide::AUTO_TOP) return RealRect(left + width - height, top + height, height, width); //bottom right
+        else                                                 return RealRect(left + width, top, height, width);                   //top right
+      }
+      else {
+        if (automatic_side & Style::AutomaticSide::AUTO_TOP) return RealRect(left - height, top + height - width, height, width); //bottom left
+        else                                                 return RealRect(left, top - width, height, width);                   //top left
+      }
+    }
+    else if (almost_equal(angle, 270.0)) {
+      if (automatic_side & Style::AutomaticSide::AUTO_LEFT) {
+        if (automatic_side & Style::AutomaticSide::AUTO_TOP) return RealRect(left + width, top + height - width, height, width);  //bottom right
+        else                                                 return RealRect(left + width - height, top - width, height, width);  //top right
+      }
+      else {
+        if (automatic_side & Style::AutomaticSide::AUTO_TOP) return RealRect(left, top + height, height, width);                  //bottom left
+        else                                                 return RealRect(left - height, top, height, width);                  //top left
+      }
+    }
+    else if (almost_equal(angle, 180.0)) {
+      if (automatic_side & Style::AutomaticSide::AUTO_LEFT) {
+        if (automatic_side & Style::AutomaticSide::AUTO_TOP) return RealRect(left + width, top + height, width, height);          //bottom right
+        else                                                 return RealRect(left + width, top - height, width, height);          //top right
+      }
+      else {
+        if (automatic_side & Style::AutomaticSide::AUTO_TOP) return RealRect(left - width, top + height, width, height);          //bottom left
+        else                                                 return RealRect(left - width, top - height, width, height);          //top left
+      }
+    }
+    return getExternalRect();
+  }
   
   /// Does this style have a non-zero size (or is it scripted)?
   bool hasSize() const;

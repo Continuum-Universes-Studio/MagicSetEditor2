@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -200,7 +200,25 @@ END_EVENT_TABLE()
 
 DropDownChoiceList::DropDownChoiceList(Window* parent, bool is_submenu, ValueViewer& cve, ChoiceField::ChoiceP group)
   : DropDownChoiceListBase(parent, is_submenu, cve, group)
-{}
+{
+  // determine if slider
+  if (itemCount() > 1 && field().is_slider) {
+    is_slider = true;
+    // load slider images if needed
+    if (!slider_loaded) {
+      slider_loaded = true;
+      try {
+        slider_left = load_resource_image(_("slider_left"));
+        slider_right = load_resource_image(_("slider_right"));
+        slider_center = load_resource_image(_("slider_center"));
+        slider_tick = load_resource_image(_("slider_tick"));
+      }
+      catch (...) {
+        throw InternalError(_("Can't load slider resources"));
+      }
+    }
+  }
+}
 
 void DropDownChoiceList::onShow() {
   DropDownChoiceListBase::onShow();
@@ -269,7 +287,7 @@ bool ChoiceValueEditor::onChar(wxKeyEvent& ev) {
   return drop_down->onCharInParent(ev);
 }
 void ChoiceValueEditor::onLoseFocus() {
-  drop_down->hide(false);
+  //drop_down->hide(false);
 }
 
 void ChoiceValueEditor::draw(RotatedDC& dc) {

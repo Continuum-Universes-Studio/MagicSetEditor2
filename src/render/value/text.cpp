@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -21,14 +21,20 @@ bool TextValueViewer::prepare(RotatedDC& dc) {
 
 void TextValueViewer::draw(RotatedDC& dc) {
   drawFieldBorder(dc);
+  // draw background
+  if (nativeLook()) {
+    dc.SetBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.DrawRectangle(RealRect(0, 0, dc.getWidth(), dc.getHeight()));
+  }
   if (!v.prepared()) {
     v.prepare(dc, value().value(), style(), getContext());
     dc.setStretch(getStretch());
   }
   DrawWhat what = drawWhat();
-  v.draw(dc, style(), (DrawWhat)(what & DRAW_ACTIVE));
+  v.draw(dc, style(), (DrawWhat)(what & DRAW_ACTIVE), nativeLook());
   setFieldBorderPen(dc);
-  v.draw(dc, style(), (DrawWhat)(what & ~DRAW_ACTIVE));
+  v.draw(dc, style(), (DrawWhat)(what & ~DRAW_ACTIVE), nativeLook());
 }
 
 void TextValueViewer::onValueChange() {

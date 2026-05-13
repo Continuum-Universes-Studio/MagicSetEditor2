@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -33,14 +33,15 @@ public:
   class Choice;
   typedef intrusive_ptr<Choice> ChoiceP;
   
-  ChoiceP choices;        ///< A choice group of possible choices
-  OptionalScript script;      ///< Script to apply to all values
-  OptionalScript default_script;  ///< Script that generates the default value
-  String initial;          ///< Initial choice of a new value, or ""
-  String default_name;      ///< Name of "default" value
-  map<String,Color> choice_colors;      ///< Colors for the various choices (when color_cardlist)
-  map<String,Color> choice_colors_cardlist;  ///< Colors for the various choices, for in the card list
-  
+  ChoiceP choices;                          ///< A choice group of possible choices
+  OptionalScript script;                    ///< Script to apply to all values
+  OptionalScript default_script;            ///< Script that generates the default value
+  String initial;                           ///< Initial choice of a new value, or ""
+  String default_name;                      ///< Name of "default" value
+  map<String,Color> choice_colors;          ///< Colors for the various choices (when color_cardlist)
+  map<String,Color> choice_colors_cardlist; ///< Colors for the various choices, for in the card list
+  bool is_slider = false;                   ///< Should the UI be displayed as a slider?
+
   void initDependencies(Context&, const Dependency&) const override;
   void after_reading(Version ver) override;
 };
@@ -111,6 +112,9 @@ enum ChoicePopupStyle
 ,  POPUP_DROPDOWN
 ,  POPUP_DROPDOWN_IN_PLACE
 };
+
+String popup_style_to_string(const ChoicePopupStyle&);
+
 // How should a choice value be rendered?
 enum ChoiceRenderStyle
 {  RENDER_TEXT            = 0x01  // render the name as text
@@ -127,6 +131,8 @@ enum ChoiceRenderStyle
 ,  RENDER_IMAGE_LIST      = RENDER_LIST      | RENDER_IMAGE
 ,  RENDER_BOTH_LIST       = RENDER_LIST      | RENDER_BOTH
 };
+
+String render_style_to_string(const ChoiceRenderStyle&);
 
 enum ThumbnailStatus
 {  THUMB_NOT_MADE // there is no image
@@ -161,7 +167,7 @@ public:
   
   ChoicePopupStyle            popup_style;        ///< Style of popups/menus
   ChoiceRenderStyle           render_style;       ///< Style of rendering
-  Font                        font;               ///< Font for drawing text (when RENDER_TEXT)
+  FontRef                     font;               ///< Font for drawing text (when RENDER_TEXT)
   CachedScriptableImage       image;              ///< Image to draw (when RENDER_IMAGE)
   map<String,ScriptableImage> choice_images;      ///< Images for the various choices (when RENDER_IMAGE)
   bool                        choice_images_initialized;

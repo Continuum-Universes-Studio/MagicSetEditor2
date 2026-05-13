@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -88,19 +88,19 @@ FileFormatP mtg_editor_file_format();
 
 // ----------------------------------------------------------------------------- : Other ways to export
 
-/// Export images for each card in a set to a list of files
-void export_images(Window* parent, const SetP& set);
+/// Generate a wxImage of one or more cards
+Image export_image(const SetP& set, const CardP& card, bool write_metadata = true, double zoom = 1.0, Radians angle_radians = 0.0, double bleed_pixels = 0.0);
+Image export_image(const SetP& set, const vector<CardP>& cards, int padding = 2, double global_zoom = 1.0, bool use_zoom_setting = true, bool use_rotation_setting = true, bool use_bleed_setting = false);
 
-/// Export the image for each card in a list of cards
-void export_images(const SetP& set, const vector<CardP>& cards,
-                   const String& path, const String& filename_template, FilenameConflicts conflicts);
-
-/// Export the image of a single card
+/// Export the image of one or more cards to a given filename, using the app's zoom, rotation and bleed settings, and including metadata
 void export_image(const SetP& set, const CardP& card, const String& filename);
+void export_image(const SetP& set, const vector<CardP>& cards, const String& path, const String& filename_template, FilenameConflicts conflicts);
 
-/// Generate a bitmap image of a card
-Bitmap export_bitmap(const SetP& set, const CardP& card);
-Bitmap export_bitmap(const SetP& set, const CardP& card, const double zoom, const Radians angle_radians);
+/// Write the metadata for a card
+// Assuming first the zoom is applied, then the rotation, then the offset.
+// This means that width and height need to be already scaled by a factor of zoom, but not already rotated
+// while offset_x and offset_y need to be already scaled and already rotated.
+String export_metadata(const SetP& set, const CardP& card, double zoom, Radians angle_radians, int width, int height, double offset_x, double offset_y);
 
 /// Export a set to Magic Workstation format
 void export_mws(Window* parent, const SetP& set);

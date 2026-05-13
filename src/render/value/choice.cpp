@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -22,6 +22,12 @@ bool ChoiceValueViewer::prepare(RotatedDC& dc) {
 void ChoiceValueViewer::draw(RotatedDC& dc) {
   drawFieldBorder(dc);
   if (style().render_style & RENDER_HIDDEN) return;
+  // render background
+  if (nativeLook()) {
+    dc.SetBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.DrawRectangle(RealRect(0, 0, dc.getWidth(), dc.getHeight()));
+  }
   draw_choice_viewer(dc, *this, style(), value().value());
 }
 
@@ -49,9 +55,10 @@ bool prepare_choice_viewer(RotatedDC& dc, ValueViewer& viewer, ChoiceStyle& styl
       RealSize size;
       img.generateCached(img_options, &style.mask, &combine, &bitmap, &image, &size);
       // store content properties
-      if (style.content_width != size.width || style.content_height != size.height) {
-        style.content_width  = size.width / dc.getZoom();
-        style.content_height = size.height / dc.getZoom();
+      double zoom = dc.getZoom();
+      if (!almost_equal(style.content_width, size.width / zoom) || !almost_equal(style.content_height, size.height / zoom)) {
+        style.content_width  = size.width / zoom;
+        style.content_height = size.height / zoom;
         return true;
       }
     }
@@ -101,10 +108,17 @@ void draw_choice_viewer(RotatedDC& dc, ValueViewer& viewer, ChoiceStyle& style, 
     if (style.render_style & RENDER_IMAGE) {
       text_align = ALIGN_MIDDLE_LEFT; // can't align both text and image in the same way
     }
-    dc.SetFont(style.font, 1.0);
+    FontRef& font = style.font;
+    Color font_color = font.color;
+    if (viewer.nativeLook()) {
+      font.color = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+      margin += 1.;
+    }
+    dc.SetFont(font, 1.0);
     RealSize size = dc.GetTextExtent(text);
-    RealPoint pos = align_in_rect(text_align, size, dc.getInternalRect()) + RealSize(margin, 0);
-    dc.DrawTextWithShadow(text, style.font, pos);
+    RealPoint text_pos = align_in_rect(text_align, size, dc.getInternalRect()) + RealSize(margin, 0);
+    dc.DrawTextWithShadowOrStroke(text, font, text_pos);
+    if (viewer.nativeLook()) font.color = font_color;
   }
 }
 

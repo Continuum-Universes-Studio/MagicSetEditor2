@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -18,6 +18,8 @@
 #include <util/find_replace.hpp>
 #include <util/spell_checker.hpp>
 #include <util/window_id.hpp>
+#include <wx/fontdlg.h>
+#include <wx/colordlg.h>
 #include <wx/clipbrd.h>
 #include <wx/caret.h>
 
@@ -459,7 +461,7 @@ bool TextValueEditor::onChar(wxKeyEvent& ev) {
           return true;
         }
       }
-      replaceSelection(wxEmptyString, _ACTION_("backspace"));
+      replaceSelection(_(""), _ACTION_("backspace"));
       return true;
     case WXK_DELETE:
       if (selection_start == selection_end) {
@@ -470,15 +472,22 @@ bool TextValueEditor::onChar(wxKeyEvent& ev) {
           moveSelection(TYPE_CURSOR, nextCharBoundary(selection_end), true, MOVE_RIGHT);
         }
       }
-      replaceSelection(wxEmptyString, _ACTION_("delete"));
+      replaceSelection(_(""), _ACTION_("delete"));
       return true;
     case WXK_RETURN:
       if (field().multi_line) {
+        String prefix;
+        String suffix;
+        if (is_in_tag(value().value(), _("<li"), selection_start_i, selection_end_i)) {
+          prefix = _("</li>");
+          suffix = wxString::FromUTF8("<li><bullet>• </bullet>");
+        }
         if (ev.ShiftDown()) {
           // soft line break
-          replaceSelection(_("<soft-line>\n</soft-line>"), _ACTION_("soft line break"));
+          replaceSelection(prefix + _("<soft-line>\n</soft-line>") + suffix, _ACTION_("soft line break"));
         } else {
-          replaceSelection(_("\n"), _ACTION_("enter"));
+          // hard line break
+          replaceSelection(prefix + _("\n") + suffix, _ACTION_("enter"));
         }
       }
       return true;
@@ -581,7 +590,7 @@ bool TextValueEditor::onContextMenu(wxMenu& m, wxContextMenuEvent& ev) {
     } else {
       int i = 0;
       FOR_EACH(s,suggestions) {
-        m.Insert(i, ID_SPELLING_SUGGEST + i, s, wxEmptyString);
+        m.Insert(i, ID_SPELLING_SUGGEST + i, s, _(""));
         i++;
       }
     }
@@ -797,7 +806,7 @@ bool TextValueEditor::doCopy() {
 }
 
 bool TextValueEditor::doDelete() {
-  replaceSelection(wxEmptyString, _ACTION_("cut"));
+  replaceSelection(_(""), _ACTION_("cut"));
   return true;
 }
 
@@ -805,7 +814,8 @@ bool TextValueEditor::doDelete() {
 
 bool TextValueEditor::canFormat(int type) const {
   switch (type) {
-    case ID_FORMAT_BOLD: case ID_FORMAT_ITALIC: case ID_FORMAT_UNDERLINE:
+    case ID_FORMAT_FONT: case ID_FORMAT_BOLD: case ID_FORMAT_ITALIC: case ID_FORMAT_UNDERLINE:
+    case ID_FORMAT_STRIKETHROUGH: case ID_FORMAT_COLOR: case ID_FORMAT_BULLETPOINT:
       return !style().always_symbol && style().allow_formating;
     case ID_FORMAT_SYMBOL:
       return !style().always_symbol && style().allow_formating && style().symbol_font.valid();
@@ -819,14 +829,22 @@ bool TextValueEditor::canFormat(int type) const {
 
 bool TextValueEditor::hasFormat(int type) const {
   switch (type) {
+    case ID_FORMAT_FONT:
+      return is_in_tag(value().value(), _("<font"),   selection_start_i, selection_end_i);
     case ID_FORMAT_BOLD:
-      return is_in_tag(value().value(), _("<b"),   selection_start_i, selection_end_i);
+      return is_in_tag(value().value(), _("<b"),      selection_start_i, selection_end_i);
     case ID_FORMAT_ITALIC:
-      return is_in_tag(value().value(), _("<i"),   selection_start_i, selection_end_i);
+      return is_in_tag(value().value(), _("<i"),      selection_start_i, selection_end_i);
     case ID_FORMAT_UNDERLINE:
-      return is_in_tag(value().value(), _("<u"), selection_start_i, selection_end_i);
+      return is_in_tag(value().value(), _("<u"),      selection_start_i, selection_end_i);
+    case ID_FORMAT_STRIKETHROUGH:
+      return is_in_tag(value().value(), _("<strike"), selection_start_i, selection_end_i);
+    case ID_FORMAT_COLOR:
+      return is_in_tag(value().value(), _("<color"),  selection_start_i, selection_end_i);
+    case ID_FORMAT_BULLETPOINT:
+      return is_in_tag(value().value(), _("<li"),     selection_start_i, selection_end_i);
     case ID_FORMAT_SYMBOL:
-      return is_in_tag(value().value(), _("<sym"), selection_start_i, selection_end_i);
+      return is_in_tag(value().value(), _("<sym"),    selection_start_i, selection_end_i);
     case ID_FORMAT_REMINDER: {
       const String& v = value().value();
       size_t tag = in_tag(v, _("<kw"),  selection_start_i, selection_start_i);
@@ -841,8 +859,30 @@ bool TextValueEditor::hasFormat(int type) const {
 }
 
 void TextValueEditor::doFormat(int type) {
-  size_t ss = selection_start, se = selection_end;
   switch (type) {
+    case ID_FORMAT_FONT: {
+      wxFontData data;
+      data.EnableEffects(false);
+      TextStyle* style = dynamic_cast<TextStyle*>(getStyle().get());
+      if (style) {
+        data.SetInitialFont(style->font.toWxFont(1.0));
+      }
+      wxFontDialog dial(nullptr, data);
+      if (dial.ShowModal() == wxID_OK) {
+        data = dial.GetFontData();
+        vector<String> tags;
+        wxFont font = data.GetChosenFont();
+        tags.push_back(_("font:") + font.GetFaceName());
+        tags.push_back(_("size:") + wxString::Format(wxT("%i"),font.GetPointSize()));
+        if (font.GetWeight() >= wxFONTWEIGHT_BOLD) tags.push_back(_("b"));
+        if (font.GetStyle() >= wxFONTSTYLE_ITALIC) tags.push_back(_("i"));
+        //tags.push_back(_("color:") + data.GetColour().GetAsString(wxC2S_HTML_SYNTAX)); // no need since EnableEffects(false)
+        //if (font.GetUnderlined())                  tags.push_back(_("u"));             // no need since EnableEffects(false)
+        //if (font.GetStrikethrough())               tags.push_back(_("strike"));        // no need since EnableEffects(false)
+        addAction(toggle_format_action(valueP(), tags, selection_start_i, selection_end_i, selection_start, selection_end, _("Font")));
+      }
+      break;
+    }
     case ID_FORMAT_BOLD: {
       addAction(toggle_format_action(valueP(), _("b"),   selection_start_i, selection_end_i, selection_start, selection_end, _("Bold")));
       break;
@@ -855,6 +895,35 @@ void TextValueEditor::doFormat(int type) {
       addAction(toggle_format_action(valueP(), _("u"), selection_start_i, selection_end_i, selection_start, selection_end, _("Underline")));
       break;
     }
+    case ID_FORMAT_STRIKETHROUGH: {
+      addAction(toggle_format_action(valueP(), _("strike"), selection_start_i, selection_end_i, selection_start, selection_end, _("Strikethrough")));
+      break;
+    }
+    case ID_FORMAT_COLOR: {
+      wxColourData data;
+      data.SetColour(wxColour(0, 0, 0));
+      GameSettings& gs = settings.gameSettingsFor(parent.getGame());
+      for (size_t i = 0 ; i < min(gs.custom_colors.size(),gs.max_custom_colors) ; ++i) {
+        data.SetCustomColour(i, gs.custom_colors[i]);
+      }
+      wxColourDialog dial = wxColourDialog(nullptr, &data);
+      if (dial.ShowModal() == wxID_OK) {
+        data = dial.GetColourData();
+        wxColour color = data.GetColour();
+        String tag = _("color:") + color.GetAsString(wxC2S_HTML_SYNTAX);
+        addAction(toggle_format_action(valueP(), tag, selection_start_i, selection_end_i, selection_start, selection_end, _("Color Text")));
+        gs.custom_colors.clear();
+        for (size_t i = 0 ; i < gs.max_custom_colors ; ++i) {
+          wxColour custom_color =  data.GetCustomColour(i);
+          if (custom_color.IsOk()) gs.custom_colors.push_back(custom_color);
+        }
+      }
+      break;
+    }
+    case ID_FORMAT_BULLETPOINT: {
+      addAction(toggle_format_action(valueP(), _("li"), selection_start_i, selection_end_i, selection_start, selection_end, _("Bullet Point")));
+      break;
+    }
     case ID_FORMAT_SYMBOL: {
       addAction(toggle_format_action(valueP(), _("sym"), selection_start_i, selection_end_i, selection_start, selection_end, _("Symbols")));
       break;
@@ -864,8 +933,6 @@ void TextValueEditor::doFormat(int type) {
       break;
     }
   }
-  selection_start = ss;
-  selection_end   = se;
   fixSelection();
 }
 

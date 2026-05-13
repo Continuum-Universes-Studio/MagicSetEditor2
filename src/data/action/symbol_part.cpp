@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -300,7 +300,7 @@ double ssqrt(double x) {
 }
 
 // Remove a single control point
-class SinglePointRemoveAction : public Action, public IntrusivePtrBase<SinglePointRemoveAction> {
+class SinglePointRemoveAction : public Action {
 public:
   SinglePointRemoveAction(const SymbolShapeP& shape, UInt position);
   
@@ -398,7 +398,7 @@ private:
 };
 
 ControlPointRemoveAction::ControlPointRemoveAction(const SymbolShapeP& shape, const set<ControlPointP>& to_delete) {
-  int index = 0;
+  UInt index = 0;
   // find points to remove, in reverse order
   FOR_EACH(point, shape->points) {
     if (to_delete.find(point) != to_delete.end()) {

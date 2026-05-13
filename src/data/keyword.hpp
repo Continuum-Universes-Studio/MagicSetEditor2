@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -91,11 +91,11 @@ public:
   Keyword() : fixed(false), valid(false) {}
   
   String                keyword;    ///< The keyword, only for human use
-  String                rules;    ///< Rules/explanation
-  String                match;    ///< String to match, <atom-param> tags are used for parameters
-  vector<KeywordParamP> parameters;  ///< The types of parameters
-  StringScript          reminder;    ///< Reminder text of the keyword
-  String                mode;      ///< Mode of use, can be used by scripts (only gives the name)
+  String                rules;      ///< Rules/explanation
+  String                match;      ///< String to match, <atom-param> tags are used for parameters
+  vector<KeywordParamP> parameters; ///< The types of parameters
+  StringScript          reminder;   ///< Reminder text of the keyword
+  String                mode;       ///< Mode of use, can be used by scripts (only gives the name)
   /// Regular expression to match and split parameters, automatically generated.
   /** The regex has exactly 2 * parameters.size() + 1 captures (excluding the entire match, caputure 0),
    *  captures 1,3,... capture the plain text of the match string

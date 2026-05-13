@@ -13,6 +13,9 @@ $built_in_functions = array(
 	'to_color'		=>'',
 	'to_image'		=>'',
 	'to_date'		=>'',
+	'to_json'		=>'',
+	'from_json'		=>'',
+	'make_map'		=>'',
 	// numbers
 	'abs'			=>'',
 	'random_int'		=>'',
@@ -50,6 +53,7 @@ $built_in_functions = array(
 	'random_select'		=>'',
 	'random_select_many'	=>'',
 	'get_card_styling'	=>'',
+	'get_card_stylesheet'	=>'',
 	// keywords
 	'expand_keywords'	=>'',	'expand_keywords_rule'=>'expand_keywords',
 	'keyword_usage'		=>'',
@@ -71,7 +75,7 @@ $built_in_functions = array(
 	'exclusive_choice'	=>'',
 	'require_exclusive_choice'=>'',
 	'remove_choice'		=>'',
-	// images	
+	// images
 	'linear_blend'		=>'',
 	'masked_blend'		=>'',
 	'combine_blend'		=>'',
@@ -81,16 +85,30 @@ $built_in_functions = array(
 	'saturate'		=>'',
 	'invert_image'		=>'',
 	'recolor_image'		=>'',
+	'resize_image'		=>'',
 	'enlarge'		=>'',
+	'add_bleed_edge'		=>'',
 	'crop'			=>'',
 	'flip_horizontal'	=>'',
 	'flip_vertical'		=>'',
 	'rotate'		=>'',
 	'drop_shadow'		=>'',
+	'insert_image'		=>'',
+	'dimensions_of'		=>'',
 	'symbol_variation'	=>'',
+	'import_image'	=>'',
 	'built_in_image'	=>'',
 	// cards
 	'new_card'		=>'',
+	'has_link'		=>'',
+	'get_front_face'		=>'',
+	'get_back_face'		=>'',
+	'get_cards_from_link'		=>'',
+	'get_card_from_uid'		=>'',
+	'get_card_styling'		=>'',
+	'get_card_stylesheet'		=>'',
+	'get_card_export_settings'		=>'',
+	'add_card_to_set'		=>'',
 	// html export
 	'to_html'		=>'',
 	'symbols_to_html'	=>'',
@@ -100,6 +118,9 @@ $built_in_functions = array(
 	'write_image_file'	=>'',
 	'write_set_file'	=>'',
 	// other
+	'get_mse_version'			=>'',
+	'get_mse_locale'			=>'',
+	'get_mse_path'			=>'',
 	'trace'			=>'',
 	'assert'		=>'',
 	'exists_in_package'		=>'',
@@ -174,6 +195,10 @@ function highlight_script($code) {
 			      . "<span class='hl-num'>" . $matches[4] . "</span>)</span>";
 		} else if (preg_match("@^(if|then|else|for( each)?|in(?= )|do|div|mod|and|or|xor|not|rgb|rgba|from|to|min|max)\b(?!:)@",$code, $matches)) {
 			$ret .= "<span class='hl-kw'>" . $matches[0] . "</span>";
+		} else if (preg_match("@^(include localized file:)(.*)@",$code, $matches)) {
+			$ret .= "<span class='hl-key'>" . $matches[1] . "</span>" . $matches[2];
+		} else if (preg_match("@^(include dark file:)(.*)@",$code, $matches)) {
+			$ret .= "<span class='hl-key'>" . $matches[1] . "</span>" . $matches[2];
 		} else if (preg_match("@^(include file:)(.*)@",$code, $matches)) {
 			$ret .= "<span class='hl-key'>" . $matches[1] . "</span>" . $matches[2];
 		} else if (preg_match("@^([0-9][0-9.]*|true|false)@",$code, $matches)) {

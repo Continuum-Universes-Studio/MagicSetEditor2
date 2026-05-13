@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -15,13 +15,16 @@
 #include <wx/spinctrl.h>
 #include <wx/dcbuffer.h>
 
+map<String, String> ImageSliceWindow::previously_used_settings_path;
+map<pair<String, String>, pair<wxRect, int>> ImageSliceWindow::previously_used_settings_value;
+
 // ----------------------------------------------------------------------------- : ImageSlice
 
-ImageSlice::ImageSlice(const Image& source, const wxSize& target_size)
-  : source(source), target_size(target_size)
+ImageSlice::ImageSlice(const Image& source, const String& source_path, const String& card_name, const wxSize& target_size)
+  : source(source), source_path(source_path), card_name(card_name), target_size(target_size)
   , selection(0, 0, source.GetWidth(), source.GetHeight())
   , allow_outside(false), aspect_fixed(true)
-  , sharpen(false), sharpen_amount(25)
+  , sharpen(false), sharpen_amount(0)
 {}
 
 void ImageSlice::constrain(PreferedProperty prefer) {
@@ -68,13 +71,12 @@ void ImageSlice::centerSelectionVertically() {
   }
 }
 
-Image ImageSlice::getSlice(double scale) const {
-  wxSize scaled_target_size = target_size * scale;
-  if (selection.width == scaled_target_size.GetWidth() && selection.height == scaled_target_size.GetHeight() && selection.x == 0 && selection.y == 0) {
+Image ImageSlice::getSlice() const {
+  if (selection.width == target_size.GetWidth() && selection.height == target_size.GetHeight() && selection.x == 0 && selection.y == 0) {
     // exactly the right size
     return source.GetSubImage(selection);
   }
-  Image target(scaled_target_size.GetWidth(), scaled_target_size.GetHeight(), false);
+  Image target(target_size.GetWidth(), target_size.GetHeight(), false);
   if (sharpen && sharpen_amount > 0 && sharpen_amount <= 100) {
     sharp_resample_and_clip(source, target, selection, sharpen_amount);
   } else {
@@ -93,20 +95,30 @@ DEFINE_EVENT_TYPE(EVENT_SLICE_CHANGED);
 
 // ----------------------------------------------------------------------------- : ImageSliceWindow
 
-ImageSliceWindow::ImageSliceWindow(Window* parent, const Image& source, const wxSize& target_size, const AlphaMask& mask)
+ImageSliceWindow::ImageSliceWindow(Window* parent, const Image& source, const String& filename, const String& cardname, const wxSize& target_size, const AlphaMask& mask)
   : wxDialog(parent,wxID_ANY,_TITLE_("slice image"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER | wxFULL_REPAINT_ON_RESIZE)
-  , slice(source, target_size)
+  , slice(source, filename, cardname, target_size)
   , initialized(false)
 {
   // init slice
-  slice.constrain();
-  slice.centerSelection();
+  pair<String, String> settings_entry = { filename, cardname };
+  if (previously_used_settings_value.find(settings_entry) != previously_used_settings_value.end()) {
+    slice.aspect_fixed = false;
+    slice.sharpen = true;
+    slice.sharpen_amount = previously_used_settings_value[settings_entry].second;
+    slice.selection = previously_used_settings_value[settings_entry].first;
+    slice.constrain();
+  }
+  else {
+    slice.constrain();
+    slice.centerSelection();
+  }
 
   // init controls
   const wxPoint defPos = wxDefaultPosition;
   const wxSize spinSize(80,-1);
   selector  = new ImageSliceSelector(this, ID_SELECTOR, slice);
-  preview   = new ImageSlicePreview (this, ID_PREVIEW,  slice, mask);
+  preview   = new ImageSlicePreview (this, ID_PREVIEW,  slice, mask, 0);
   
   String sizes[] = { _LABEL_("original size")
                    , _LABEL_("size to fit")
@@ -135,7 +147,14 @@ ImageSliceWindow::ImageSliceWindow(Window* parent, const Image& source, const wx
   sharpen_amount = new wxSlider(this, ID_SHARPEN_AMOUNT, 0, 0, 100);
 //  allowOutside= new CheckBox(&this, idSliceAllowOutside, _("Allow selection outside source"))
 //  bgColor       = new ColorSelector(&this, wxID_ANY)
-  
+
+  String grids[] = { _LABEL_("none")
+                   , _LABEL_("grid halves")
+                   , _LABEL_("grid thirds")
+                   , _LABEL_("grid fourths")
+                   , _LABEL_("grid fifths") };
+  grid = new wxRadioBox(this, ID_GRID, _LABEL_("grid"), defPos, wxDefaultSize, 5, grids, 1);
+
   // init sizers
   wxSizer* s = new wxBoxSizer(wxVERTICAL);
     // top row: image editors
@@ -206,6 +225,8 @@ ImageSliceWindow::ImageSliceWindow(Window* parent, const Image& source, const wx
         sB->Add(sharpen_amount, 0, wxEXPAND | wxALL, 4);
       s5->Add(sB, 0, wxEXPAND | wxALL, 4);
       s5->AddStretchSpacer(1);
+      s5->Add(grid, 0, wxEXPAND | wxALL, 4);
+      s5->AddStretchSpacer(1);
     s->Add(s5, 0, wxEXPAND);
     s->Add(CreateButtonSizer(wxOK | wxCANCEL), 0, wxEXPAND | wxALL, 8);
   s->SetSizeHints(this);
@@ -219,8 +240,11 @@ void ImageSliceWindow::onOk(wxCommandEvent&) {
   EndModal(wxID_OK);
 }
 
-Image ImageSliceWindow::getImage(double scale) const {
-  return slice.getSlice(scale);
+Image ImageSliceWindow::getImage() const {
+  Image img = slice.getSlice();
+  previously_used_settings_path[slice.card_name] = slice.source_path;
+  previously_used_settings_value[{ slice.source_path, slice.card_name }] = { slice.selection, slice.sharpen_amount };
+  return img;
 }
 
 // ----------------------------------------------------------------------------- : ImageSliceWindow : Controls
@@ -249,6 +273,12 @@ void ImageSliceWindow::onChangeSize(wxCommandEvent&) {
     slice.aspect_fixed = false;
     onUpdateFromControl();
   }
+}
+
+void ImageSliceWindow::onChangeGrid(wxCommandEvent&) {
+  if (!initialized) return;
+  preview->grid = grid->GetSelection();
+  preview->update();
 }
 
 void ImageSliceWindow::onChangeLeft(wxCommandEvent&) {
@@ -384,22 +414,23 @@ void ImageSliceWindow::updateControls() {
 // ----------------------------------------------------------------------------- : ImageSliceWindow : Event table
 
 BEGIN_EVENT_TABLE(ImageSliceWindow, wxDialog)
-  EVT_BUTTON      (wxID_OK,      ImageSliceWindow::onOk)
-  EVT_RADIOBOX    (ID_SIZE,      ImageSliceWindow::onChangeSize)
-  EVT_TEXT      (ID_LEFT,      ImageSliceWindow::onChangeLeft)
-  EVT_TEXT      (ID_TOP,      ImageSliceWindow::onChangeTop)
-  EVT_TEXT      (ID_WIDTH,      ImageSliceWindow::onChangeWidth)
-  EVT_TEXT      (ID_HEIGHT,      ImageSliceWindow::onChangeHeight)
-  EVT_BUTTON (ID_SELECTION_CENTER, ImageSliceWindow::onSelectionCenter)
-  EVT_BUTTON(ID_SELECTION_CENTER_HORIZONTALLY, ImageSliceWindow::onSelectionCenter)
-  EVT_BUTTON(ID_SELECTION_CENTER_VERTICALLY, ImageSliceWindow::onSelectionCenter)
-  EVT_CHECKBOX    (ID_FIX_ASPECT,    ImageSliceWindow::onChangeFixAspect)
-  EVT_SPINCTRL    (ID_ZOOM,      ImageSliceWindow::onChangeZoom)
-  EVT_SPINCTRL    (ID_ZOOM_X,      ImageSliceWindow::onChangeZoomX)
-  EVT_SPINCTRL    (ID_ZOOM_Y,      ImageSliceWindow::onChangeZoomY)
-  EVT_CHECKBOX    (ID_SHARPEN,    ImageSliceWindow::onChangeSharpen)
-  EVT_COMMAND_SCROLL  (ID_SHARPEN_AMOUNT,  ImageSliceWindow::onChangeSharpenAmount)
-  EVT_SLICE_CHANGED   (wxID_ANY,      ImageSliceWindow::onSliceChange)
+  EVT_BUTTON          (wxID_OK,                          ImageSliceWindow::onOk)
+  EVT_RADIOBOX        (ID_SIZE,                          ImageSliceWindow::onChangeSize)
+  EVT_RADIOBOX        (ID_GRID,                          ImageSliceWindow::onChangeGrid)
+  EVT_TEXT            (ID_LEFT,                          ImageSliceWindow::onChangeLeft)
+  EVT_TEXT            (ID_TOP,                           ImageSliceWindow::onChangeTop)
+  EVT_TEXT            (ID_WIDTH,                         ImageSliceWindow::onChangeWidth)
+  EVT_TEXT            (ID_HEIGHT,                        ImageSliceWindow::onChangeHeight)
+  EVT_BUTTON          (ID_SELECTION_CENTER,              ImageSliceWindow::onSelectionCenter)
+  EVT_BUTTON          (ID_SELECTION_CENTER_HORIZONTALLY, ImageSliceWindow::onSelectionCenter)
+  EVT_BUTTON          (ID_SELECTION_CENTER_VERTICALLY,   ImageSliceWindow::onSelectionCenter)
+  EVT_CHECKBOX        (ID_FIX_ASPECT,                    ImageSliceWindow::onChangeFixAspect)
+  EVT_SPINCTRL        (ID_ZOOM,                          ImageSliceWindow::onChangeZoom)
+  EVT_SPINCTRL        (ID_ZOOM_X,                        ImageSliceWindow::onChangeZoomX)
+  EVT_SPINCTRL        (ID_ZOOM_Y,                        ImageSliceWindow::onChangeZoomY)
+  EVT_CHECKBOX        (ID_SHARPEN,                       ImageSliceWindow::onChangeSharpen)
+  EVT_COMMAND_SCROLL  (ID_SHARPEN_AMOUNT,                ImageSliceWindow::onChangeSharpenAmount)
+  EVT_SLICE_CHANGED   (wxID_ANY,                         ImageSliceWindow::onSliceChange)
 //  EVT_SIZE      (          ImageSliceWindow::onSize)
 END_EVENT_TABLE  ()
 
@@ -409,10 +440,11 @@ END_EVENT_TABLE  ()
 
 // ----------------------------------------------------------------------------- : ImageSlicePreview
 
-ImageSlicePreview::ImageSlicePreview(Window* parent, int id, ImageSlice& slice, const AlphaMask& mask)
+ImageSlicePreview::ImageSlicePreview(Window* parent, int id, ImageSlice& slice, const AlphaMask& mask, const int grid)
   : wxControl(parent, id, wxDefaultPosition, wxDefaultSize, wxBORDER_THEME)
   , slice(slice)
   , mask(mask)
+  , grid(grid)
   , mouse_down(false)
 {
   SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -424,7 +456,7 @@ void ImageSlicePreview::update() {
 }
 
 wxSize ImageSlicePreview::getBestSliceSize() const {
-  float target_ratio = ((float)slice.target_size.GetWidth()) / ((float)slice.target_size.GetHeight());
+  double target_ratio = ((double)slice.target_size.GetWidth()) / ((double)slice.target_size.GetHeight());
   if (target_ratio > 1.0) {
     return wxSize(500, 500 / target_ratio);
   } else {
@@ -451,10 +483,11 @@ void ImageSlicePreview::draw(DC& dc) {
     mask.setAlpha(image);
     if (image.HasAlpha()) {
       // create bitmap
-      bitmap = Bitmap(image.GetWidth(), image.GetHeight());
+      int width = image.GetWidth(), height = image.GetHeight();
+      bitmap = Bitmap(width, height);
       wxMemoryDC mdc; mdc.SelectObject(bitmap);
       // draw checker pattern behind image
-      RealRect rect = (RealRect) GetClientSize();
+      RealRect rect = RealRect(0, 0, width, height);
       RotatedDC rdc(mdc, 0, rect, 1, QUALITY_LOW);
       draw_checker(rdc, rect);
       rdc.DrawImage(image, RealPoint(0,0));
@@ -469,6 +502,39 @@ void ImageSlicePreview::draw(DC& dc) {
   }
   if (bitmap.Ok()) {
     dc.DrawBitmap(bitmap, 0, 0);
+    if (grid == 1) {
+      wxSize size = dc.GetSize();
+      dc.SetPen(*wxRED_PEN);
+      dc.DrawLine(size.x * 1 / 2, 0,              size.x * 1 / 2, size.y);
+      dc.DrawLine(0,              size.y * 1 / 2, size.x,         size.y * 1 / 2);
+    } else if (grid == 2) {
+      wxSize size = dc.GetSize();
+      dc.SetPen(*wxRED_PEN);
+      dc.DrawLine(size.x * 1 / 3, 0,              size.x * 1 / 3, size.y);
+      dc.DrawLine(size.x * 2 / 3, 0,              size.x * 2 / 3, size.y);
+      dc.DrawLine(0,              size.y * 1 / 3, size.x,         size.y * 1 / 3);
+      dc.DrawLine(0,              size.y * 2 / 3, size.x,         size.y * 2 / 3);
+    } else if (grid == 3) {
+      wxSize size = dc.GetSize();
+      dc.SetPen(*wxRED_PEN);
+      dc.DrawLine(size.x * 1 / 4, 0,              size.x * 1 / 4, size.y);
+      dc.DrawLine(size.x * 2 / 4, 0,              size.x * 2 / 4, size.y);
+      dc.DrawLine(size.x * 3 / 4, 0,              size.x * 3 / 4, size.y);
+      dc.DrawLine(0,              size.y * 1 / 4, size.x,         size.y * 1 / 4);
+      dc.DrawLine(0,              size.y * 2 / 4, size.x,         size.y * 2 / 4);
+      dc.DrawLine(0,              size.y * 3 / 4, size.x,         size.y * 3 / 4);
+    } else if (grid == 4) {
+      wxSize size = dc.GetSize();
+      dc.SetPen(*wxRED_PEN);
+      dc.DrawLine(size.x * 1 / 5, 0,              size.x * 1 / 5, size.y);
+      dc.DrawLine(size.x * 2 / 5, 0,              size.x * 2 / 5, size.y);
+      dc.DrawLine(size.x * 3 / 5, 0,              size.x * 3 / 5, size.y);
+      dc.DrawLine(size.x * 4 / 5, 0,              size.x * 4 / 5, size.y);
+      dc.DrawLine(0,              size.y * 1 / 5, size.x,         size.y * 1 / 5);
+      dc.DrawLine(0,              size.y * 2 / 5, size.x,         size.y * 2 / 5);
+      dc.DrawLine(0,              size.y * 3 / 5, size.x,         size.y * 3 / 5);
+      dc.DrawLine(0,              size.y * 4 / 5, size.x,         size.y * 4 / 5);
+    }
   }
 }
 
@@ -520,7 +586,6 @@ ImageSliceSelector::ImageSliceSelector(Window* parent, int id, ImageSlice& slice
   , slice(slice)
   , mouse_down(false)
 {
-  
   float target_ratio = ((float) slice.source.GetWidth()) / ((float) slice.source.GetHeight());
   if (target_ratio > 1.0) {
     SetMinSize(wxSize(500, 500 / target_ratio));

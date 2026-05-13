@@ -3,6 +3,7 @@
 Magic Set Editor, or MSE for short, is a program with which you can design your own cards for popular trading card games. MSE can then generate images of those cards that you can print or upload to the internet. Magic Set Editor also has a statistics window that will give useful information about your set, like the average mana cost, number of rares, etc. When you have finished your set, you can export it to an HTML file to use on the Internet, or to Apprentice or CCG Lackey so you can play with your cards online.
 
 More information on https://magicseteditor.boards.net/
+Documentation on https://mseverse.miraheze.org/wiki/Category:MSE_Documentation
 
 ## Dependencies
 
@@ -20,10 +21,10 @@ On windows, the program can be compiled with Visual Studio (recommended) or with
  * Download and install [vcpkg](https://github.com/microsoft/vcpkg)
  * Use vcpkg to install pkgconf, wxwidgets, boost, hunspell
  * For the Qt6 backend, also install Qt6 (for example `qtbase`)
+ * For the Qt6 backend, also install Qt6 (for example `qtbase`)
 
-=======
 ````
-.\vcpkg install pkgconf wxwidgets boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator hunspell --triplet=x64-windows-static
+.\vcpkg install pkgconf wxwidgets[fonts] boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator boost-json hunspell --triplet=x64-windows-static
 ````
 and/or
 ````
@@ -41,6 +42,7 @@ then, regardless of your choice
  * Then just use "Open Folder" from inside visual studio to open the Magic Set Editor source code root folder.
  * Select the configuration that you want to build (probably release x64-windows-static).
  * To build the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure settings in Visual Studio.
+ * To build the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure settings in Visual Studio.
 
 ![configuration](https://github.com/haganbmj/MagicSetEditor2/blob/master/resource/readme/configuration.png)
 
@@ -52,7 +54,8 @@ Notes:
  * You may need to work around [this bug](https://github.com/microsoft/vcpkg/issues/4756) by replacing `$VCPATH\IDE\CommonExtensions\Microsoft\CMake\CMake\share\cmake-3.16\Modules\FindwxWidgets.cmake` with the file from  https://github.com/CaeruleusAqua/vcpkg-wx-find (`$VCPATH` is usually `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7`)
  * vcpkg by default installs 32 bit versions of libraries, use `vcpkg install PACKAGENAME --triplet=x64-windows` if you want to enable a 64 bit build.
  * Similarly, to use a static build, use `vcpkg install PACKAGENAME --triplet=x32-windows` or `vcpkg install PACKAGENAME -triplet=x64-windows-static`.
- 
+
+
 For running tests you will also need to
  * Download and install perl (For example [Strawberry perl](http://strawberryperl.com/) or using [MSYS2](https://www.msys2.org/))
 The tests can be run from inside visual studio
@@ -99,6 +102,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
 
+Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
 Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
 
 To build with the Qt6 backend instead of wxWidgets:
@@ -148,6 +152,7 @@ cmake --build .
 
 ```
 brew install boost wxwidgets hunspell cmake dylibbundler qt
+brew install boost wxwidgets hunspell cmake dylibbundler qt
 ```
 
  * Then use cmake to build:
@@ -159,6 +164,7 @@ cmake --build .
 ```
 
  Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
+ * For the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure step.
  * For the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure step.
  * Finally, copy the resources to a SharedSupport directory and run the executable:
 

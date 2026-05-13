@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -42,7 +42,9 @@ public:
   void selectFirst();
   /// Select all items
   void doSelectAll();
-  
+  /// Find the position for a given item
+  long findGivenItemPos(const VoidP& item);
+
   // --------------------------------------------------- : Clipboard
   
   virtual bool canCut()    const { return canCopy() && canDelete(); }

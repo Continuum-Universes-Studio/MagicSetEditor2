@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -17,6 +17,7 @@
 template <typename T> class Defaultable;
 template <typename T> class Scriptable;
 DECLARE_POINTER_TYPE(Game);
+DECLARE_POINTER_TYPE(Updater);
 DECLARE_POINTER_TYPE(StyleSheet);
 class Packaged;
 pair<unique_ptr<wxInputStream>, Packaged*> openFileFromPackage(Packaged* package, const String& name);
@@ -37,7 +38,7 @@ public:
   /** filename is used only for error messages
    *  package is used for looking up included files.
    */
-  Reader(wxInputStream& input, Packaged* package = nullptr, const String& filename = wxEmptyString, bool ignore_invalid = false);
+  Reader(wxInputStream& input, Packaged* package = nullptr, const String& filename = _(""), bool ignore_invalid = false);
   
   ~Reader() { showWarnings(); }
   
@@ -109,6 +110,7 @@ public:
   template <typename T> void handle(Scriptable<T>&);
   // special behaviour
   void handle(GameP&);
+  void handle(UpdaterP&);
   void handle(StyleSheetP&);
   
   /// Indicate that the last value from getValue() was not handled, allowing it to be handled again
@@ -116,7 +118,13 @@ public:
   
   /// The package being read from
   inline Packaged* getPackage() const { return package; }
-  
+
+  String addLocale(String);
+  String addDark(String);
+
+  /// Set the value that will be returned by the next getValue() call (may mess up the state of the reader)
+  inline void setValue(const String& value) { state = UNHANDLED; previous_value = value; };
+
 private:
   // --------------------------------------------------- : Data
   /// App version this file was made with
@@ -175,7 +183,8 @@ private:
   /** Maybe the key is "include file" */
   template <typename T>
   void unknownKey(T& v) {
-    if (key == _("include_file")) {
+    if (key == _("include_file") || key == _("include_localized_file") || key == _("include_dark_file")) {
+      value = key == _("include_localized_file") ? addLocale(value) : key == _("include_dark_file") ? addDark(value) : value;
       auto [stream, include_package] = openFileFromPackage(package, value);
       Reader sub_reader(*stream, include_package, value, ignore_invalid);
       if (sub_reader.file_app_version == 0) {

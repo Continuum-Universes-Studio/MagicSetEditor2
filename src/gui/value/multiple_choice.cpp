@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -135,7 +135,7 @@ bool MultipleChoiceValueEditor::onChar(wxKeyEvent& ev) {
   }
 }
 void MultipleChoiceValueEditor::onLoseFocus() {
-  if (drop_down) drop_down->hide(false);
+  //if (drop_down) drop_down->hide(false);
 }
 
 void MultipleChoiceValueEditor::onValueChange() {

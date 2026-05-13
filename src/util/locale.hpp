@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -76,6 +76,7 @@ String tr(const String&, const String& subcat, const String& key, DefaultLocaleF
 #define _TITLE_(s)   tr(LOCALE_CAT_TITLE,     _(s))
 /// A localized string for type names in scripts
 #define _TYPE_(s)    tr(LOCALE_CAT_TYPE,      _(s))
+#define _TYPE_V_(s)  tr(LOCALE_CAT_TYPE,        s )
 /// A localized string for action names
 #define _ACTION_(s)  tr(LOCALE_CAT_ACTION,    _(s))
 /// A localized string for error messages
@@ -86,6 +87,13 @@ String tr(const String&, const String& subcat, const String& key, DefaultLocaleF
 
 /// A localized string for tooltip text, with 1 argument (printf style)
 #define _HELP_1_(s,a)    format_string(_HELP_(s),    a)
+
+/// A localized string for tooltip labels, with 1 argument (printf style)
+#define _TOOL_1_(s,a)     format_string(_TOOL_(s),   a)
+/// A localized string for tooltip labels, with 2 argument (printf style)
+#define _TOOL_2_(s,a,b)   format_string(_TOOL_(s),   a, b)
+/// A localized string for tooltip labels, with 3 argument (printf style)
+#define _TOOL_3_(s,a,b,c) format_string(_TOOL_(s),   a, b, c)
 
 /// A localized string for tooltip text, with 1 argument (printf style)
 #define _TOOLTIP_1_(s,a)  format_string(_TOOLTIP_(s), a)

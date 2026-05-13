@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -8,13 +8,14 @@
 
 #include <util/prec.hpp>
 #include <gfx/gfx.hpp>
+#include <data/format/image_encoding.hpp>
 
 // ----------------------------------------------------------------------------- : Implementation
 
 // Rotates an image
 // 'Rotater' is a function object that knows how to 'rotate' a pixel coordinate
 template <class Rotater>
-Image rotate_image_impl(Image img) {
+Image rotate_image_impl(const Image& img) {
   UInt width = img.GetWidth(), height = img.GetHeight();
   // initialize the return image
   Image ret;
@@ -39,6 +40,11 @@ Image rotate_image_impl(Image img) {
       }
     }
   }
+  // transfer metadata
+  if (img.HasOption(wxIMAGE_OPTION_PNG_DESCRIPTION)) {
+    String metadata = transformAllEncodedRects(img.GetOption(wxIMAGE_OPTION_PNG_DESCRIPTION), RealRect::rotate, width, height, lround(rad_to_deg(Rotater::angle())));
+    ret.SetOption(wxIMAGE_OPTION_PNG_DESCRIPTION, metadata);
+  }
   // ret is rotated image
   return ret;
 }
@@ -57,6 +63,7 @@ struct Rotate90deg {
     int my = w - x - 1;
     return h * my + mx; // note: h, since that is the width of the target image
   }
+  inline static Radians angle() { return rad90; }
 };
 
 struct Rotate180deg {
@@ -68,6 +75,7 @@ struct Rotate180deg {
     UInt my = h - y - 1;
     return w * my + mx;
   }
+  inline static Radians angle() { return rad180; }
 };
 
 struct Rotate270deg {
@@ -79,6 +87,7 @@ struct Rotate270deg {
     UInt my = x;
     return h * my + mx;
   }
+  inline static Radians angle() { return rad270; }
 };
 
 // ----------------------------------------------------------------------------- : Interface
@@ -91,7 +100,9 @@ Image rotate_image(const Image& image, Radians angle) {
   if (is_rad270(a)) return rotate_image_impl<Rotate270deg>(image);
   else {
     if (!image.HasAlpha()) const_cast<Image&>(image).InitAlpha();
-    return image.Rotate(angle, wxPoint(0,0));
+    Image ret = image.Rotate(angle, wxPoint(0,0));
+    ret.SetOption(wxIMAGE_OPTION_PNG_DESCRIPTION, image.GetOption(wxIMAGE_OPTION_PNG_DESCRIPTION));
+    return ret;
   }
 }
 
@@ -121,6 +132,10 @@ Image flip_image_horizontal(Image const& img) {
     out.InitAlpha();
     do_flip(img.GetAlpha(), out.GetAlpha(), 1, w, h);
   }
+  if (img.HasOption(wxIMAGE_OPTION_PNG_DESCRIPTION)) {
+    String metadata = transformAllEncodedRects(img.GetOption(wxIMAGE_OPTION_PNG_DESCRIPTION), RealRect::flip, w, h, 1);
+    out.SetOption(wxIMAGE_OPTION_PNG_DESCRIPTION, metadata);
+  }
   return out;
 }
 
@@ -131,6 +146,10 @@ Image flip_image_vertical(Image const& img) {
   if (img.HasAlpha()) {
     out.InitAlpha();
     do_flip(img.GetAlpha(), out.GetAlpha(), 1 * w, h);
+  }
+  if (img.HasOption(wxIMAGE_OPTION_PNG_DESCRIPTION)) {
+    String metadata = transformAllEncodedRects(img.GetOption(wxIMAGE_OPTION_PNG_DESCRIPTION), RealRect::flip, w, h, 0);
+    out.SetOption(wxIMAGE_OPTION_PNG_DESCRIPTION, metadata);
   }
   return out;
 }

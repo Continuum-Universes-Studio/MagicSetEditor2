@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -12,7 +12,7 @@
 #include <util/real_point.hpp>
 #include <gfx/gfx.hpp>
 
-class Font;
+class FontRef;
 
 // ----------------------------------------------------------------------------- : Rotation
 
@@ -32,7 +32,7 @@ public:
   /** with the given rectangle of external coordinates and a given rotation angle and zoom factor.
    *  if is_internal then the rect gives the internal coordinates, its origin should be (0,0)
    */
-  Rotation(Radians angle = 0, const RealRect& rect = RealRect(0,0,0,0), double zoom = 1.0, double strectch = 1.0, RotationFlags flags = ROTATION_NORMAL);
+  Rotation(Radians angle = 0, const RealRect& rect = RealRect(0,0,0,0), double zoom = 1.0, double stretch = 1.0, RotationFlags flags = ROTATION_NORMAL);
   
   /// Change the zoom factor
   inline void setZoom(double z) { zoomX = zoomY = z; }
@@ -157,10 +157,10 @@ public:
   // --------------------------------------------------- : Drawing
   
   /// Draw text
-  void DrawText  (const String& text, const RealPoint& pos,              int blur_radius = 0, int boldness = 1, double stretch = 1.0);
-  void DrawText  (const String& text, const RealPoint& pos, Color color, int blur_radius = 0, int boldness = 1, double stretch = 1.0);
-  /// Draw text with the shadow and color settings of the given font
-  void DrawTextWithShadow(const String& text, const Font& font, const RealPoint& pos, double scale = 1.0, double stretch = 1.0);
+  void DrawText  (const String& text, const RealPoint& pos,              int blur_radius = 0, Color stroke_color = Color(0,0,0), int stroke_radius = 0, double stretch = 1.0);
+  void DrawText  (const String& text, const RealPoint& pos, Color color, int blur_radius = 0, Color stroke_color = Color(0,0,0), int stroke_radius = 0, double stretch = 1.0);
+  /// Draw text with a shadow or stroke, and color settings of the given font
+  void DrawTextWithShadowOrStroke(const String& text, const FontRef& font, const RealPoint& pos, double scale = 1.0, double stretch = 1.0);
   /// Draw abitmap, it must already be zoomed!
   void DrawBitmap(const Bitmap& bitmap, const RealPoint& pos);
   /// Draw an image using the given combining mode, the image must already be zoomed!
@@ -194,7 +194,7 @@ public:
   void SetFont(const wxFont& font);
   /// Set the font, scales for zoom and high_quality
   /** The font size will be multiplied by 'scale' */
-  void SetFont(const Font& font, double scale);
+  void SetFont(const FontRef& font, double scale);
   /// Steps to use when decrementing font size
   double getFontSizeStep() const;
   

@@ -1,5 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -12,7 +12,7 @@
 
 // ----------------------------------------------------------------------------- : FontTextElement
 
-void FontTextElement::draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end) const {
+void FontTextElement::draw(RotatedDC& dc, double scale, const RealRect& rect, const double* xs, DrawWhat what, size_t start, size_t end, bool native_look) const {
   if ((what & draw_as) != draw_as) return; // don't draw
   // text
   String text = content.substr(start - this->start, end - start);
@@ -20,8 +20,15 @@ void FontTextElement::draw(RotatedDC& dc, double scale, const RealRect& rect, co
     text = text.substr(0, text.size() - 1); // don't draw last \n
   }
   // draw
+  Color font_color = font->color;
+  RealSize margin(0, 0);
+  if (native_look) {
+    font->color = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+    margin = RealSize(1., 0);
+  }
   dc.SetFont(*font, scale);
-  dc.DrawTextWithShadow(text, *font, rect.position());
+  dc.DrawTextWithShadowOrStroke(text, *font, rect.position() + margin);
+  if (native_look) font->color = font_color;
 }
 
 void FontTextElement::getCharInfo(RotatedDC& dc, double scale, vector<CharInfo>& out) const {
@@ -39,10 +46,11 @@ void FontTextElement::getCharInfo(RotatedDC& dc, double scale, vector<CharInfo>&
     } else {
       RealSize s = dc.GetTextExtent(content.substr(line_start - this->start, i - line_start + 1));
       out.push_back(CharInfo(
-                       RealSize(s.width - prev_width, s.height),
-                       c == _(' ') ? LineBreak::SPACE : LineBreak::MAYBE,
-                       draw_as == DRAW_ACTIVE // from <soft> tag
-                   ));
+        RealSize(s.width - prev_width, s.height),
+        c == _(' ') ? LineBreak::SPACE : LineBreak::MAYBE,
+        draw_as == DRAW_ACTIVE, // from <soft> tag
+        c == wxChar(0x2022) //bullet point character
+      ));
       prev_width = s.width;
     }
   }
