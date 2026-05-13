@@ -8,11 +8,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 option(USE_QT6 "Build the Qt6 GUI backend" OFF)
 
-find_package(wxWidgets 3 REQUIRED COMPONENTS core base net html)
 if(USE_QT6)
   find_package(Qt6 REQUIRED COMPONENTS Widgets)
 endif()
 
+find_package(wxWidgets 3.3.1 REQUIRED COMPONENTS core base net html)
+include(${wxWidgets_USE_FILE})
 find_package(Boost REQUIRED COMPONENTS regex)
 
 find_package(PkgConfig)
@@ -46,47 +47,11 @@ include_directories(${HUNSPELL_INCLUDE_DIRS})
 # Magic Set Editor executable
 
 add_executable(magicseteditor WIN32)
-if(USE_QT6)
-  target_compile_definitions(magicseteditor PRIVATE USE_QT6)
-  target_link_libraries(${PROJECT_NAME} Qt6::Widgets)
-else()
-  target_compile_definitions(magicseteditor PRIVATE USE_WX)
-endif()
-target_link_libraries(${PROJECT_NAME} ${wxWidgets_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES})
-target_link_libraries(${PROJECT_NAME} ${HUNSPELL_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE wxWidgets::wxWidgets ${Boost_LIBRARIES} ${HUNSPELL_LIBRARIES})
 
-file(GLOB_RECURSE core_common_sources CONFIGURE_DEPENDS
-  src/data/*.cpp
-  src/gfx/*.cpp
-  src/render/*.cpp
-  src/script/*.cpp
-  src/util/*.cpp
-  src/gui_core/*.cpp
-  src/gui/*.cpp
-)
-
-set(core_common_sources
-  ${core_common_sources}
-  src/main.cpp
-  src/cli/cli_main.cpp
-  src/cli/text_io_handler.cpp
-)
-
-file(GLOB_RECURSE wx_gui_sources CONFIGURE_DEPENDS
-  src/gui_wx/*.cpp
-)
-
-file(GLOB_RECURSE qt_gui_sources CONFIGURE_DEPENDS
-  src/gui_qt/*.cpp
-)
-
-target_sources(magicseteditor PRIVATE ${core_common_sources})
-if(USE_QT6)
-  target_sources(magicseteditor PRIVATE ${qt_gui_sources})
-else()
-  target_sources(magicseteditor PRIVATE ${wx_gui_sources})
-endif()
+file(GLOB_RECURSE sources src/*.cpp)
+list(FILTER sources EXCLUDE REGEX win32_cli_wrapper.cpp)
+target_sources(magicseteditor PRIVATE ${sources})
 target_precompile_headers(magicseteditor PRIVATE src/util/prec.hpp)
 
 configure_file(src/config.hpp.in src/config.hpp)
@@ -162,7 +127,7 @@ endif()
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT magicseteditor)
 
 # Static linking on windows
-if(NOT USE_QT6 AND DEFINED VCPKG_TARGET_TRIPLET AND VCPKG_TARGET_TRIPLET MATCHES ".*-static")
+if (${VCPKG_TARGET_TRIPLET} MATCHES ".*-static")
   message("Static linking")
   set(CompilerFlags CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_RELWITHDEBINFO CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE)
   foreach(CompilerFlag ${CompilerFlags})

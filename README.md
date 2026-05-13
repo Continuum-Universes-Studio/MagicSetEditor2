@@ -25,6 +25,7 @@ On windows, the program can be compiled with Visual Studio (recommended) or with
 
 ````
 .\vcpkg install pkgconf wxwidgets[fonts] boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator boost-json hunspell --triplet=x64-windows-static
+.\vcpkg install pkgconf wxwidgets[fonts] boost-smart-ptr boost-regex boost-logic boost-pool boost-iterator boost-json hunspell --triplet=x64-windows-static
 ````
 and/or
 ````
@@ -34,6 +35,8 @@ for Qt6 builds add:
 ````
 .\vcpkg install qtbase --triplet=x64-windows-static
 ````
+(these two lines differ only by the triplet at the end. Use x64 for 64 bit operating systems, and x86 for 32 bit.)
+
 then, regardless of your choice
 ````
 .\vcpkg integrate install
