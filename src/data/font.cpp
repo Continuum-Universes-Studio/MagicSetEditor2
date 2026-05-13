@@ -1,5 +1,6 @@
 //+----------------------------------------------------------------------------+
 //| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -19,13 +20,23 @@ Font::Font()
   , max_stretch(1.0)
   , color(Color(0,0,0))
   , shadow_displacement(0,0)
+  , shadow_displacement(0,0)
   , shadow_blur(0)
   , separator_color(Color(0,0,0,128))
   , flags(FONT_NORMAL)
 {}
 
 bool Font::update(Context& ctx) {
+bool Font::update(Context& ctx) {
   bool changes = false;
+  changes |= name        .update(ctx);
+  changes |= italic_name .update(ctx);
+  changes |= size        .update(ctx);
+  changes |= weight      .update(ctx);
+  changes |= style       .update(ctx);
+  changes |= underline   .update(ctx);
+  changes |= color       .update(ctx);
+  changes |= shadow_color.update(ctx);
   changes |= name        .update(ctx);
   changes |= italic_name .update(ctx);
   changes |= size        .update(ctx);
@@ -48,8 +59,19 @@ void Font::initDependencies(Context& ctx, const Dependency& dep) const {
   underline   .initDependencies(ctx, dep);
   color       .initDependencies(ctx, dep);
   shadow_color.initDependencies(ctx, dep);
+void Font::initDependencies(Context& ctx, const Dependency& dep) const {
+  name        .initDependencies(ctx, dep);
+  italic_name .initDependencies(ctx, dep);
+  size        .initDependencies(ctx, dep);
+  weight      .initDependencies(ctx, dep);
+  style       .initDependencies(ctx, dep);
+  underline   .initDependencies(ctx, dep);
+  color       .initDependencies(ctx, dep);
+  shadow_color.initDependencies(ctx, dep);
 }
 
+FontP Font::make(int add_flags, bool add_underline, String const* other_family, Color const* other_color, double const* other_size) const {
+  FontP f(new Font(*this));
 FontP Font::make(int add_flags, bool add_underline, String const* other_family, Color const* other_color, double const* other_size) const {
   FontP f(new Font(*this));
   f->flags |= add_flags;
@@ -65,6 +87,7 @@ FontP Font::make(int add_flags, bool add_underline, String const* other_family, 
   }
   if (add_flags & FONT_SOFT) {
     f->color = f->separator_color;
+    f->shadow_displacement = RealSize(0,0); // no shadow
     f->shadow_displacement = RealSize(0,0); // no shadow
   }
   if (add_underline) {
@@ -128,6 +151,7 @@ wxFont Font::toWxFont(double scale) const {
   if (flags & FONT_CODE) {
     if (size_i < 2) {
       return wxFont(wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, weight_i, underline(), _("Courier New"));
+      return wxFont(wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, weight_i, underline(), _("Courier New"));
     } else {
       font = wxFont(size_i, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, weight_i, underline(), _("Courier New"));
     }
@@ -161,6 +185,7 @@ wxFont Font::toWxFont(double scale) const {
 }
 
 IMPLEMENT_REFLECTION_NO_SCRIPT(Font) {
+IMPLEMENT_REFLECTION_NO_SCRIPT(Font) {
   REFLECT(name);
   REFLECT(size);
   REFLECT(weight);
@@ -170,6 +195,8 @@ IMPLEMENT_REFLECTION_NO_SCRIPT(Font) {
   REFLECT(color);
   REFLECT(scale_down_to);
   REFLECT(max_stretch);
+  REFLECT_N("shadow_displacement_x", shadow_displacement.width);
+  REFLECT_N("shadow_displacement_y", shadow_displacement.height);
   REFLECT_N("shadow_displacement_x", shadow_displacement.width);
   REFLECT_N("shadow_displacement_y", shadow_displacement.height);
   REFLECT(shadow_color);

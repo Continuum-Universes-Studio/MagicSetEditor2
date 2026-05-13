@@ -13,11 +13,10 @@ The code depends on
  * boost
  * hunspell
 
-
 ## Building on Windows with Visual Studio
 
 On windows, the program can be compiled with Visual Studio (recommended) or with mingw-gcc.
- * Visual Studio instructions up-to-date as of April 2024
+ * VS instructions up-to-date as of April 2024
  * Download and install [Visual Studio Community Edition](https://visualstudio.microsoft.com/vs/community/)
  * Download and install [vcpkg](https://github.com/microsoft/vcpkg)
  * Use vcpkg to install pkgconf, wxwidgets, boost, hunspell
@@ -48,9 +47,8 @@ then, regardless of your choice
  * To build the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure settings in Visual Studio.
  * To build the Qt6 backend, add `-DUSE_QT6=ON` to the CMake configure settings in Visual Studio.
 
-![configuration](https://github.com/G-e-n-e-v-e-n-s-i-S/MagicSetEditor2/blob/main/resource/readme/configuration.png)
+![configuration](https://github.com/haganbmj/MagicSetEditor2/blob/master/resource/readme/configuration.png)
 
- * Just to the right of that, select magicseteditor.exe. (These options sometimes get de-selected. If you suddenly can't build anymore, make sure to re-select these.)
  * To build the app go to Build menu > build magicseteditor.exe
 
 Notes:
@@ -138,15 +136,6 @@ cmake --build build
  * Install the dependencies:
 
 ```
-# debian 12+ / ubuntu 24.04+
-sudo apt install libboost-dev libboost-regex-dev libwxgtk3.2-dev libhunspell-dev cmake
-# debian 11 / ubuntu 22.04
-sudo apt install libboost-dev libboost-regex-dev libwxgtk3.0-gtk3-dev libhunspell-dev cmake
-# fedora / centos
-sudo dnf install boost-devel wxGTK-devel hunspell-devel git cmake
-# archlinux / manjaro
-sudo pacman -Syu wxgtk3 hunspell boost git cmake
-# freebsd
 sudo pkg install hunspell cmake wx30-gtk3 boost-all
 ```
 
@@ -158,15 +147,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
 
- Use `-CMAKE_BUILD_TYPE=Debug` for a debug build.
-
-### wx-config can't be found
-On old versions it's possible that cmake can't find wx-config, to solve this add the tool to the cmake command manually like this: `-DwxWidgets_CONFIG_EXECUTABLE=/usr/bin/wx-config-gtk3`
-
-### Installing resources
-Install the resource folder to the .magicseteditor dir: `mkdir -p $HOME/.magicseteditor && cp -rT ./resource $HOME/.magicseteditor/resource`
-Templates are installed to `~/.magicseteditor/data`. Fonts are installed to `~/.local/share/fonts`.
-
+ Use `CMAKE_BUILD_TYPE=Debug` for a debug build.
 
 ## Building on Mac OS
 

@@ -179,20 +179,24 @@ KeywordP KeywordDataObject::getKeyword(const SetP& set) {
 
 // ----------------------------------------------------------------------------- : Card on clipboard
 
-CardsOnClipboard::CardsOnClipboard(const SetP& set, const vector<CardP>& cards) {
-  // Keep the native MSE card format preferred so copy/paste inside MSE
-  // preserves all card data (not just the text fallback).
-  Add(new CardsDataObject(set, cards), true);
-  // Conversion to text format
-    if (!cards.empty()) {
-      String text;
-      for (size_t i = 0; i < cards.size(); ++i) {
-        if (i > 0) text += _("\n");
-        text += cards[i]->identification();
-      }
-      Add(new wxTextDataObject(text));
+CardsOnClipboard::CardsOnClipboard(const SetP& set, const String id, const vector<CardP>& cards) {
+  Add(new CardsDataObject(set, id, cards), true);
+
+  if (!cards.empty()) {
+    String text;
+    for (size_t i = 0; i < cards.size(); ++i) {
+      if (i > 0) text += _("\n");
+      text += cards[i]->identification();
     }
-  // Conversion to bitmap format
+    Add(new wxTextDataObject(text));
+  }
+
+  if (cards.size() == 1) {
+    Add(new wxBitmapDataObject(export_bitmap(set, cards[0])));
+  }
+
+  if (cards.size() > 0 && cards.size() < 6) {
+    Image img;
     if (cards.size() == 1) {
       Add(new wxBitmapDataObject(export_bitmap(set, cards[0])));
     }

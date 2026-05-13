@@ -44,7 +44,7 @@ public:
   void store() override;  
   
 private:
-  wxComboBox* language, *dark_mode;
+  wxComboBox* language;
   wxCheckBox* open_sets_in_new_window;
   wxChoice* theme_choice;
 };
@@ -208,10 +208,6 @@ GlobalPreferencesPage::GlobalPreferencesPage(Window* parent)
         s4->Add(theme_choice, 0, wxEXPAND);
       s3->Add(s4, 0, wxEXPAND | wxALL, 4);
     s->Add(s3, 0, wxEXPAND | (wxALL & ~wxTOP), 8);
-    wxSizer* s4 = new wxStaticBoxSizer(wxVERTICAL, this, _LABEL_("dark mode"));
-      s4->Add(dark_mode,                                                 0, wxEXPAND | (wxALL & ~wxTOP), 4);
-      s4->Add(new wxStaticText(this, wxID_ANY, _HELP_( "app language")), 0,             wxALL,           4);
-    s->Add(s4, 0, wxEXPAND | wxALL, 8);
   SetSizer(s);
 }
 
