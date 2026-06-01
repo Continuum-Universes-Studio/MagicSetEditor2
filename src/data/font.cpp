@@ -1,6 +1,5 @@
 //+----------------------------------------------------------------------------+
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
-//| Description:  Magic Set Editor - Program to make Magic (tm) cards          |
+//| Description:  Magic Set Editor - Program to make card games                |
 //| Copyright:    (C) Twan van Laarhoven and the other MSE developers          |
 //| License:      GNU General Public License 2 or later (see file COPYING)     |
 //+----------------------------------------------------------------------------+
@@ -9,71 +8,122 @@
 
 #include <util/prec.hpp>
 #include <data/font.hpp>
+#include <wx/stdpaths.h>
+#include <wx/dir.h>
+#include <wx/font.h>
 
 // ----------------------------------------------------------------------------- : Font
 
-Font::Font()
+FontRef::FontRef()
   : name()
   , size(1)
   , underline(false)
+  , strikethrough(false)
   , scale_down_to(100000)
   , max_stretch(1.0)
   , color(Color(0,0,0))
-  , shadow_displacement(0,0)
-  , shadow_displacement(0,0)
+  , shadow_color(Color(0,0,0))
+  , shadow_displacement_x(0)
+  , shadow_displacement_y(0)
   , shadow_blur(0)
+  , stroke_color(Color(0,0,0))
+  , stroke_radius(0)
+  , stroke_blur(0)
   , separator_color(Color(0,0,0,128))
   , flags(FONT_NORMAL)
 {}
 
-bool Font::update(Context& ctx) {
-bool Font::update(Context& ctx) {
+bool FontRef::PreloadResourceFonts(bool recursive) {
+#if wxUSE_PRIVATE_FONTS
+  String pathSeparator(wxFileName::GetPathSeparator());
+  String appPath(wxFileName(wxStandardPaths::Get().GetExecutablePath()).GetPath());
+  wxDir appDir(appPath);
+  if (!appDir.IsOpened()) return true;
+
+  bool preloadHadErrors = false;
+  wxString folder;
+  bool cont = appDir.GetFirst(&folder, _(""), wxDIR_DIRS);
+  while (cont) {
+    if (folder.Lower().Contains("fonts")) {
+      String folderPath = appPath + pathSeparator + folder + pathSeparator;
+
+      vector<String> fontFilePaths;
+      TallyResourceFonts(folderPath, fontFilePaths, recursive);
+
+      for (const String& fontFilePath : fontFilePaths) {
+        if (!wxFont::AddPrivateFont(fontFilePath)) {
+          preloadHadErrors = true;
+        }
+      }
+    }
+    cont = appDir.GetNext(&folder);
+  }
+
+  return preloadHadErrors;
+#endif
+  return false;
+}
+
+void FontRef::TallyResourceFonts(String fontsDirectoryPath, vector<String>& fontFilePaths, bool recursive) {
+  wxDir fontsDirectory(fontsDirectoryPath);
+  String fontFileName = _("");
+  bool hasNext = fontsDirectory.GetFirst(&fontFileName);
+  while (hasNext) {
+    String fontFilePath = fontsDirectoryPath + fontFileName;
+    if (wxDirExists(fontFilePath)) {
+      if (recursive) {
+        TallyResourceFonts(fontFilePath + wxFileName::GetPathSeparator(), fontFilePaths, true);
+      }
+    } else if (fontFilePath.EndsWith(_(".ttf")) || fontFilePath.EndsWith(_(".otf"))) {
+      fontFilePaths.push_back(fontFilePath);
+    }
+    hasNext = fontsDirectory.GetNext(&fontFileName);
+  }
+}
+
+bool FontRef::update(Context& ctx) {
   bool changes = false;
-  changes |= name        .update(ctx);
-  changes |= italic_name .update(ctx);
-  changes |= size        .update(ctx);
-  changes |= weight      .update(ctx);
-  changes |= style       .update(ctx);
-  changes |= underline   .update(ctx);
-  changes |= color       .update(ctx);
-  changes |= shadow_color.update(ctx);
-  changes |= name        .update(ctx);
-  changes |= italic_name .update(ctx);
-  changes |= size        .update(ctx);
-  changes |= weight      .update(ctx);
-  changes |= style       .update(ctx);
-  changes |= underline   .update(ctx);
-  changes |= color       .update(ctx);
-  changes |= shadow_color.update(ctx);
+  changes |= name                 .update(ctx);
+  changes |= italic_name          .update(ctx);
+  changes |= size                 .update(ctx);
+  changes |= weight               .update(ctx);
+  changes |= style                .update(ctx);
+  changes |= underline            .update(ctx);
+  changes |= strikethrough        .update(ctx);
+  changes |= color                .update(ctx);
+  changes |= shadow_color         .update(ctx);
+  changes |= shadow_displacement_x.update(ctx);
+  changes |= shadow_displacement_y.update(ctx);
+  changes |= shadow_blur          .update(ctx);
+  changes |= stroke_color         .update(ctx);
+  changes |= stroke_radius        .update(ctx);
+  changes |= stroke_blur          .update(ctx);
   flags = (flags & ~FONT_BOLD & ~FONT_ITALIC)
         | (weight() == _("bold")   ? FONT_BOLD   : FONT_NORMAL)
         | (style()  == _("italic") ? FONT_ITALIC : FONT_NORMAL);
   return changes;
 }
-void Font::initDependencies(Context& ctx, const Dependency& dep) const {
-  name        .initDependencies(ctx, dep);
-  italic_name .initDependencies(ctx, dep);
-  size        .initDependencies(ctx, dep);
-  weight      .initDependencies(ctx, dep);
-  style       .initDependencies(ctx, dep);
-  underline   .initDependencies(ctx, dep);
-  color       .initDependencies(ctx, dep);
-  shadow_color.initDependencies(ctx, dep);
-void Font::initDependencies(Context& ctx, const Dependency& dep) const {
-  name        .initDependencies(ctx, dep);
-  italic_name .initDependencies(ctx, dep);
-  size        .initDependencies(ctx, dep);
-  weight      .initDependencies(ctx, dep);
-  style       .initDependencies(ctx, dep);
-  underline   .initDependencies(ctx, dep);
-  color       .initDependencies(ctx, dep);
-  shadow_color.initDependencies(ctx, dep);
+
+void FontRef::initDependencies(Context& ctx, const Dependency& dep) const {
+  name                 .initDependencies(ctx, dep);
+  italic_name          .initDependencies(ctx, dep);
+  size                 .initDependencies(ctx, dep);
+  weight               .initDependencies(ctx, dep);
+  style                .initDependencies(ctx, dep);
+  underline            .initDependencies(ctx, dep);
+  strikethrough        .initDependencies(ctx, dep);
+  color                .initDependencies(ctx, dep);
+  shadow_color         .initDependencies(ctx, dep);
+  shadow_displacement_x.initDependencies(ctx, dep);
+  shadow_displacement_y.initDependencies(ctx, dep);
+  shadow_blur          .initDependencies(ctx, dep);
+  stroke_color         .initDependencies(ctx, dep);
+  stroke_radius        .initDependencies(ctx, dep);
+  stroke_blur          .initDependencies(ctx, dep);
 }
 
-FontP Font::make(int add_flags, bool add_underline, String const* other_family, Color const* other_color, double const* other_size) const {
-  FontP f(new Font(*this));
-FontP Font::make(int add_flags, bool add_underline, String const* other_family, Color const* other_color, double const* other_size) const {
-  FontP f(new Font(*this));
+FontRefP FontRef::make(int add_flags, bool add_underline, bool add_strikethrough, String const* other_family, Color const* other_color, double const* other_size) const {
+  FontRefP f(new FontRef(*this));
   f->flags |= add_flags;
   if (add_flags & FONT_CODE_STRING) {
     f->color = Color(0,0,100);
@@ -87,11 +137,14 @@ FontP Font::make(int add_flags, bool add_underline, String const* other_family, 
   }
   if (add_flags & FONT_SOFT) {
     f->color = f->separator_color;
-    f->shadow_displacement = RealSize(0,0); // no shadow
-    f->shadow_displacement = RealSize(0,0); // no shadow
+    f->shadow_displacement_x = 0;
+    f->shadow_displacement_y = 0;
   }
   if (add_underline) {
     f->underline = true;
+  }
+  if (add_strikethrough) {
+    f->strikethrough = true;
   }
   if (other_color) {
     f->color = *other_color;
@@ -140,18 +193,18 @@ static void normalizeFontFace(String& familyName, wxFontWeight& weight, wxFontSt
   #endif
 }
 
-wxFont Font::toWxFont(double scale) const {
+wxFont FontRef::toWxFont(double scale) const {
   double point_size = scale * size;
   int size_i = to_int(scale * size);
   wxFontWeight weight_i = flags & FONT_BOLD   ? wxFONTWEIGHT_BOLD  : wxFONTWEIGHT_NORMAL;
   wxFontStyle style_i  = flags & FONT_ITALIC ? wxFONTSTYLE_ITALIC : wxFONTSTYLE_NORMAL;
-  // make font
   wxFont font;
 
   if (flags & FONT_CODE) {
     if (size_i < 2) {
-      return wxFont(wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, weight_i, underline(), _("Courier New"));
-      return wxFont(wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, weight_i, underline(), _("Courier New"));
+      font = wxFont(wxNORMAL_FONT->GetPointSize(), wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, weight_i, underline(), _("Courier New"));
+      if (strikethrough()) font.MakeStrikethrough();
+      return font;
     } else {
       font = wxFont(size_i, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, weight_i, underline(), _("Courier New"));
     }
@@ -159,7 +212,7 @@ wxFont Font::toWxFont(double scale) const {
     font = *wxNORMAL_FONT;
     point_size = size > 1 ? point_size : scale * font.GetPointSize();
     font.SetPointSize(to_int(point_size));
-  } else if (flags & FONT_ITALIC && !italic_name().empty()) {
+  } else if (!(flags & FONT_FROM_TAG) && (flags & FONT_ITALIC) && !italic_name().empty()) {
     #ifdef __WXGTK__
       String familyName = italic_name();
       wxFontStyle italic_style_i = wxFONTSTYLE_ITALIC;
@@ -173,33 +226,33 @@ wxFont Font::toWxFont(double scale) const {
     normalizeFontFace(familyName, weight_i, style_i);
     font = wxFont(size_i, wxFONTFAMILY_DEFAULT, style_i, weight_i, underline(), familyName);
   }
-  // fix size
+
   #if defined(__WXMSW__) || defined(__WXGTK__)
-    // Card/template fonts are sized in 96-DPI pixels. wxGTK point fonts follow
-    // desktop DPI scaling, which makes preview text too large on HiDPI displays.
     int pixel_height = (int)(point_size * 96.0 / 72.0 + 0.5);
     if (pixel_height < 1) pixel_height = 1;
     font.SetPixelSize(wxSize(0, pixel_height));
   #endif
+  if (strikethrough()) font.MakeStrikethrough();
   return font;
 }
 
-IMPLEMENT_REFLECTION_NO_SCRIPT(Font) {
-IMPLEMENT_REFLECTION_NO_SCRIPT(Font) {
+IMPLEMENT_REFLECTION_NO_SCRIPT(FontRef) {
   REFLECT(name);
   REFLECT(size);
   REFLECT(weight);
   REFLECT(style);
   REFLECT(underline);
+  REFLECT(strikethrough);
   REFLECT(italic_name);
   REFLECT(color);
   REFLECT(scale_down_to);
   REFLECT(max_stretch);
-  REFLECT_N("shadow_displacement_x", shadow_displacement.width);
-  REFLECT_N("shadow_displacement_y", shadow_displacement.height);
-  REFLECT_N("shadow_displacement_x", shadow_displacement.width);
-  REFLECT_N("shadow_displacement_y", shadow_displacement.height);
   REFLECT(shadow_color);
+  REFLECT(shadow_displacement_x);
+  REFLECT(shadow_displacement_y);
   REFLECT(shadow_blur);
+  REFLECT(stroke_color);
+  REFLECT(stroke_radius);
+  REFLECT(stroke_blur);
   REFLECT(separator_color);
 }

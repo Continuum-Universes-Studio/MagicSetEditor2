@@ -42,11 +42,13 @@ public:
   CardsDataObject();
   /// Store a card
   CardsDataObject(const SetP& set, const String id, const vector<CardP>& cards);
+  CardsDataObject(const SetP& set, const vector<CardP>& cards);
   
   /// Retrieve the cards, only if this is made with the same game as set
   /// And if this is NOT of the same id as the given one
   /** Return true if the cards are correctly retrieved, and there is at least one card */
   bool getCards(const SetP& set, const String id, vector<CardP>& out);
+  bool getCards(const SetP& set, vector<CardP>& out);
 };
 
 // ----------------------------------------------------------------------------- : KeywordDataObject
@@ -71,5 +73,6 @@ public:
 class CardsOnClipboard : public wxDataObjectComposite {
 public:
   CardsOnClipboard(const SetP& set, const String id, const vector<CardP>& cards);
+  CardsOnClipboard(const SetP& set, const vector<CardP>& cards);
 };
 

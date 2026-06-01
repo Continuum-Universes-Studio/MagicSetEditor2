@@ -90,8 +90,6 @@ inline static String transformEncodedRect(const String& rectString, RectTransfor
 
 /// Retreive all rects encoded in a string, apply a transformation, then encode them back
 inline static String transformAllEncodedRects(const String& rectString, RectTransform transform, double param_x, double param_y, int mode = 0) {
-  RealRect rect(0,0,0,0);
-  int degrees;
   size_t start = rectString.find(_("<mse-crop-data>"));
   if (start == String::npos) return rectString;
   size_t end = 0;

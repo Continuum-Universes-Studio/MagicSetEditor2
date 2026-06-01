@@ -38,53 +38,23 @@ void ValueAction::perform(bool to_undo) {
   }
 }
 
+void ValueAction::referenceFiles(Set&) const {}
+
 void ValueAction::setCard(CardP const& card) {
   const_cast<CardP&>(this->card) = card;
 }
 
 // ----------------------------------------------------------------------------- : Simple
 
-/// Swap the value in a Value object with a new one
-inline void swap_value(ChoiceValue&         a, ChoiceValue        ::ValueType& b) { swap(a.value,    b); }
-inline void swap_value(ColorValue&          a, ColorValue         ::ValueType& b) { swap(a.value,    b); }
-inline void swap_value(ImageValue&          a, ImageValue         ::ValueType& b) { swap(a.filename, b); a.last_update.update(); }
-inline void swap_value(SymbolValue&         a, SymbolValue        ::ValueType& b) { swap(a.filename, b); a.last_update.update(); }
-inline void swap_value(TextValue&           a, TextValue          ::ValueType& b) { swap(a.value,    b); a.last_update.update(); }
-inline void swap_value(PackageChoiceValue&  a, PackageChoiceValue ::ValueType& b) { swap(a.package_name, b); }
-inline void swap_value(MultipleChoiceValue& a, MultipleChoiceValue::ValueType& b) {
-  swap(a.value,       b.value);
-  swap(a.last_change, b.last_change);
+void reference_value_action_files(Set& set, const ImageValue& value, const LocalFileName& new_value) {
+  set.referenceFile(new_value.toStringForWriting());
+  set.referenceFile(value.filename.toStringForWriting());
 }
 
-/// A ValueAction that swaps between old and new values
-template <typename T, bool ALLOW_MERGE>
-class SimpleValueAction : public ValueAction {
-public:
-  inline SimpleValueAction(const intrusive_ptr<T>& value, const typename T::ValueType& new_value)
-    : ValueAction(value), new_value(new_value)
-  {}
-  
-  void perform(bool to_undo) override {
-    ValueAction::perform(to_undo);
-    swap_value(static_cast<T&>(*valueP), new_value);
-    valueP->onAction(*this, to_undo); // notify value
-  }
-  
-  bool merge(const Action& action) override {
-    if (!ALLOW_MERGE) return false;
-    TYPE_CASE(action, SimpleValueAction) {
-      if (action.valueP == valueP) {
-        // adjacent actions on the same value, discard the other one,
-        // because it only keeps an intermediate value
-        return true;
-      }
-    }
-    return false;
-  }
-  
-private:
-  typename T::ValueType new_value;
-};
+void reference_value_action_files(Set& set, const SymbolValue& value, const LocalFileName& new_value) {
+  set.referenceFile(new_value.toStringForWriting());
+  set.referenceFile(value.filename.toStringForWriting());
+}
 
 unique_ptr<ValueAction> value_action(const ChoiceValueP& value, const Defaultable<String>& new_value) {
   return make_unique<SimpleValueAction<ChoiceValue, true>>(value, new_value);

@@ -113,19 +113,9 @@ void Set::referenceActionStackFiles() {
 }
 void Set::referenceActionStackFiles(bool undo) {
   for (auto&& action : undo ? actions.undo_actions : actions.redo_actions) {
-    try {
-      SimpleValueAction<ImageValue, false>& v = dynamic_cast<SimpleValueAction<ImageValue, false>&>(*action);
-      if (ImageValue* v2 = dynamic_cast<ImageValue*>(v.valueP.get())) {
-        referenceFile(v.new_value.toStringForWriting());
-        referenceFile(v2->filename.toStringForWriting());
-      }
-    } catch (...) { try {
-      SimpleValueAction<SymbolValue, false>& v = dynamic_cast<SimpleValueAction<SymbolValue, false>&>(*action);
-      if (SymbolValue* v2 = dynamic_cast<SymbolValue*>(v.valueP.get())) {
-        referenceFile(v.new_value.toStringForWriting());
-        referenceFile(v2->filename.toStringForWriting());
-      }
-    } catch (...) {} }
+    if (ValueAction* value_action = dynamic_cast<ValueAction*>(action.get())) {
+      value_action->referenceFiles(*this);
+    }
   }
 }
 

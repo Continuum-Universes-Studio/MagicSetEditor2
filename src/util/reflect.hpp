@@ -139,7 +139,7 @@
 #define REFLECT_COMPAT(cond, name, var) if (handler.formatVersion() cond) REFLECT_N(name,var)
 
 /// Ignore things for backwards compatibility for versions < 'version'
-#define REFLECT_COMPAT_IGNORE(cond, name, Type) if (reflector.formatVersion() cond) {Type ignored; REFLECT_N(name,ignored);}
+#define REFLECT_COMPAT_IGNORE(cond, name, Type) if (handler.formatVersion() cond) {Type ignored; REFLECT_N(name,ignored);}
 
 /// Reflect a variable, ignores the variable for scripting
 #define REFLECT_NO_SCRIPT(var)          handler.handleNoScript(_(#var), var)

@@ -28,9 +28,8 @@ DECLARE_POINTER_TYPE(AutoReplace);
 
 /// When to check for updates?
 enum CheckUpdates
-{  CHECK_ALWAYS
-,  CHECK_5
-,  CHECK_10
+{  CHECK_IF_CONNECTED
+,  CHECK_ALWAYS
 ,  CHECK_NEVER
 };
 
@@ -112,6 +111,7 @@ public:
   
   // Rendering/display settings
   Defaultable<double>  card_zoom;
+  Defaultable<double>  export_zoom;
   Defaultable<int>     export_scale_selection;
   Defaultable<Degrees> card_angle;
   Defaultable<bool>    card_anti_alias;
@@ -134,6 +134,11 @@ enum CutterLinesType
 {  CUTTER_ALL
 ,  CUTTER_NO_INTERSECTION
 ,  CUTTER_NONE
+};
+
+enum PageLayoutType
+{  LAYOUT_NO_SPACE
+,  LAYOUT_EQUAL_SPACE
 };
 
 // ----------------------------------------------------------------------------- : Dark mode settings
@@ -228,6 +233,7 @@ public:
 
   double print_spacing;
   double print_bleed;
+  PageLayoutType print_layout;
   CutterLinesType print_cutter_lines;
 
   // --------------------------------------------------- : Dark Mode
@@ -247,14 +253,19 @@ public:
   // --------------------------------------------------- : Internal settings
 
   int import_scale_selection;
+  double internal_scale;
+  bool internal_image_extension;
   bool allow_image_download;
 
   // --------------------------------------------------- : Update checking
 
   String installer_list_url;   ///< available installers
+  String package_versions_url; ///< available package versions
   CheckUpdatesTargets check_updates_what;
   CheckUpdates check_updates_when;
   int check_updates_counter;
+  CheckUpdates check_updates;
+  bool check_updates_all;
 
   // --------------------------------------------------- : Help links
 
