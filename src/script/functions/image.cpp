@@ -122,8 +122,9 @@ SCRIPT_FUNCTION(insert_image) {
   SCRIPT_PARAM(GeneratedImageP, inserted_image);
   SCRIPT_PARAM(int, offset_x);
   SCRIPT_PARAM(int, offset_y);
+  SCRIPT_PARAM_DEFAULT(bool, widen, true);
   SCRIPT_OPTIONAL_PARAM_(Color, background_color);
-  return make_intrusive<InsertedImage>(base_image, inserted_image, offset_x, offset_y, background_color);
+  return make_intrusive<InsertedImage>(base_image, inserted_image, offset_x, offset_y, widen, background_color);
 }
 
 SCRIPT_FUNCTION(linear_blend) {

@@ -518,14 +518,27 @@ bool BleedEdgedImage::operator == (const GeneratedImage& that) const {
 Image InsertedImage::generate(const Options& opt) {
   Image base_img =     base_image->generate(opt);
   Image inserted_img = inserted_image->generate(opt);
-  int base_x =     offset_x < 0 ? -offset_x : 0;
-  int base_y =     offset_y < 0 ? -offset_y : 0;
-  int inserted_x = offset_x < 0 ? 0         : offset_x;
-  int inserted_y = offset_y < 0 ? 0         : offset_y;
-  int width =  max(base_x + base_img.GetWidth(),  inserted_x + inserted_img.GetWidth());
-  int height = max(base_y + base_img.GetHeight(), inserted_y + inserted_img.GetHeight());
-  if (width <= 0) throw ScriptError(_ERROR_1_("negative image width", "insert_image"));
+
+  int width, height, base_x, base_y, inserted_x, inserted_y;
+  if (widen) {
+    base_x =     offset_x < 0 ? -offset_x : 0;
+    base_y =     offset_y < 0 ? -offset_y : 0;
+    inserted_x = offset_x < 0 ? 0         : offset_x;
+    inserted_y = offset_y < 0 ? 0         : offset_y;
+    width  = max(base_x + base_img.GetWidth(),  inserted_x + inserted_img.GetWidth());
+    height = max(base_y + base_img.GetHeight(), inserted_y + inserted_img.GetHeight());
+  } else {
+    base_x = 0;
+    base_y = 0;
+    width  = base_img.GetWidth();
+    height = base_img.GetHeight();
+    inserted_x = offset_x;
+    inserted_y = offset_y;
+  }
+
+  if (width <= 0)  throw ScriptError(_ERROR_1_("negative image width", "insert_image"));
   if (height <= 0) throw ScriptError(_ERROR_1_("negative image height", "insert_image"));
+
   UInt size = width * height;
   Image img = wxImage(width, height, false);
   img.InitAlpha();
@@ -543,8 +556,10 @@ Image InsertedImage::generate(const Options& opt) {
     alpha[0] = a;
     alpha += 1;
   }
+
   img.Paste(base_img, base_x, base_y, wxIMAGE_ALPHA_BLEND_COMPOSE);
   img.Paste(inserted_img, inserted_x, inserted_y, wxIMAGE_ALPHA_BLEND_COMPOSE);
+
   // transfer metadata
   img.SetOption(wxIMAGE_OPTION_PNG_DESCRIPTION, metadata_merge(base_img, inserted_img, base_x, base_y, inserted_x, inserted_y));
   return img;
@@ -559,7 +574,8 @@ bool InsertedImage::operator == (const GeneratedImage& that) const {
     && *base_image == *that2->base_image
     && *inserted_image == *that2->inserted_image
     && offset_x == that2->offset_x
-    && offset_y == that2->offset_y;
+    && offset_y == that2->offset_y
+    && widen == that2->widen;
 }
 
 // ----------------------------------------------------------------------------- : CropImage

@@ -414,8 +414,8 @@ private:
 /// Insert an image at a certain point inside another image
 class InsertedImage : public GeneratedImage {
 public:
-    inline InsertedImage(const GeneratedImageP& base_image, const GeneratedImageP& inserted_image, int offset_x, int offset_y, Color background_color)
-        : base_image(base_image), inserted_image(inserted_image), offset_x(offset_x), offset_y(offset_y), background_color(background_color)
+    inline InsertedImage(const GeneratedImageP& base_image, const GeneratedImageP& inserted_image, int offset_x, int offset_y, bool widen, Color background_color)
+        : base_image(base_image), inserted_image(inserted_image), offset_x(offset_x), offset_y(offset_y), widen(widen), background_color(background_color)
     {}
     Image generate(const Options& opt) override;
     ImageCombine combine() const override;
@@ -424,6 +424,7 @@ public:
 private:
     GeneratedImageP base_image, inserted_image;
     int offset_x, offset_y;
+    bool widen;
     Color background_color;
 };
 
