@@ -25,10 +25,13 @@ struct TextViewer::Line {
   double         margin_left_before_bullet; ///< Left margin including the margin tag but just before the bullet point
   double         margin_right;              ///< Right margin
   bool           bullet;                    ///< Does this line start with a bullet point?
+  double         mask_left;                 ///< Leftmost x the mask allows on this line's row (before margins)
+  double         mask_right;                ///< Rightmost x the mask allows on this line's row (before margins)
   
   Line()
     : start(0), end_or_soft(0), top(0), line_height(0)
     , break_after(LineBreak::NO), justifying(false), bullet(false)
+    , mask_left(0), mask_right(0)
   {}
   
   /// The position (just beyond) the bottom of this line
@@ -444,38 +447,46 @@ void TextViewer::prepareLines(RotatedDC& dc, const String& text, TextStyle& styl
     }
   }
   
-  // store information about the content/layout, allow this to change alignment
-  if (style.alignment.isScripted()) {
-    style.layout = extractLayoutInfo();
-    style.alignment.update(ctx); // allow this to affect the alignment
-  }
+  RealSize s = add_diagonal(
+          dc.getInternalSize(),
+          -RealSize(style.padding_left+style.padding_right, style.padding_top + style.padding_bottom));
   
-  // Vertical alignment (center/bottom/...) interacts badly with a mask: prepareLinesAtScale()
-  // above laid out and wrapped the text assuming it starts at the top of the field, so that is
-  // where it looked in the mask. alignLines() then shifts the finished lines down/up to align
-  // them within the box. The wrapping/mask-collision decisions were therefore made by sampling
-  // the wrong rows of the mask (e.g. a single centered line gets constrained by row 0 instead of
-  // the middle row).
-  //
-  // Fix: re-run the line breaking with our best estimate of the final vertical offset baked in
-  // as the starting top, so the mask is sampled at (approximately) the rows the text will really
-  // land on. Since a different offset can change where lines wrap -- and hence the total text
-  // height, and hence the "correct" offset -- iterate until the offset stops moving.
-  if (style.paragraph_height <= 0 && (style.alignment & (ALIGN_MIDDLE | ALIGN_BOTTOM))) {
-    RealSize s = add_diagonal(
-            dc.getInternalSize(),
-            -RealSize(style.padding_left+style.padding_right, style.padding_top + style.padding_bottom));
-    double offset = 0; // offset used to produce the current `lines`
-    for (int iteration = 0 ; iteration < 4 ; ++iteration) {
-      double height = lines_content_height(lines, 0, lines.size());
-      double new_offset = align_delta_y(style.alignment, s.height, height);
-      if (fabs(new_offset - offset) < 0.5) break; // converged (within half a pixel)
-      offset = new_offset;
-      vector<Line> lines_try;
-      prepareLinesAtScale(dc, chars, style, false, lines_try, offset);
-      if (lines_try.empty()) break; // shouldn't happen, but don't clobber a good layout
-      lines.swap(lines_try);
+  // Resolve alignment and vertical position together; they can depend on each other:
+  //  - a scripted alignment can look at content_lines (via style.layout), which depends
+  //    on how the text ends up wrapped and positioned;
+  //  - with a mask, how the text wraps depends on the vertical offset alignment applies,
+  //    which depends on the (possibly scripted) alignment itself.
+  // So: iterate, refreshing style.layout each pass so a scripted alignment always sees
+  // the line count that's actually about to be used, and re-run line breaking with the
+  // resulting offset baked in (see prepareLinesAtScale's top_offset) so the mask gets
+  // sampled at the right rows. A line that barely fits can flip the line count back and
+  // forth forever (2 lines <-> 3 lines) without ever truly converging -- if we detect
+  // we're revisiting an offset we've already tried, stop there.
+  double offset = 0; // vertical offset baked into the current `lines`
+  vector<double> seen_offsets;
+  const int max_iterations = 6;
+  for (int iteration = 0 ; iteration < max_iterations ; ++iteration) {
+    if (style.alignment.isScripted()) {
+      style.layout = extractLayoutInfo();
+      style.alignment.update(ctx);        // allow this to affect the alignment
     }
+    if (!(style.paragraph_height <= 0 && (style.alignment & (ALIGN_MIDDLE | ALIGN_BOTTOM)))) {
+      break; // no vertical shift to account for; one pass is enough
+    }
+    double height = lines_content_height(lines, 0, lines.size());
+    double new_offset = align_delta_y(style.alignment, s.height, height);
+    if (fabs(new_offset - offset) < 0.5) break; // converged (within half a pixel)
+    bool seen_before = false;
+    for (double o : seen_offsets) {
+      if (fabs(o - new_offset) < 0.5) { seen_before = true; break; }
+    }
+    if (seen_before) break; // oscillating: stop instead of flip-flopping forever
+    seen_offsets.push_back(new_offset);
+    offset = new_offset;
+    vector<Line> lines_try;
+    prepareLinesAtScale(dc, chars, style, false, lines_try, offset);
+    if (lines_try.empty()) break; // shouldn't happen, but don't clobber a good layout
+    lines.swap(lines_try);
   }
   
   // align (mostly horizontal at this point; any leftover vertical delta is a small correction)
@@ -620,6 +631,11 @@ RealSize TextViewer::fitLineWidth(Line& line, RotatedDC& dc, const TextStyle& st
     line.top += 1;
     line_size.width = margin_left + lineLeft(dc, style, line.top);
   }
+  // remember the raw (margin-free) mask bounds for this row, so alignHorizontal() can
+  // center/right-align against the true field bounds while still clamping into what
+  // the mask allows here, instead of only ever seeing the already-mask-shifted position.
+  line.mask_left  = lineLeft (dc, style, line.top);
+  line.mask_right = lineRight(dc, style, line.top);
   return line_size;
 }
 
@@ -972,9 +988,25 @@ void TextViewer::Line::alignHorizontal(const vector<CharInfo>& chars, const Text
   } else {
     // simple alignment
     justifying = false;
-    double hdelta = s.x + align_delta_x(alignment, target_width, width);
-    for (auto& c : positions) {
-      c += hdelta;
+    if (alignment & (ALIGN_CENTER | ALIGN_RIGHT)) {
+      // Center/right-align against the actual bounds of the field, not against
+      // whichever part of the mask this particular line happened to be wrapped
+      // against -- but still keep the text clear of anything the mask forbids.
+      double desired_left = margin_bullet + s.x + align_delta_x(alignment, target_width, width);
+      double min_left = mask_left + margin_bullet;
+      double max_left = mask_right - margin_right - width;
+      if (max_left < min_left) max_left = min_left; // defensive: shouldn't happen, wrap already guarantees it fits
+      desired_left = max(min_left, min(max_left, desired_left));
+      double hdelta = desired_left - positions.front();
+      for (auto& c : positions) {
+        c += hdelta;
+      }
+    } else {
+      // left alignment: hug whatever the mask allows on this row
+      double hdelta = s.x + align_delta_x(alignment, target_width, width);
+      for (auto& c : positions) {
+        c += hdelta;
+      }
     }
   }
 }
