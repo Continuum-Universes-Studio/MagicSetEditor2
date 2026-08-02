@@ -418,6 +418,17 @@ TextLayoutP TextViewer::extractLayoutInfo() const {
   return layout;
 }
 
+// Height spanned by lines [start_line,end_line), don't count trailing empty lines
+double lines_content_height(const vector<TextViewer::Line>& lines, size_t start_line, size_t end_line) {
+  double height = 0;
+  for (size_t li = end_line - 1 ; li + 1 > start_line ; --li) {
+    const TextViewer::Line& l = lines[li];
+    height = l.top + l.line_height;
+    if (l.line_height) break; // not an empty line
+  }
+  return height - lines[start_line].top;
+}
+
 void TextViewer::prepareLines(RotatedDC& dc, const String& text, TextStyle& style, Context& ctx) {
   vector<CharInfo> chars;
   prepareLinesTryScales(dc, text, style, chars);
@@ -439,7 +450,35 @@ void TextViewer::prepareLines(RotatedDC& dc, const String& text, TextStyle& styl
     style.alignment.update(ctx); // allow this to affect the alignment
   }
   
-  // align
+  // Vertical alignment (center/bottom/...) interacts badly with a mask: prepareLinesAtScale()
+  // above laid out and wrapped the text assuming it starts at the top of the field, so that is
+  // where it looked in the mask. alignLines() then shifts the finished lines down/up to align
+  // them within the box. The wrapping/mask-collision decisions were therefore made by sampling
+  // the wrong rows of the mask (e.g. a single centered line gets constrained by row 0 instead of
+  // the middle row).
+  //
+  // Fix: re-run the line breaking with our best estimate of the final vertical offset baked in
+  // as the starting top, so the mask is sampled at (approximately) the rows the text will really
+  // land on. Since a different offset can change where lines wrap -- and hence the total text
+  // height, and hence the "correct" offset -- iterate until the offset stops moving.
+  if (style.paragraph_height <= 0 && (style.alignment & (ALIGN_MIDDLE | ALIGN_BOTTOM))) {
+    RealSize s = add_diagonal(
+            dc.getInternalSize(),
+            -RealSize(style.padding_left+style.padding_right, style.padding_top + style.padding_bottom));
+    double offset = 0; // offset used to produce the current `lines`
+    for (int iteration = 0 ; iteration < 4 ; ++iteration) {
+      double height = lines_content_height(lines, 0, lines.size());
+      double new_offset = align_delta_y(style.alignment, s.height, height);
+      if (fabs(new_offset - offset) < 0.5) break; // converged (within half a pixel)
+      offset = new_offset;
+      vector<Line> lines_try;
+      prepareLinesAtScale(dc, chars, style, false, lines_try, offset);
+      if (lines_try.empty()) break; // shouldn't happen, but don't clobber a good layout
+      lines.swap(lines_try);
+    }
+  }
+  
+  // align (mostly horizontal at this point; any leftover vertical delta is a small correction)
   alignLines(dc, chars, style);
   
   // HACK : fix empty first line before <line>, do this after align, so layout is not affected
@@ -584,7 +623,7 @@ RealSize TextViewer::fitLineWidth(Line& line, RotatedDC& dc, const TextStyle& st
   return line_size;
 }
 
-bool TextViewer::prepareLinesAtScale(RotatedDC& dc, const vector<CharInfo>& chars, const TextStyle& style, bool stop_if_too_long, vector<Line>& lines) const {
+bool TextViewer::prepareLinesAtScale(RotatedDC& dc, const vector<CharInfo>& chars, const TextStyle& style, bool stop_if_too_long, vector<Line>& lines, double top_offset) const {
   // Try to layout the text at the current scale
   lines.clear();
 
@@ -597,8 +636,12 @@ bool TextViewer::prepareLinesAtScale(RotatedDC& dc, const vector<CharInfo>& char
   assert(elements.paragraphs.size() > 0);
 
   // first line
+  // top_offset lets a caller seed the layout with the (estimated) offset that vertical
+  // alignment will end up applying, so that fitLineWidth()/lineLeft()/lineRight() sample
+  // the mask at the rows the text will actually be drawn on, not always row 0. See the
+  // vertical alignment pre-pass in prepareLines().
   Line line;
-  line.top = style.padding_top + elements.clauses[0].margin_top;
+  line.top = style.padding_top + elements.clauses[0].margin_top + top_offset;
   line.margin_left_after_bullet = elements.clauses[0].margin_left;
   line.margin_left_before_bullet = elements.clauses[0].margin_left;
   line.margin_right = elements.clauses[0].margin_right;
@@ -810,7 +853,11 @@ void TextViewer::alignLines(RotatedDC& dc, const vector<CharInfo>& chars, const 
   if (style.paragraph_height <= 0) {
     // whole text box alignment
     assert(!lines.empty());
-    double top = lines[0].top;
+    // Note: this is deliberately the *natural* top-aligned position, not lines[0].top.
+    // prepareLines() may already have nudged lines[0].top down/up so that line breaking
+    // sampled the mask at (approximately) the right rows (see the pre-pass there). Using
+    // lines[0].top here would make alignParagraph() shift everything a second time.
+    double top = style.padding_top + elements.clauses[0].margin_top;
     alignParagraph(0, lines.size(), chars, style, RealRect(RealPoint(0,top),s));
   } else {
     // per paragraph alignment
@@ -830,13 +877,7 @@ void TextViewer::alignParagraph(size_t start_line, size_t end_line, const vector
   if (start_line >= end_line) return;
   
   // Find height of the text, don't count the last lines if they are empty
-  double height = 0;
-  for (size_t li = end_line - 1 ; li + 1 > start_line ; --li) {
-    Line& l = lines[li];
-    height = l.top + l.line_height;
-    if (l.line_height) break; // not an empty line
-  }
-  height -= lines[start_line].top;
+  double height = lines_content_height(lines, start_line, end_line);
   
   // stretch lines by increasing the space between them
   if (height < s.height) {
@@ -888,7 +929,10 @@ void TextViewer::alignParagraph(size_t start_line, size_t end_line, const vector
     // amount to shift all characters horizontally
     l.alignHorizontal(chars, style, s);
   }
-  // TODO : work well with mask
+  // NOTE: unlike the alignment shift below (made mask-aware by the pre-pass in
+  // prepareLines()), this stretch-spacing still moves lines to positions that were
+  // never sampled in the mask -- fixing that would mean threading a per-line offset
+  // through prepareLinesAtScale, not just a single starting top. Not handled yet.
 }
 
 void TextViewer::Line::alignHorizontal(const vector<CharInfo>& chars, const TextStyle& style, const RealRect& s) {
