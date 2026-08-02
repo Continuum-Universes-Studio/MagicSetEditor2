@@ -313,7 +313,7 @@ LocalFileName Package::newFileName(const String& prefix, const String& suffix) {
 void Package::referenceFile(const String& file) {
   if (file.empty()) return;
   FileInfos::iterator it = files.find(file);
-  if (it == files.end()) throw InternalError(_("Referencing an inexistant file!"));
+  if (it == files.end()) throw InternalError(_("Referencing a non-existent file: ") + file + _("\nin package: ") + relativeFilename());
   it->second.keep = true;
 }
 
