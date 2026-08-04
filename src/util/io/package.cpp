@@ -70,7 +70,7 @@ void Package::open(const String& n, bool fast) {
   filename = fn.GetFullPath();
   // get modified time
   if (!fn.FileExists() || !fn.GetTimes(0, &modified, 0)) {
-    modified = wxDateTime(0.0); // long time ago
+    modified = wxDateTime(time_t(0)); // long time ago
   }
   // type of package
   if (wxDirExists(filename)) {
