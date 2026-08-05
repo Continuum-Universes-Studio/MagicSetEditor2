@@ -150,7 +150,7 @@ StyleSheetSettings::StyleSheetSettings()
 
 void StyleSheetSettings::useDefault(const StyleSheetSettings& ss) {
   if (card_zoom              .isDefault()) card_zoom              .assignDefault(ss.card_zoom);
-  if (export_scale_selection .isDefault()) export_scale_selection  .assignDefault(ss.export_scale_selection);
+  if (export_scale_selection .isDefault()) export_scale_selection .assignDefault(ss.export_scale_selection);
   if (card_angle             .isDefault()) card_angle             .assignDefault(ss.card_angle);
   if (card_anti_alias        .isDefault()) card_anti_alias        .assignDefault(ss.card_anti_alias);
   if (card_borders           .isDefault()) card_borders           .assignDefault(ss.card_borders);

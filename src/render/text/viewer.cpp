@@ -421,6 +421,17 @@ TextLayoutP TextViewer::extractLayoutInfo() const {
   return layout;
 }
 
+void fix_empty_line_height(vector<TextViewer::Line>& lines, RotatedDC& dc, const TextStyle& style, double scale) {
+  if (lines.size() == 1 && lines[0].width() < 0.0001) {
+    if (style.always_symbol && style.symbol_font.valid()) {
+      lines[0].line_height = style.symbol_font.font->defaultSymbolSize(style.symbol_font.size).height;
+    } else {
+      dc.SetFont(style.font, scale);
+      lines[0].line_height = dc.GetCharHeight();
+    }
+  }
+}
+
 // Height spanned by lines [start_line,end_line), don't count trailing empty lines
 double lines_content_height(const vector<TextViewer::Line>& lines, size_t start_line, size_t end_line) {
   double height = 0;
@@ -438,14 +449,7 @@ void TextViewer::prepareLines(RotatedDC& dc, const String& text, TextStyle& styl
   assert(!lines.empty());
   
   // no text, find a dummy height for the single line we have
-  if (lines.size() == 1 && lines[0].width() < 0.0001) {
-    if (style.always_symbol && style.symbol_font.valid()) {
-      lines[0].line_height = style.symbol_font.font->defaultSymbolSize(style.symbol_font.size).height;
-    } else {
-      dc.SetFont(style.font, scale);
-      lines[0].line_height = dc.GetCharHeight();
-    }
-  }
+  fix_empty_line_height(lines, dc, style, scale);
   
   RealSize s = add_diagonal(
           dc.getInternalSize(),
@@ -486,6 +490,7 @@ void TextViewer::prepareLines(RotatedDC& dc, const String& text, TextStyle& styl
     vector<Line> lines_try;
     prepareLinesAtScale(dc, chars, style, false, lines_try, offset);
     if (lines_try.empty()) break; // shouldn't happen, but don't clobber a good layout
+    fix_empty_line_height(lines_try, dc, style, scale);
     lines.swap(lines_try);
   }
   
