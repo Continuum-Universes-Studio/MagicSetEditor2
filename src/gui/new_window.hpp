@@ -90,9 +90,20 @@ private:
 
   wxButton*     find_online_button;
   wxStaticText* find_online_status_text;
-  bool searching_online = false;
-  bool auto_installing  = false;
-  String failed_name;
+  bool          searching_online = false;
+  bool          auto_installing  = false;
+  String        failed_name;
+
+  // --------------------------------------------------- : background install
+  
+  // Download+install on a background thread
+  class InstallThread;
+
+  enum InstallState { INSTALL_DOWNLOADING, INSTALL_INSTALLING, INSTALL_SUCCESS, INSTALL_FAILURE };
+
+  wxMutex           install_mutex;
+  InstallState      install_state = INSTALL_DOWNLOADING; // guarded by install_mutex
+  unique_ptr<Error> install_error;                       // guarded by install_mutex
 
   // --------------------------------------------------- : events
   
@@ -104,10 +115,12 @@ private:
   
   void onUpdateUI(wxUpdateUIEvent&);
   void onIdle(wxIdleEvent&);
+  void onClose(wxCloseEvent&);
+  void onCharHook(wxKeyEvent&);
 
   void tryAutoInstall();
+  void pollAutoInstall();
 
-  // we are done, close the window
   void done();
 };
 

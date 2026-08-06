@@ -104,25 +104,31 @@ private:
 
   struct DownloadThread : public wxThread {
     inline ExitCode Entry() override {
-      // fetch list
-      wxWebRequestSync request = wxWebSessionSync::GetDefault().CreateRequest(settings.installer_list_url);
-      auto const result = request.Execute();
-      if (!result) {
+      try {
+        // fetch list
+        wxWebRequestSync request = wxWebSessionSync::GetDefault().CreateRequest(settings.installer_list_url);
+        auto const result = request.Execute();
+        if (!result) {
+          wxMutexLocker l(downloadable_installers.lock);
+          downloadable_installers.download_status = DONE;
+          downloadable_installers.check_status = FAILED;
+          return 0;
+        }
+        wxInputStream* is = request.GetResponse().GetStream();
+        // Read installer list
+        Reader reader(*is, nullptr, _("installers"), true);
+        vector<DownloadableInstallerP> installers;
+        reader.handle(_("installers"),installers);
+        // done
         wxMutexLocker l(downloadable_installers.lock);
+        swap(installers, downloadable_installers.installers);
+        downloadable_installers.download_status = DONE;
+        return 0;
+      } catch (...) {
+        // ignore all errors, we don't want problems if update checking fails
         downloadable_installers.download_status = DONE;
         downloadable_installers.check_status = FAILED;
-        return 0;
       }
-      wxInputStream* is = request.GetResponse().GetStream();
-      // Read installer list
-      Reader reader(*is, nullptr, _("installers"), true);
-      vector<DownloadableInstallerP> installers;
-      reader.handle(_("installers"),installers);
-      // done
-      wxMutexLocker l(downloadable_installers.lock);
-      swap(installers, downloadable_installers.installers);
-      downloadable_installers.download_status = DONE;
-      return 0;
     }
   };
 
