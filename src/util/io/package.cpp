@@ -607,13 +607,8 @@ bool Packaged::isIgnoredOnSave(const String& file) const {
 
 unique_ptr<wxInputStream> Packaged::openIconFile() {
   String filename = icon_filename;
-  if (!dark_icon_filename.empty()) {
-    if (settings.darkMode()) {
-      wxFileName fn (dark_icon_filename);
-      String extension = fn.GetExt();
-      filename = dark_icon_filename.Replace(extension, _("")) + "_dark" + extension;
-    }
-    else filename = dark_icon_filename;
+  if (settings.darkMode() && !dark_icon_filename.empty()) {
+    filename = dark_icon_filename;
   }
   if (!filename.empty()) {
     return openIn(filename);
