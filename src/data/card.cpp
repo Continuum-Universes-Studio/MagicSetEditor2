@@ -76,7 +76,8 @@ Card::Card(Set* set, const CardP& card)
   else {
     if (stylesheet && set) styling_data.cloneFrom(set->stylingDataFor(*stylesheet));
   }
-  data.cloneFrom(card->data);
+  data.init(game->card_fields);
+  data.copyDataFrom(card->data);
   extra_data.cloneFrom(card->extra_data);
 }
 

@@ -53,7 +53,7 @@ inline static Value* get_container(IndexMap<FieldP, ValueP>& map, const String& 
   return it->get();
 }
 
-inline static void set_container(Value* container, ScriptValueP& value, String key_name) {
+inline static void set_container(Value* container, String type, ScriptValueP& value, String key_name) {
   // set the given value into the container
   if (TextValue* tvalue = dynamic_cast<TextValue*>(container)) {
     tvalue->value = value->toString();
@@ -86,7 +86,7 @@ inline static void set_container(Value* container, ScriptValueP& value, String k
     }
   }
   else {
-    throw ScriptError(_ERROR_1_("cant set value", key_name));
+    throw ScriptError(_ERROR_2_("cant set value", type, key_name));
   }
 }
 
@@ -178,7 +178,8 @@ inline static bool set_builtin_container(const Game& game, CardP& card, ScriptVa
       if (key == script_nil || value == script_nil) continue;
       String key_name = key->toString();
       Value* container = get_container(data, type, key_name, ignore_field_not_found);
-      set_container(container, value, key_name);
+      if (container == nullptr && ignore_field_not_found) continue;
+      set_container(container, type, value, key_name);
       if (!is_extra) card->has_styling = true;
     }
     return true;
@@ -194,29 +195,29 @@ inline static bool check_table_headers(GameP& game, std::vector<String>& headers
   for (int x = 0; x < headers.size(); ++x) {
     String key_name = headers[x];
     if ( game->card_fields_alt_names.find(unified_form(key_name)) == game->card_fields_alt_names.end()
-      || key_name == _("notes")
-      || key_name == _("note")
-      || key_name == _("style")
-      || key_name == _("stylesheet")
-      || key_name == _("template")
-      || key_name == _("id")
-      || key_name == _("uid")
-      || key_name == _("multiverse_id")
-      || key_name == _("linked_card")
-      || key_name == _("linked_card_1")
-      || key_name == _("linked_card_2")
-      || key_name == _("linked_card_3")
-      || key_name == _("linked_card_4")
-      || key_name == _("linked_relation")
-      || key_name == _("linked_relation_1")
-      || key_name == _("linked_relation_2")
-      || key_name == _("linked_relation_3")
-      || key_name == _("linked_relation_4")
-      || key_name == _("link_relation")
-      || key_name == _("link_relation_1")
-      || key_name == _("link_relation_2")
-      || key_name == _("link_relation_3")
-      || key_name == _("link_relation_4")
+      && key_name != _("notes")
+      && key_name != _("note")
+      && key_name != _("style")
+      && key_name != _("stylesheet")
+      && key_name != _("template")
+      && key_name != _("id")
+      && key_name != _("uid")
+      && key_name != _("multiverse_id")
+      && key_name != _("linked_card")
+      && key_name != _("linked_card_1")
+      && key_name != _("linked_card_2")
+      && key_name != _("linked_card_3")
+      && key_name != _("linked_card_4")
+      && key_name != _("linked_relation")
+      && key_name != _("linked_relation_1")
+      && key_name != _("linked_relation_2")
+      && key_name != _("linked_relation_3")
+      && key_name != _("linked_relation_4")
+      && key_name != _("link_relation")
+      && key_name != _("link_relation_1")
+      && key_name != _("link_relation_2")
+      && key_name != _("link_relation_3")
+      && key_name != _("link_relation_4")
     ) {
       missing_fields_out += _("\n   ") + key_name;
     }
