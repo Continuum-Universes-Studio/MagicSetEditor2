@@ -68,6 +68,10 @@ void downsample_to_alpha(Bitmap& bmp_in, Image& img_out);
 /// vertically, and only the remaining center is stretched in both directions.
 void resample_nine_slice(const Image& img_in, Image& img_out, int left, int right, int top, int bottom);
 
+// ----------------------------------------------------------------------------- : Crop
+
+Image crop(const Image& base_img, int width, int height, int offset_x, int offset_y, const Color& background_color);
+
 // ----------------------------------------------------------------------------- : Image rotation
 
 /// Rotates an image counter clockwise

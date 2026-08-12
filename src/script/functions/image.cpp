@@ -261,7 +261,7 @@ SCRIPT_FUNCTION(crop) {
   SCRIPT_PARAM(int, height);
   SCRIPT_PARAM(double, offset_x);
   SCRIPT_PARAM(double, offset_y);
-  SCRIPT_OPTIONAL_PARAM_(Color, background_color);
+  SCRIPT_PARAM_DEFAULT(Color, background_color, Color(0,0,0,0));
   return make_intrusive<CropImage>(input, width, height, offset_x, offset_y, background_color);
 }
 

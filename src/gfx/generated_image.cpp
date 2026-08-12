@@ -584,29 +584,7 @@ Image CropImage::generate(const Options& opt) {
   if (width <= 0) throw ScriptError(_ERROR_1_("negative image width", "crop_image"));
   if (height <= 0) throw ScriptError(_ERROR_1_("negative image height", "crop_image"));
   Image base_img = image->generate(opt);
-  Image img = base_img.Size(wxSize((int)width, (int)height), wxPoint(-(int)offset_x, -(int)offset_y)); //Image img = base_img.Size(wxSize((int)width, (int)height), wxPoint(-(int)offset_x, -(int)offset_y), background_color.Red(), background_color.Green(), background_color.Blue());
-  // transfer metadata
-  if (base_img.HasOption(wxIMAGE_OPTION_PNG_DESCRIPTION)) {
-    String metadata = transformAllEncodedRects(base_img.GetOption(wxIMAGE_OPTION_PNG_DESCRIPTION), RealRect::translate, -offset_x, -offset_y);
-    // prune out of bounds cards
-    boost::json::array cardsv = metadata_to_json(metadata);
-    boost::json::array inbounds_cardsv;
-    for (size_t i = 0; i < cardsv.size(); i++) {
-      boost::json::object cardv = cardsv[i].as_object();
-      if (cardv.contains("bounds")) {
-        String bounds = String(cardv["bounds"].as_string().c_str());
-        RealRect rect(0.0, 0.0, 0.0, 0.0);
-        int degrees = 0;
-        if (decodeRectFromString(bounds, rect, degrees)) {
-          rect = rect.intersect(RealRect(0.0, 0.0, width, height));
-          if (rect.width <= 0.0 || rect.height <= 0.0 ) continue;
-        }
-      }
-      inbounds_cardsv.emplace_back(cardv);
-    }
-    metadata = "<mse-card-data>" + json_ugly_print(inbounds_cardsv) + "</mse-card-data>";
-    img.SetOption(wxIMAGE_OPTION_PNG_DESCRIPTION, metadata);
-  }
+  Image img = crop(base_img, (int)width, (int)height, (int)offset_x, (int)offset_y, background_color);
   return img;
 }
 bool CropImage::operator == (const GeneratedImage& that) const {

@@ -8,6 +8,7 @@
 
 #include <util/prec.hpp>
 #include <gfx/gfx.hpp>
+#include <script/functions/json.hpp>
 #include <data/format/image_encoding.hpp>
 #include <util/error.hpp>
 
@@ -288,6 +289,92 @@ void resample_nine_slice(const Image& img_in, Image& img_out, int left, int righ
     String metadata = transformAllEncodedRects(img_in.GetOption(wxIMAGE_OPTION_PNG_DESCRIPTION), nine_slice_transform, 0, 0);
     img_out.SetOption(wxIMAGE_OPTION_PNG_DESCRIPTION, metadata);
   }
+}
+
+// ----------------------------------------------------------------------------- : Cropping
+
+Image crop(const Image& base_img, int width, int height, int offset_x, int offset_y, const Color& background_color) {
+  int pos_x = -offset_x;
+  int pos_y = -offset_y;
+
+  Image img(width, height, false);
+  img.InitAlpha();
+
+  unsigned char* dst_rgb = img.GetData();
+  unsigned char* dst_alpha = img.GetAlpha();
+
+  // background fill: build one row, then memcpy it into every row.
+  {
+    std::vector<unsigned char> row(width * 3);
+    for (int x = 0; x < width; ++x) {
+      row[x * 3 + 0] = background_color.Red();
+      row[x * 3 + 1] = background_color.Green();
+      row[x * 3 + 2] = background_color.Blue();
+    }
+    for (int y = 0; y < height; ++y)
+      memcpy(dst_rgb + y * width * 3, row.data(), width * 3);
+  }
+  memset(dst_alpha, background_color.Alpha(), width * height);
+
+  // add base_image in
+  int src_w = base_img.GetWidth();
+  int src_h = base_img.GetHeight();
+
+  int dst_x0 = std::max(0, pos_x);
+  int dst_y0 = std::max(0, pos_y);
+  int dst_x1 = std::min(width,  pos_x + src_w);
+  int dst_y1 = std::min(height, pos_y + src_h);
+
+  if (dst_x1 <= dst_x0 || dst_y1 <= dst_y0)
+    return img;
+
+  int src_x0 = dst_x0 - pos_x;
+  int src_y0 = dst_y0 - pos_y;
+  int copy_w = dst_x1 - dst_x0;
+  int copy_h = dst_y1 - dst_y0;
+
+  const unsigned char* src_rgb = base_img.GetData();
+  bool src_has_alpha = base_img.HasAlpha();
+  const unsigned char* src_alpha = src_has_alpha ? base_img.GetAlpha() : nullptr;
+
+  for (int row = 0; row < copy_h; ++row) {
+    int sy = src_y0 + row;
+    int dy = dst_y0 + row;
+
+    memcpy(dst_rgb + (dy * width + dst_x0) * 3,
+      src_rgb + (sy * src_w + src_x0) * 3,
+      copy_w * 3);
+
+    unsigned char* dst_row_alpha = dst_alpha + dy * width + dst_x0;
+    if (src_has_alpha)
+      memcpy(dst_row_alpha, src_alpha + sy * src_w + src_x0, copy_w);
+    else
+      memset(dst_row_alpha, 255, copy_w);
+  }
+
+  // recrop metadata
+  if (base_img.HasOption(wxIMAGE_OPTION_PNG_DESCRIPTION)) {
+    String metadata = transformAllEncodedRects(base_img.GetOption(wxIMAGE_OPTION_PNG_DESCRIPTION), RealRect::translate, -offset_x, -offset_y);
+    // prune out of bounds cards
+    boost::json::array cardsv = metadata_to_json(metadata);
+    boost::json::array inbounds_cardsv;
+    for (size_t i = 0; i < cardsv.size(); i++) {
+      boost::json::object cardv = cardsv[i].as_object();
+      if (cardv.contains("bounds")) {
+        String bounds = String(cardv["bounds"].as_string().c_str());
+        RealRect rect(0.0, 0.0, 0.0, 0.0);
+        int degrees = 0;
+        if (decodeRectFromString(bounds, rect, degrees)) {
+          rect = rect.intersect(RealRect(0.0, 0.0, width, height));
+          if (rect.width <= 0.0 || rect.height <= 0.0 ) continue;
+        }
+      }
+      inbounds_cardsv.emplace_back(cardv);
+    }
+    metadata = "<mse-card-data>" + json_ugly_print(inbounds_cardsv) + "</mse-card-data>";
+    img.SetOption(wxIMAGE_OPTION_PNG_DESCRIPTION, metadata);
+  }
+  return img;
 }
 
 // ----------------------------------------------------------------------------- : Sharpening
