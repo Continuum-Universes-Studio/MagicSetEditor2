@@ -420,7 +420,7 @@ RealPoint DataEditor::mousePoint(const wxMouseEvent& ev, const ValueViewer& view
 
 ValueViewer* DataEditor::mousedOverViewer(const wxMouseEvent& ev, bool* over_label_out) const {
   FOR_EACH_EDITOR_REVERSE{ // find high z index fields first
-    if (v->getField()->editable) {
+    if (is_enabled(v)) {
       if (v->containsPoint(mousePoint(ev,*v))) {
         if (over_label_out) *over_label_out = false;
         return v.get();
