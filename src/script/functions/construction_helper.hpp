@@ -93,7 +93,7 @@ inline static void set_container(Value* container, String type, ScriptValueP& va
 inline static bool set_stylesheet_container(const Game& game, CardP& card, ScriptValueP& value, String key_name, bool ignore_field_not_found) {
   // check if the given value is for a stylesheet, if found set it and return true
   key_name = unified_form(key_name);
-  if (key_name == _("style") || key_name == _("stylesheet") || key_name == _("template")) {
+  if (key_name == _("style") || key_name == _("stylesheet")) {
     if (!trim(value->toString()).empty()) {
       card->stylesheet = StyleSheet::byGameAndName(game, value->toString());
       if (card->stylesheet) {
@@ -112,18 +112,18 @@ inline static bool set_stylesheet_container(const Game& game, CardP& card, Scrip
 inline static bool set_builtin_container(const Game& game, CardP& card, ScriptValueP& value, String key_name, bool ignore_field_not_found) {
   // check if the given value is for a built-in field, if found set it and return true
   key_name = unified_form(key_name);
-  if (key_name == _("style") || key_name == _("stylesheet") || key_name == _("template")) {
+  if (key_name == _("style") || key_name == _("stylesheet")) {
     return true; // we already took care of this
   }
-  else if (key_name == _("style_version") || key_name == _("stylesheet_version") || key_name == _("template_version")) {
+  else if (key_name == _("style_version") || key_name == _("stylesheet_version")) {
     card->stylesheet_version = Version::fromString(value->toString());
     return true;
   }
-  else if (key_name == _("card_notes") || key_name == _("notes") || key_name == _("note")) {
+  else if (key_name == _("notes") || key_name == _("note")) {
     card->notes = value->toString();
     return true;
   }
-  else if (key_name == _("id") || key_name == _("uid") || key_name == _("uuid")) {
+  else if (key_name == _("id") || key_name == _("uid")) {
     card->uid = value->toString();
     return true;
   }
@@ -159,10 +159,10 @@ inline static bool set_builtin_container(const Game& game, CardP& card, ScriptVa
     card->linked_relation_4 = value->toString();
     return true;
   }
-  else if          (key_name == _("styling_data")   || key_name == _("style_data")   || key_name == _("stylesheet_data")   || key_name == _("template_data") || key_name == _("styling")
-                 || key_name == _("styling_fields") || key_name == _("style_fields") || key_name == _("stylesheet_fields") || key_name == _("template_fields")
-                 || key_name == _("extra_data")     || key_name == _("extra_fields") || key_name == _("extra_card_data")   || key_name == _("extra_card_fields")) {
-    bool is_extra = key_name == _("extra_data")     || key_name == _("extra_fields") || key_name == _("extra_card_data")   || key_name == _("extra_card_fields");
+  else if          (key_name == _("styling_data")   || key_name == _("styling")
+                 || key_name == _("style_data")     || key_name == _("stylesheet_data")
+                 || key_name == _("extra_data")     || key_name == _("extra_card_data")) {
+    bool is_extra = key_name == _("extra_data")     || key_name == _("extra_card_data");
     String type = is_extra ? _("extra") : _("styling");
     if (value->type() != SCRIPT_COLLECTION) {
       throw ScriptError(_ERROR_1_("styling data not map", type));
@@ -199,10 +199,8 @@ inline static bool check_table_headers(GameP& game, std::vector<String>& headers
       && key_name != _("note")
       && key_name != _("style")
       && key_name != _("stylesheet")
-      && key_name != _("template")
       && key_name != _("id")
       && key_name != _("uid")
-      && key_name != _("multiverse_id")
       && key_name != _("linked_card")
       && key_name != _("linked_card_1")
       && key_name != _("linked_card_2")

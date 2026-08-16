@@ -122,18 +122,30 @@ void Game::validate(Version v) {
     String& field_name = field->name;
     if (
       field_name == _("data") ||
-      field_name == _("extra_data") ||
-      field_name == _("styling_data") ||
       field_name == _("has_styling") ||
+      field_name == _("style") ||
+      field_name == _("styling") ||
       field_name == _("stylesheet") ||
+      field_name == _("style_version") ||
+      field_name == _("styling_version") ||
+      field_name == _("stylesheet_version") ||
+      field_name == _("style_data") ||
+      field_name == _("styling_data") ||
+      field_name == _("stylesheet_data") ||
+      field_name == _("extra_data") ||
+      field_name == _("extra_card_data") ||
       field_name == _("time_created") ||
       field_name == _("time_modified") ||
+      field_name == _("note") ||
       field_name == _("notes") ||
+      field_name == _("id") ||
       field_name == _("uid") ||
+      field_name == _("linked_card") ||
       field_name == _("linked_card_1") ||
       field_name == _("linked_card_2") ||
       field_name == _("linked_card_3") ||
       field_name == _("linked_card_4") ||
+      field_name == _("linked_relation") ||
       field_name == _("linked_relation_1") ||
       field_name == _("linked_relation_2") ||
       field_name == _("linked_relation_3") ||
