@@ -214,13 +214,11 @@ bool DataEditor::search(Iterator it, Iterator end, FindInfo& find, bool from_sta
   for (;it != end; ++it) {
     ValueViewer* viewer = *it;
     if (viewer == current_viewer) include = true;
-    if (include && viewer->getField()->editable && viewer->isVisible()) {
+    if (include && is_enabled(viewer)) {
       ValueEditor* editor = viewer->getEditor();
-      if (editor) {
-        if (editor && editor->search(find, from_start || viewer != current_viewer)) {
-          selectViewer(viewer);
-          return true; // done
-        }
+      if (editor && editor->search(find, from_start || viewer != current_viewer)) {
+        selectViewer(viewer);
+        return true; // done
       }
     }
   }

@@ -160,7 +160,7 @@ protected:
 
 /// Class that is a wxZipInputStream over a wxFileInput stream
 /** Note that wxFileInputStream is also a base class, because it must be constructed first
- */
+*/
 class ZipFileInputStream : private FileInputStream_aux, public wxZipInputStream {
 public:
   ZipFileInputStream(const String& filename)
@@ -176,9 +176,9 @@ public:
 
 /// A buffered version of wxFileInputStream
 /** 2007-08-24:
- *    According to profiling this gives a significant speedup
- *    Bringing the avarage run time of read_utf8_line from 186k to 54k (in cpu time units)
- */
+*    According to profiling this gives a significant speedup
+*    Bringing the avarage run time of read_utf8_line from 186k to 54k (in cpu time units)
+*/
 class BufferedFileInputStream : private FileInputStream_aux, public wxBufferedInputStream {
 public:
   inline BufferedFileInputStream(const String& filename)
@@ -462,7 +462,7 @@ void Package::saveToDirectory(const String& saveAs, bool remove_unused, bool is_
       // move files that were updated
       remove_file(f_out_path);
       if (!(is_copy ? wxCopyFile  (f.second.tempName, f_out_path)
-                    : wxRenameFile(f.second.tempName, f_out_path))) {
+        : wxRenameFile(f.second.tempName, f_out_path))) {
         throw PackageError(_ERROR_("unable to store file"));
       }
       if (f.second.created) {
@@ -488,10 +488,12 @@ void Package::saveToDirectory(const String& saveAs, bool remove_unused, bool is_
 }
 
 void Package::saveToZipfile(const String& saveAs, bool remove_unused, bool is_copy) {
-  // create a temporary zip file name
-  String tempFile = saveAs + _(".tmp");
+  // create temp file names
+  String tempFile    = saveAs + _(".tmp");
+  String bakFile     = saveAs + _(".bak");
+  String bakTempFile = saveAs + _(".bak.tmp");
   remove_file(tempFile);
-  // open zip file
+  // open temp zip file
   try {
     unique_ptr<wxFileOutputStream> newFile(new wxFileOutputStream(tempFile));
     if (!newFile->IsOk()) throw PackageError(_ERROR_("unable to open output file"));
@@ -506,13 +508,32 @@ void Package::saveToZipfile(const String& saveAs, bool remove_unused, bool is_co
         // old file, was also in zip, not changed
         // can't do this when saving a copy, since it destroys the zip entry
         zipStream->CloseEntry();
-        newZip->CopyEntry(f.second.zipEntry, *zipStream);
+        if (!newZip->CopyEntry(f.second.zipEntry, *zipStream)) {
+          throw PackageError(
+            _("Unable to save: the file\n'") + f.first + _("'\n") +
+            _("could not be read from the existing package file\n'") + filename + _("'.\n\n") +
+            _("This often happens when a set is stored on a cloud-synced drive.\n") +
+            _("Please make sure the file is fully available offline\n") +
+            _("(for example by marking it 'Always keep on this device')\n") +
+            _("then try saving again. Your changes have not been lost.")
+          );
+        }
         f.second.zipEntry = 0;
       } else {
         // changed file, or the old package was not a zipfile
         newZip->PutNextEntry(f.first);
         auto temp_stream = openIn(f.first);
         newZip->Write(*temp_stream);
+        if (!newZip->IsOk() || (!temp_stream->Eof() && temp_stream->GetLastError() != wxSTREAM_NO_ERROR)) {
+          throw PackageError(
+            _("Unable to save: the file\n'") + f.first + _("'\n") +
+            _("could not be written to the package.\n\n") +
+            _("This often happens when a set is stored on a cloud-synced drive.\n") +
+            _("Please make sure the file is fully available offline\n") +
+            _("(for example by marking it 'Always keep on this device')\n") +
+            _("then try saving again. Your changes have not been lost.")
+          );
+        }
       }
     }
     // close the old file
@@ -522,15 +543,82 @@ void Package::saveToZipfile(const String& saveAs, bool remove_unused, bool is_co
   } catch (Error const& e) {
     // when things go wrong delete the temp file
     remove_file(tempFile);
+    // and release our read handle on the original file
+    if (!is_copy) {
+      zipStream.reset();
+    }
     throw e;
   }
   // replace the old file with the new file, in effect commiting the changes
-  if (wxFileExists(saveAs)) {
-    // rename old file to .bak
-    remove_file(saveAs + _(".bak"));
-    wxRenameFile(saveAs, saveAs + _(".bak"));
+  {
+    wxLogNull no_log;
+    // move .bak to .bak.temp
+    bool bak_temp_created = false;
+    if (wxFileExists(bakFile)) {
+      remove_file(bakTempFile); // clear out any stale leftover from an earlier crash
+      bak_temp_created = wxRenameFile(bakFile, bakTempFile);
+      if (!bak_temp_created) {
+        // couldn't even move .bak, bail
+        throw PackageError(
+          _("Unable to save to\n'") + saveAs + _("'\n") +
+          _("The existing backup file\n'") + bakFile + _("'\n") +
+          _("could not be accessed, likely because it is in use by another program\n") +
+          _("(for example another MSE instance, a virus scanner, cloud sync, etc...).\n\n") +
+          _("Your changes have not been lost, but the save did not complete.\n") +
+          _("Please try saving to a different file name (use 'Save As').\n\n") +
+          _("System error: ") + wxSysErrorMsg(wxSysErrorCode())
+        );
+      }
+    }
+    if (wxFileExists(saveAs)) {
+      // move old .mse-set to .bak
+      if (!wxRenameFile(saveAs, bakFile)) {
+        // failed, restore .bak.tmp to .bak, bail
+        if (bak_temp_created) wxRenameFile(bakTempFile, bakFile);
+        throw PackageError(
+          _("Unable to save to\n'") + saveAs + _("'\n") +
+          _("The existing file could not be replaced, likely because it is in use by another program\n") +
+          _("(for example another MSE instance, a virus scanner, cloud sync, etc...).\n\n") +
+          _("Your changes have not been lost, but the save did not complete.\n") +
+          _("Please try saving to a different file name (use 'Save As').\n\n") +
+          _("System error: ") + wxSysErrorMsg(wxSysErrorCode())
+        );
+      }
+    }
+    // move .tmp to .mse-set
+    if (!wxRenameFile(tempFile, saveAs)) {
+      // failed. try to move .bak to .mse-set, otherwise there would be no .mse-set file in the folder
+      if (wxRenameFile(bakFile, saveAs)) {
+        // success, try to also restore .bak.temp to .bak
+        if (bak_temp_created) wxRenameFile(bakTempFile, bakFile);
+        // bail
+        throw PackageError(
+          _("Unable to save to\n'") + saveAs + _("'\n") +
+          _("The new file could not be put in place, likely because it is in use by another program\n") +
+          _("(for example another MSE instance, a virus scanner, cloud sync, etc...).\n\n") +
+          _("Your changes have not been lost, but the save did not complete.\n") +
+          _("Please try saving to a different file name (use 'Save As').\n\n") +
+          _("System error: ") + wxSysErrorMsg(wxSysErrorCode())
+        );
+      } else {
+        // could not even restore .bak, there is now no .mse-set file
+        // tell the user their data is in .tmp
+        throw PackageError(
+          _("Something went wrong while saving to\n'") + saveAs + _("'\n") +
+          _("The destination path is unavailable, likely because it is in use by another program\n") +
+          _("(for example another MSE instance, a virus scanner, cloud sync, etc...).\n\n") +
+          _("The previous version of the file could not be restored either, so there is currently no file at that location.\n\n") +
+          _("Your changes have NOT been lost: a complete, up to date copy has been saved to\n'") + tempFile + _("'\n") +
+          _("You can rename that file to\n'") + saveAs + _("'\n") +
+          _("manually yourself (outside of the program) to recover this save,\n") +
+          _("or try saving to a different file name (use 'Save As').\n\n") +
+          _("System error: ") + wxSysErrorMsg(wxSysErrorCode())
+        );
+      }
+    }
+    // save succeeded, delete .bak.temp
+    if (bak_temp_created) remove_file(bakTempFile);
   }
-  wxRenameFile(tempFile, saveAs);
   // re-open zip file
   filename = saveAs;
   openZipfile();

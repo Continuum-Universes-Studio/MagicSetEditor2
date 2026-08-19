@@ -59,7 +59,7 @@ void DataViewer::draw(RotatedDC& dc, const Color& background) {
   }
   // draw viewers
   FOR_EACH(v, viewers) { // draw low z index fields first
-    if (v->isVisible()) {// visible
+    if (v->isVisible()) {
       Rotater r(dc, v->getRotation());
       try {
         drawViewer(dc, *v);
