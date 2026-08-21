@@ -15,12 +15,10 @@
 #include <data/pack.hpp>
 #include <data/field.hpp>
 #include <data/update_cards_script.hpp>
-#include <data/field/text.hpp>    // for 0.2.7 fix
 #include <data/field/information.hpp>
 #include <data/field/image.hpp>
 #include <data/field/symbol.hpp>
 #include <data/action/value.hpp>
-#include <util/tagged_string.hpp> // for 0.2.7 fix
 #include <util/order_cache.hpp>
 #include <util/delayed_index_maps.hpp>
 #include <util/uid.hpp>
@@ -164,16 +162,6 @@ String Set::identification() const {
 String Set::typeName() const { return _("set"); }
 Version Set::fileVersion() const { return file_version_set; }
 
-// fix values for versions < 0.2.7
-void fix_value_207(const ValueP& value) {
-  if (TextValue* v = dynamic_cast<TextValue*>(value.get())) {
-    // text value -> fix it
-    v->value.assignDontChangeDefault(  // don't change defaultness
-      fix_old_tags(v->value()) // remove tags
-    );
-  }
-}
-
 void Set::validate(Version file_app_version) {
   Packaged::validate(file_app_version);
   // are the game and stylesheet defined?
@@ -187,22 +175,6 @@ void Set::validate(Version file_app_version) {
   if (stylesheet->game != game) {
     throw Error(_ERROR_("stylesheet and set refer to different game"));
   }
-
-  // We can probably retire this
-  /*
-  // This is our chance to fix version incompatabilities
-  if (file_app_version < 207) {
-    // Since 0.2.7 we use </tag> style close tags, in older versions it was </>
-    // Walk over all fields and fix...
-    FOR_EACH(c, cards) {
-      FOR_EACH(v, c->data) fix_value_207(v);
-    }
-    FOR_EACH(v, data) fix_value_207(v);
-    FOR_EACH(s, styleData) {
-      FOR_EACH(v, s.second->data) fix_value_207(v);
-    }
-  }
-  */
 
   bool empty = cards.empty();
   // we want at least one card
