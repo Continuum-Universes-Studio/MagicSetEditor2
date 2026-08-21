@@ -204,12 +204,15 @@ void Set::validate(Version file_app_version) {
   }
   */
 
+  bool empty = cards.empty();
   // we want at least one card
-  if (cards.empty()) cards.push_back(make_intrusive<Card>(*game));
+  if (empty) cards.push_back(make_intrusive<Card>(*game));
   // build uid map
   buildUIDMap();
   // update scripts
   script_manager->updateAll();
+  // don't run update_cards_scripts if the only card in the set was just created
+  if (empty) return;
   // update_cards_scripts
   // first apply all the stylesheet scripts that are older than the first game script
   // then apply the first game script
