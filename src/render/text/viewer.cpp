@@ -460,19 +460,19 @@ void TextViewer::prepareLines(RotatedDC& dc, const String& text, TextStyle& styl
   //    on how the text ends up wrapped and positioned;
   //  - with a mask, how the text wraps depends on the vertical offset alignment applies,
   //    which depends on the (possibly scripted) alignment itself.
-  // So: iterate, refreshing style.layout each pass so a scripted alignment always sees
+  // So: iterate, refreshing style. layout each pass so a scripted alignment always sees
   // the line count that's actually about to be used, and re-run line breaking with the
   // resulting offset baked in (see prepareLinesAtScale's top_offset) so the mask gets
   // sampled at the right rows. A line that barely fits can flip the line count back and
   // forth forever (2 lines <-> 3 lines) without ever truly converging -- if we detect
   // we're revisiting an offset we've already tried, stop there.
-  double offset = 0; // vertical offset baked into the current `lines`
+  double offset = 0;
   vector<double> seen_offsets;
   const int max_iterations = 6;
   for (int iteration = 0 ; iteration < max_iterations ; ++iteration) {
     if (style.alignment.isScripted()) {
       style.layout = extractLayoutInfo();
-      style.alignment.update(ctx);        // allow this to affect the alignment
+      style.alignment.update(ctx); // allow this to affect the alignment
     }
     if (!(style.paragraph_height <= 0 && (style.alignment & (ALIGN_MIDDLE | ALIGN_BOTTOM)))) {
       break; // no vertical shift to account for; one pass is enough
@@ -636,6 +636,10 @@ RealSize TextViewer::fitLineWidth(Line& line, RotatedDC& dc, const TextStyle& st
     line.top += 1;
     line_size.width = margin_left + lineLeft(dc, style, line.top);
   }
+  // Snap to a whole pixel here, once, so every later use agrees regardless of rounding convention
+  // (mask queries below, the rect handed to draw(), the next line's starting point)
+  line.top = floor(line.top + 0.5);
+  line_size.width = margin_left + lineLeft(dc, style, line.top); // re-check against the snapped row
   // remember the raw (margin-free) mask bounds for this row, so alignHorizontal() can
   // center/right-align against the true field bounds while still clamping into what
   // the mask allows here, instead of only ever seeing the already-mask-shifted position.
@@ -878,7 +882,15 @@ void TextViewer::alignLines(RotatedDC& dc, const vector<CharInfo>& chars, const 
     // prepareLines() may already have nudged lines[0].top down/up so that line breaking
     // sampled the mask at (approximately) the right rows (see the pre-pass there). Using
     // lines[0].top here would make alignParagraph() shift everything a second time.
-    double top = style.padding_top + elements.clauses[0].margin_top;
+    double top;
+    if (style.alignment & (ALIGN_MIDDLE | ALIGN_BOTTOM)) {
+      // prepareLines()'s vertical pre-pass only runs (and only nudges lines[0].top) for
+      // MIDDLE/BOTTOM alignment. Anchor to the natural top-aligned position here so
+      // alignParagraph() doesn't shift everything a second time on top of that nudge.
+      top = style.padding_top + elements.clauses[0].margin_top;
+    } else {
+      top = lines[0].top;
+    }
     alignParagraph(0, lines.size(), chars, style, RealRect(RealPoint(0,top),s));
   } else {
     // per paragraph alignment
@@ -886,7 +898,10 @@ void TextViewer::alignLines(RotatedDC& dc, const vector<CharInfo>& chars, const 
     int n = 0;
     for (size_t last = 0 ; last < lines.size() ; ++last) {
       if (lines[last].break_after >= LineBreak::HARD || last+1 == lines.size()) {
-        alignParagraph(start, last + 1, chars, style, RealRect(0, style.padding_top+n*style.paragraph_height, s.width, style.paragraph_height));
+        double y = (style.alignment & (ALIGN_MIDDLE | ALIGN_BOTTOM)) ?
+                    style.padding_top + n*style.paragraph_height :
+                    lines[start].top;
+        alignParagraph(start, last + 1, chars, style, RealRect(0, y, s.width, style.paragraph_height));
         start = last + 1;
         ++n;
       }
