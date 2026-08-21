@@ -159,10 +159,6 @@ SetWindow::SetWindow(Window* parent, const SetP& set)
   
   // loose ends
   tabBar->Realize();
-  SetSize(settings.set_window_width, settings.set_window_height);
-  if (settings.set_window_maximized) {
-    Maximize();
-  }
   set_windows.push_back(this); // register this window
   // don't send update ui events to children
   // note: this still sends events for menu and toolbar items!
@@ -181,6 +177,11 @@ SetWindow::SetWindow(Window* parent, const SetP& set)
     throw;
   }
   current_panel->Layout();
+
+  SetSize(settings.set_window_width, settings.set_window_height);
+  if (settings.set_window_maximized) {
+    Maximize();
+  }
 }
 
 wxMenu* SetWindow::makeExportMenu() {
