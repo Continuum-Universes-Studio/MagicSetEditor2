@@ -20,6 +20,7 @@
 #include <data/set.hpp>
 #include <data/stylesheet.hpp>
 #include <data/card.hpp>
+#include <wx/progdlg.h>
 
 // ----------------------------------------------------------------------------- : Helper functions
 
@@ -277,13 +278,31 @@ inline static bool cards_from_table(SetP& set, vector<String>& headers, std::vec
       return false;
     }
   }
-  // produce cards from table
+  // set up context
   Context& ctx = set->getContext();
   ScriptValueP new_card_function = ctx.getVariable("new_card");
   ScriptValueP ctx_input = ctx.getVariableOpt(SCRIPT_VAR_input);
   ScriptValueP ctx_ignore = ctx.getVariableOpt("ignore_field_not_found");
   ctx.setVariable("ignore_field_not_found", to_script(ignore_field_not_found));
-  for (int y = 0; y < table.size(); ++y) {
+  int total = (int)table.size();
+  // progress dialog, lets the user cancel
+  std::unique_ptr<wxProgressDialog> progress;
+  if (total > 0) {
+    progress = std::make_unique<wxProgressDialog>(
+      _TITLE_("importing cards"),
+      wxString::Format(_LABEL_2_("importing cards", String()<<1, String()<<total)),
+      total,
+      nullptr,
+      wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_CAN_ABORT
+    );
+  }
+  bool cancelled = false;
+  // produce cards from table
+  for (int y = 0; y < total; ++y) {
+    if (progress && !progress->Update(y, wxString::Format(_LABEL_2_("importing cards", String()<<(y+1), String()<<total)))) {
+      cancelled = true;
+      break;
+    }
     ScriptCustomCollectionP field_map = make_intrusive<ScriptCustomCollection>();
     for (int x = 0; x < count; ++x) {
       // check if value is worth writing
@@ -302,5 +321,5 @@ inline static bool cards_from_table(SetP& set, vector<String>& headers, std::vec
   }
   if (ctx_input) ctx.setVariable(SCRIPT_VAR_input, ctx_input);
   if (ctx_ignore) ctx.setVariable("ignore_field_not_found", ctx_ignore);
-  return true;
+  return !cancelled;
 }
