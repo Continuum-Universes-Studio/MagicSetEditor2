@@ -53,7 +53,43 @@ inline static Value* get_container(IndexMap<FieldP, ValueP>& map, const String& 
   return it->get();
 }
 
-inline static void set_container(Value* container, String type, ScriptValueP& value, String key_name) {
+inline static bool looks_like_url(const String& s) {
+  // only the schemes we actually know how to fetch
+  return s.starts_with(_("http://")) || s.starts_with(_("https://"))
+      || s.starts_with(_("ftp://"))  || s.starts_with(_("ftps://"));
+}
+
+inline static bool looks_like_local_path(const String& s) {
+  // unix absolute path
+  if (s.starts_with(_("/"))) return true;
+  // windows UNC / extended-length path:   \\server\share\... or \\?\C:\...
+  if (s.starts_with(_("\\\\"))) return true;
+  // windows absolute path
+  if (s.size() >= 3 && wxIsalpha(s[0]) && s[1] == _(':') && (s[2] == _('\\') || s[2] == _('/'))) return true;
+  return false;
+}
+
+inline static void set_image_from_external_string(Set* set, ImageValue* ivalue, const String& string, bool is_url) {
+  try {
+    GeneratedImageP loaded;
+    if (is_url) {
+      if (!settings.allow_image_download) {
+        ivalue->filename.makeEmpty();
+        return;
+      }
+      loaded = make_intrusive<DownloadedImage>(set, string);
+    } else {
+      loaded = make_intrusive<ImportedImage>(set, string);
+    }
+    ExternalImage* ext = dynamic_cast<ExternalImage*>(loaded.get());
+    ivalue->filename = LocalFileName::fromReadString(ext->toString(), "");
+  } catch (const ScriptError& e) {
+    queue_message(MESSAGE_ERROR, e.what());
+    ivalue->filename.makeEmpty();
+  }
+}
+
+inline static void set_container(Set* set, Value* container, String type, ScriptValueP& value, String key_name) {
   // set the given value into the container
   if (TextValue* tvalue = dynamic_cast<TextValue*>(container)) {
     tvalue->value = value->toString();
@@ -73,7 +109,16 @@ inline static void set_container(Value* container, String type, ScriptValueP& va
     if (ExternalImage* img = dynamic_cast<ExternalImage*>(value.get())) {
       ivalue->filename = LocalFileName::fromReadString(img->toString(), "");
     } else if (value->type() == SCRIPT_STRING) {
-      ivalue->filename = LocalFileName::fromReadString(value->toString(), "");
+      String str = value->toString();
+      if (trim(str).empty()) {
+        ivalue->filename.makeEmpty();
+      } else if (looks_like_url(str)) {
+        set_image_from_external_string(set, ivalue, str, true);
+      } else if (looks_like_local_path(str)) {
+        set_image_from_external_string(set, ivalue, str, false);
+      } else {
+        ivalue->filename = LocalFileName::fromReadString(str, "");
+      }
     } else {
       throw ScriptError(_ERROR_1_("cant set image value", key_name));
     }
@@ -109,7 +154,7 @@ inline static bool set_stylesheet_container(const Game& game, CardP& card, Scrip
   return false;
 }
 
-inline static bool set_builtin_container(const Game& game, CardP& card, ScriptValueP& value, String key_name, bool ignore_field_not_found) {
+inline static bool set_builtin_container(const Game& game, Set* set, CardP& card, ScriptValueP& value, String key_name, bool ignore_field_not_found) {
   // check if the given value is for a built-in field, if found set it and return true
   key_name = unified_form(key_name);
   if (key_name == _("style") || key_name == _("stylesheet")) {
@@ -179,7 +224,7 @@ inline static bool set_builtin_container(const Game& game, CardP& card, ScriptVa
       String key_name = key->toString();
       Value* container = get_container(data, type, key_name, ignore_field_not_found);
       if (container == nullptr && ignore_field_not_found) continue;
-      set_container(container, type, value, key_name);
+      set_container(set, container, type, value, key_name);
       if (!is_extra) card->has_styling = true;
     }
     return true;

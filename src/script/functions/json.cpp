@@ -245,7 +245,7 @@ CardP json_to_mse_card(boost::json::object& jv, Set* set) {
       String key_name = String::FromUTF8(key_view.data(), key_view.size());
       Value* container = get_card_field_container(*set->game, card->data, key_name, false);
       ScriptValueP value = json_to_mse(it->value(), set);
-      set_container(container, _("card"), value, key_name);
+      set_container(set, container, _("card"), value, key_name);
     }
   }
   // stylesheet
@@ -263,7 +263,7 @@ CardP json_to_mse_card(boost::json::object& jv, Set* set) {
         String key_name = String::FromUTF8(key_view.data(), key_view.size());
         Value* container = get_container(card->styling_data, String("styling"), key_name, false);
         ScriptValueP value = json_to_mse(it->value(), set);
-        set_container(container, _("styling"), value, key_name);
+        set_container(set, container, _("styling"), value, key_name);
         card->has_styling = true;
       }
     }
@@ -282,7 +282,7 @@ CardP json_to_mse_card(boost::json::object& jv, Set* set) {
           String key_name = String::FromUTF8(key_view.data(), key_view.size());
           Value* container = get_container(stylesheet_data, String("extra card"), key_name, false);
           ScriptValueP value = json_to_mse(stylesheet_it->value(), set);
-          set_container(container, _("extra"), value, key_name);
+          set_container(set, container, _("extra"), value, key_name);
         }
       }
     }
@@ -310,7 +310,7 @@ SetP json_to_mse_set(boost::json::object& jv) {
       String key_name = String::FromUTF8(key_view.data(), key_view.size());
       Value* container = get_container(set->data, String("set"), key_name, false);
       ScriptValueP value = json_to_mse(it->value(), set.get());
-      set_container(container, _("set"), value, key_name);
+      set_container(set.get(), container, _("set"), value, key_name);
     }
   }
   // styling
@@ -327,7 +327,7 @@ SetP json_to_mse_set(boost::json::object& jv) {
         String key_name = String::FromUTF8(key_view.data(), key_view.size());
         Value* container = get_container(stylesheet_data, String("styling"), key_name, false);
         ScriptValueP value = json_to_mse(stylesheet_it->value(), set.get());
-        set_container(container, _("styling"), value, key_name);
+        set_container(set.get(), container, _("styling"), value, key_name);
       }
     }
   }

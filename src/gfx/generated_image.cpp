@@ -843,9 +843,10 @@ ImportedImage::ImportedImage(Set* set, const String& filepath) {
   savename = normalize_internal_filename(loadpath);
   savename.Replace(_(":"),  _("-"));
   savename.Replace(_("/"),  _("-"));
+  savename.Replace(_("\\"), _("-"));
 
   // does the file pointed to by filepath exist?
-  if (!wxFileName(loadpath, wxPATH_UNIX).FileExists()) {
+  if (!wxFileName(loadpath, wxPATH_NATIVE).FileExists()) {
     if (set->contains(savename)) return;
     else throw ScriptError(_ERROR_1_("import not found", loadpath));
   }
