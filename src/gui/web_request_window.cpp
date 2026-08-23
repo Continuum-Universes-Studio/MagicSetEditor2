@@ -121,8 +121,10 @@ void WebRequestWindow::onComplete(wxWebRequestEvent& evt) {
 
 void WebRequestWindow::onFail(const String& message) {
   content_type.Clear();
-  info->SetLabel(_ERROR_("web request failed"));
-  address->SetLabel(message);
+  queue_message(MESSAGE_ERROR, message);
+  // onFail can be called from the constructor. EndModal() at that
+  // point would have no effect, so defer the close to the next idle event.
+  CallAfter([this]{ EndModal(wxID_CANCEL); });
 }
 
 void WebRequestWindow::onCancel(wxCommandEvent&) {
