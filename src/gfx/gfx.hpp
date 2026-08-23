@@ -96,7 +96,7 @@ void linear_blend(Image& img1, const Image& img2, double x1,double y1, double x2
  *  mask is used as a mask, white pixels are taken from img1, black pixels from img2
  *  color channels are blended separatly
  */
-void mask_blend(Image& img1, const Image& img2, const Image& mask);
+void mask_blend(Image& light, const Image& dark, const Image& mask);
 
 // ----------------------------------------------------------------------------- : Effects
 
