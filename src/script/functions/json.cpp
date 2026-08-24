@@ -1055,19 +1055,20 @@ boost::json::value mse_to_json(const ScriptValueP& sv, Set* set, bool suppress_w
   if (type == SCRIPT_COLLECTION) {
     ScriptCustomCollection* custom = dynamic_cast<ScriptCustomCollection*>(sv.get());
     if (custom) {
-      if (custom->value.size() > 0) {
-        boost::json::array array;
-        for (size_t i = 0; i < custom->value.size(); i++) {
-          array.emplace_back(mse_to_json(custom->value[i], set));
-        }
-        return array;
-      } else if (custom->key_value.size() > 0) {
+      if (custom->key_value.size() > 0) {
         boost::json::object object;
         map<String, ScriptValueP>::iterator it;
         for (it = custom->key_value.begin(); it != custom->key_value.end(); it++) {
           object.emplace(it->first.ToStdString(), mse_to_json(it->second, set));
         }
         return object;
+      }
+      else {
+        boost::json::array array;
+        for (size_t i = 0; i < custom->value.size(); i++) {
+          array.emplace_back(mse_to_json(custom->value[i], set));
+        }
+        return array;
       }
     } else {
       ScriptConcatCollection* concat = dynamic_cast<ScriptConcatCollection*>(sv.get());
