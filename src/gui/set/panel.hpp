@@ -86,6 +86,8 @@ public:
  
   virtual void getCardLists(vector<CardListBase*>& out) {}
 
+  virtual bool isUpdating() const { return false; }
+
 protected:
   /// Have any controls been created?
   bool isInitialized() const;

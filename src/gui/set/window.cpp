@@ -370,6 +370,7 @@ void SetWindow::onSizeChange(wxCommandEvent&) {
   FOR_EACH(p, panels) {
     p->Layout();
   }
+  if (current_panel && current_panel->isUpdating()) return;
   fixMinWindowSize();
 }
 

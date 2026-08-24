@@ -89,15 +89,16 @@ public:
 
   void setFocusedEditor(DataEditor* editor);
 
+  bool isUpdating() const override { return updating_card; }
+
 private:
   // --------------------------------------------------- : Controls
-  wxSizer*          s_left;
+  wxSizer*          s_left, *card_and_link, *link_box_1, *link_box_2, *link_box_3, *link_box_4;
   wxSplitterWindow* splitter;
   DataEditor*       editor, *link_editor, *focused_editor;
   FilteredImageCardList* card_list;
   wxPanel*          nodes_panel;
   TextCtrl*         notes;
-  wxSizer*          link_box_1, *link_box_2, *link_box_3, *link_box_4;
   wxStaticText*     link_relation_1, *link_relation_2, *link_relation_3, *link_relation_4;
   CardViewer*       link_viewer_1, *link_viewer_2, *link_viewer_3, *link_viewer_4;
   wxButton*         link_unlink_1, *link_unlink_2, *link_unlink_3, *link_unlink_4, *link_select;
@@ -106,6 +107,7 @@ private:
   String            filter_value; // value of filter, need separate variable because the control is destroyed
   wxStaticText*     counts;
   bool              notes_below_editor;
+  bool              updating_card = false;
 
   /// Update card counts
   void updateCardCounts();

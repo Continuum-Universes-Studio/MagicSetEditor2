@@ -84,7 +84,7 @@ CardsPanel::CardsPanel(Window* parent, int id)
   // init sizer for editors and viewers
   wxSizer* s = new wxBoxSizer(wxHORIZONTAL); // Global Sizer
     s_left = new wxBoxSizer(wxVERTICAL); // Sizer for the selected card, and it's linked cards
-      wxSizer* card_and_link = new wxBoxSizer(wxHORIZONTAL);
+      card_and_link = new wxBoxSizer(wxHORIZONTAL);
       s_left->Add(card_and_link);
         card_and_link->Add(editor);
         wxGridBagSizer* link_boxes = new wxGridBagSizer(); // Sizer for the linked cards
@@ -204,8 +204,8 @@ void CardsPanel::updateCardCounts() {
 }
 
 void CardsPanel::updateNotesPosition() {
-  wxSize editor_size = editor->GetBestSize();
-  int room_below_editor = GetSize().y - editor_size.y;
+  wxSize card_and_link_size = card_and_link->CalcMin();
+  int room_below_editor = GetSize().y - card_and_link_size.y;
   bool should_be_below = room_below_editor > 100;
   // move?
   if (should_be_below && !notes_below_editor) {
@@ -226,6 +226,7 @@ void CardsPanel::updateNotesPosition() {
   }
 }
 bool CardsPanel::Layout() {
+  if (updating_card) return false;
   updateNotesPosition();
   return SetWindowPanel::Layout();
 }
@@ -702,6 +703,8 @@ CardP CardsPanel::selectedCard() const {
 void CardsPanel::selectCard(const CardP& card) {
   if (!set) return; // we want onChangeSet first
 
+  updating_card = true;
+
   //card_list->SetFocus(); // I don't rememeber what bug this was solving, but it is preventing the search dialog from highlighting what it finds, so until I remember, this gets turned off
   card_list->setCard(card);
 
@@ -772,8 +775,12 @@ void CardsPanel::selectCard(const CardP& card) {
 
   notes->setValue(card ? &card->notes : nullptr);
 
+  updating_card = false;
+
   Layout();
   updateNotesPosition();
+  wxCommandEvent ev(EVENT_SIZE_CHANGE, GetId());
+  ProcessEvent(ev);
 }
 
 void CardsPanel::selectFirstCard() {
