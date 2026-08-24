@@ -1008,25 +1008,21 @@ void TextViewer::Line::alignHorizontal(const vector<CharInfo>& chars, const Text
   } else {
     // simple alignment
     justifying = false;
+    // hug whatever the mask allows on this row
+    double hdelta = s.x + align_delta_x(alignment, target_width, width);
     if (alignment & (ALIGN_CENTER | ALIGN_RIGHT)) {
-      // Center/right-align against the actual bounds of the field, not against
-      // whichever part of the mask this particular line happened to be wrapped
-      // against -- but still keep the text clear of anything the mask forbids.
-      double desired_left = margin_bullet + s.x + align_delta_x(alignment, target_width, width);
       double min_left = mask_left + margin_bullet;
       double max_left = mask_right - margin_right - width;
-      if (max_left < min_left) max_left = min_left; // defensive: shouldn't happen, wrap already guarantees it fits
-      desired_left = max(min_left, min(max_left, desired_left));
-      double hdelta = desired_left - positions.front();
-      for (auto& c : positions) {
-        c += hdelta;
+      if (max_left >= min_left) {
+        // everything fits within the mask and margins, align according to alignment
+        double desired_left = margin_bullet + s.x + align_delta_x(alignment, target_width, width);
+        desired_left = max(min_left, min(max_left, desired_left));
+        hdelta = desired_left - positions.front();
       }
-    } else {
-      // left alignment: hug whatever the mask allows on this row
-      double hdelta = s.x + align_delta_x(alignment, target_width, width);
-      for (auto& c : positions) {
-        c += hdelta;
-      }
+      // else: doesn't fit, let it overflow past the edges
+    }
+    for (auto& c : positions) {
+      c += hdelta;
     }
   }
 }
