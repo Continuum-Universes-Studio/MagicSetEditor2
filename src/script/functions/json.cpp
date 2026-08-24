@@ -1089,6 +1089,10 @@ boost::json::value mse_to_json(const ScriptValueP& sv, Set* set, bool suppress_w
             object_a.emplace(it->key(), it->value());
           }
           return object_a;
+        } else if (a.is_object() && b.is_array() && b.as_array().size() == 0) {
+          return a.get_object();
+        } else if (b.is_object() && a.is_array() && a.as_array().size() == 0) {
+          return b.get_object();
         } else {
           queue_message(MESSAGE_ERROR, _ERROR_("json cant concat"));
           return boost::json::value(nullptr);
