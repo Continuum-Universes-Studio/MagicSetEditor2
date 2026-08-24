@@ -1048,10 +1048,12 @@ boost::json::value mse_to_json(const ScriptValueP& sv, Set* set, bool suppress_w
   if (type == SCRIPT_INT)      return boost::json::value(sv->toInt());
   if (type == SCRIPT_DOUBLE)   return boost::json::value(sv->toDouble());
   if (type == SCRIPT_BOOL)     return boost::json::value(sv->toBool());
-  if (type == SCRIPT_STRING)   return boost::json::value(sv->toString());
-  if (type == SCRIPT_REGEX)    return boost::json::value(sv->toString());
   if (type == SCRIPT_COLOR)    return boost::json::value(format_color(sv->toColor()));
   if (type == SCRIPT_DATETIME) return boost::json::value(sv->toDateTime().FormatISOCombined(' '));
+  if (type == SCRIPT_STRING || type == SCRIPT_REGEX) {
+    wxScopedCharBuffer buffer = sv->toString().ToUTF8();
+    return boost::json::value(boost::json::string_view(buffer.data(), buffer.length()));
+  }
   if (type == SCRIPT_COLLECTION) {
     ScriptCustomCollection* custom = dynamic_cast<ScriptCustomCollection*>(sv.get());
     if (custom) {
