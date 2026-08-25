@@ -132,8 +132,8 @@ public:
   //static CardP getUIDCard(const vector<CardP>& cards, const String& uid);
   static CardP getUIDCard(const Set& set,             const String& uid);
   /// Get all the cards linked to this card with the given relation.
-  //vector<CardP> getLinkedRelationCards(const vector<CardP>& cards, const String& linked_relation, bool erase_if_no_card = true);
-  vector<CardP> getLinkedRelationCards(const Set& set,             const String& linked_relation, bool erase_if_no_card = true);
+  //vector<CardP> getLinkedRelationCards(const vector<CardP>& cards, const String& linked_relation);
+  vector<CardP> getLinkedRelationCards(const Set& set,             const String& linked_relation);
 
   /// Get all the cards linked to this card.
   //vector<pair<CardP, String>> getLinkedCards(const vector<CardP>& cards);
@@ -143,10 +143,10 @@ public:
   //CardP getLinkedOtherFaceCard(const vector<CardP>& cards);
   CardP getLinkedOtherFaceCard(const Set& set);
 
-  /// Link a card to this card.
+  /// Link a card to this card. This bypasses the action stack. Should be used only in scripts.
   void addLink(const Set& set, CardP& linked_card, const String& selected_relation, const String& linked_relation);
 
-  /// Unlink a card from this card.
+  /// Unlink a card from this card. This bypasses the action stack. Should be used only in scripts.
   void removeLink(const CardP& linked_card);
 
   DECLARE_REFLECTION();
