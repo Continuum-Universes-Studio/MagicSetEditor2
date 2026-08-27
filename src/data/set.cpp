@@ -200,7 +200,7 @@ void Set::validate(Version file_app_version) {
     // Apply stylesheet scripts that are older than the current game script
     for (size_t i = 0; i < cards.size(); ++i) {
       CardP& card = cards[i];
-      StyleSheetP stylesheet = card->stylesheet ? card->stylesheet : stylesheetForP(card);
+      StyleSheetP stylesheet = stylesheetForP(card);
       Version stylesheet_version = card->stylesheet_version.isZero() ? this->stylesheet_version : card->stylesheet_version;
       for (size_t j = 0; j < stylesheet->update_cards_scripts.size(); ++j) {
         UpdateCardsScriptP& script = stylesheet->update_cards_scripts[j];

@@ -858,7 +858,7 @@ SCRIPT_FUNCTION(get_front_face) {
   }
   vector<CardP> other_cards = input_card->getLinkedRelationCards(*set, "Front Face");
   if (other_cards.size() == 0) return script_nil;
-  if (other_cards.size() > 1) queue_message(MESSAGE_WARNING, _ERROR_1_("multiple front faces", input_card->identification()));
+  //if (other_cards.size() > 1) queue_message(MESSAGE_WARNING, _ERROR_1_("multiple front faces", input_card->identification()));
   SCRIPT_RETURN(other_cards[0]);
 }
 
@@ -878,7 +878,7 @@ SCRIPT_FUNCTION(get_back_face) {
   }
   vector<CardP> other_cards = input_card->getLinkedRelationCards(*set, "Back Face");
   if (other_cards.size() == 0) return script_nil;
-  if (other_cards.size() > 1) queue_message(MESSAGE_WARNING, _ERROR_1_("multiple back faces", input_card->identification()));
+  //if (other_cards.size() > 1) queue_message(MESSAGE_WARNING, _ERROR_1_("multiple back faces", input_card->identification()));
   SCRIPT_RETURN(other_cards[0]);
 }
 
