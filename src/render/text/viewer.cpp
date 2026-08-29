@@ -630,11 +630,17 @@ void TextViewer::prepareLinesTryScales(RotatedDC& dc, const String& text, const 
 // Try to fit a blank line in the masked image, move down until it fits
 RealSize TextViewer::fitLineWidth(Line& line, RotatedDC& dc, const TextStyle& style) const {
   double margin_left = line.bullet ? line.margin_left_before_bullet : line.margin_left_after_bullet;
-  RealSize line_size(margin_left + lineLeft(dc, style, line.top), 0);
-  while (line.top < dc.getHeight() && line_size.width + 1 >= dc.getWidth() - style.padding_right - line.margin_right) {
+  double left  = lineLeft (dc, style, line.top);
+  double right = lineRight(dc, style, line.top);
+  RealSize line_size(margin_left + left, 0);
+  while (line.top < dc.getHeight() &&
+         (right <= left || // the mask leaves no usable window at all on this row
+          line_size.width + 1 >= dc.getWidth() - style.padding_right - line.margin_right)) {
     // nothing fits on this line, move down one pixel
     line.top += 1;
-    line_size.width = margin_left + lineLeft(dc, style, line.top);
+    left  = lineLeft (dc, style, line.top);
+    right = lineRight(dc, style, line.top);
+    line_size.width = margin_left + left;
   }
   // Snap to a whole pixel here, once, so every later use agrees regardless of rounding convention
   // (mask queries below, the rect handed to draw(), the next line's starting point)
