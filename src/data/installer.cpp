@@ -661,7 +661,7 @@ InstallablePackageP mse_installable_package() {
   PackageDescriptionP mse_description(new PackageDescription);
   mse_description->name            = mse_description->installer_group = mse_package;
   mse_description->short_name      = mse_description->full_name = _TITLE_("magic set editor");
-  mse_description->position_hint   = INT_MIN;
+  mse_description->position_hint   = -10000000;
   mse_description->icon            = load_resource_image(_("installer_program"));
   //mse_description->description   = _LABEL_("magic set editor package");
   return make_intrusive<InstallablePackage>(mse_description, mse_version);

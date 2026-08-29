@@ -100,7 +100,7 @@ private:
   
   class TreeItem : public Item {
   public:
-    TreeItem() : position_type(TYPE_OTHER), position_hint(1000000), group_hint(1000000) {}
+    TreeItem() : position_type(TYPE_OTHER), position_hint(10000000), group_hint(10000000) {}
     String label;
     vector<TreeItemP> children;
     InstallablePackageP package;
