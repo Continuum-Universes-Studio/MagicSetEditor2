@@ -28,7 +28,7 @@ void TextValueViewer::draw(RotatedDC& dc) {
     dc.DrawRectangle(RealRect(0, 0, dc.getWidth(), dc.getHeight()));
   }
   if (!v.prepared()) {
-    v.prepare(dc, value().value(), style(), getContext());
+    prepare(dc);
   }
   dc.setStretch(getStretch());
   DrawWhat what = drawWhat();
