@@ -113,6 +113,7 @@ public:
   Defaultable<bool>    card_bleed_export;
   Defaultable<bool>    card_notes_export;
   Defaultable<bool>    card_metaimage_export;
+  Defaultable<bool>    card_dfc_export;
   Defaultable<bool>    card_spellcheck_enabled;
   
   /// Where the settings are the default, use the value from ss

@@ -219,9 +219,34 @@ Image export_image(const SetP& set,
   return global_img;
 }
 
+// Find the other face, keep track of which is the front
+pair<CardP, CardP> find_front_back_pair(const Set& set, const CardP& card) {
+  vector<int> back_idx = card->findRelationLinks(_("Back Face"));
+  if (!back_idx.empty()) {
+    CardP back = Card::getUIDCard(set, card->getLinkedUID(back_idx[0]));
+    if (back) return make_pair(card, back);
+  }
+  vector<int> front_idx = card->findRelationLinks(_("Front Face"));
+  if (!front_idx.empty()) {
+    CardP front = Card::getUIDCard(set, card->getLinkedUID(front_idx[0]));
+    if (front) return make_pair(front, card);
+  }
+  return make_pair(CardP(), CardP());
+}
+
 void export_image(const SetP& set, const CardP& card, const String& filename) {
   const StyleSheet& stylesheet = set->stylesheetFor(card);
   StyleSheetSettings& stylesheet_settings = settings.stylesheetSettingsFor(stylesheet);
+  // is this card part of a front/back pair that should be combined?
+  pair<CardP, CardP> faces = stylesheet_settings.card_dfc_export() ?
+                             find_front_back_pair(*set, card) :
+                             make_pair(CardP(), CardP());
+  if (faces.first && faces.second) {
+    vector<CardP> combo{faces.first, faces.second};
+    Image img = export_image(set, combo);
+    img.SaveFile(filename);
+    return;
+  }
   Settings::ExportSettings export_settings = settings.exportSettingsFor(stylesheet);
   Image img = export_image(set, card, true, export_settings.zoom, export_settings.angle_radians, export_settings.bleed_pixels);
   img.SaveFile(filename);
@@ -235,19 +260,50 @@ void export_image(const SetP& set, const vector<CardP>& cards, const String& pat
   wxFileName fn(path);
   // Export
   std::set<String> used; // for CONFLICT_NUMBER_OVERWRITE
+  std::set<Card*> processed; // cards already written as part of a front/back pair, skip if hit again
   FOR_EACH_CONST(card, cards) {
-    // filename for this card
-    Context& ctx = set->getContext(card);
-    String filename = clean_filename(untag(ctx.eval(*filename_script)->toString()));
-    if (!filename) continue; // no filename -> no saving
-    // full path
-    fn.SetFullName(filename);
-    // does the file exist?
-    if (!resolve_filename_conflicts(fn, conflicts, used)) continue;
-    // write image
-    filename = fn.GetFullPath();
-    used.insert(filename);
-    export_image(set, card, filename);
+    if (processed.count(card.get())) continue;
+    // is this card part of a front/back pair that should be combined?
+    const StyleSheet& stylesheet = set->stylesheetFor(card);
+    pair<CardP, CardP> faces = settings.stylesheetSettingsFor(stylesheet).card_dfc_export()
+                              ? find_front_back_pair(*set, card)
+                              : make_pair(CardP(), CardP());
+    if (faces.first && faces.second) {
+      // filename is "<front name> -- <back name>"
+      Context& ctx_front = set->getContext(faces.first);
+      String front_name = clean_filename(untag(ctx_front.eval(*filename_script)->toString()));
+      Context& ctx_back = set->getContext(faces.second);
+      String back_name  = clean_filename(untag(ctx_back.eval(*filename_script)->toString()));
+      if (!front_name || !back_name) continue; // no filename -> no saving
+      wxFileName front_fn(front_name);
+      String combined_name = front_fn.GetName() + _(" -- ") + wxFileName(back_name).GetName();
+      String ext = front_fn.GetExt();
+      if (!ext.empty()) combined_name += _(".") + ext;
+      // full path
+      fn.SetFullName(combined_name);
+      // does the file exist?
+      if (!resolve_filename_conflicts(fn, conflicts, used)) continue;
+      // write image
+      String filename = fn.GetFullPath();
+      used.insert(filename);
+      vector<CardP> combo{faces.first, faces.second};
+      Image img = export_image(set, combo);
+      img.SaveFile(filename);
+      processed.insert((faces.first == card ? faces.second : faces.first).get());
+    } else {
+      // filename for this card
+      Context& ctx = set->getContext(card);
+      String filename = clean_filename(untag(ctx.eval(*filename_script)->toString()));
+      if (!filename) continue; // no filename -> no saving
+      // full path
+      fn.SetFullName(filename);
+      // does the file exist?
+      if (!resolve_filename_conflicts(fn, conflicts, used)) continue;
+      // write image
+      filename = fn.GetFullPath();
+      used.insert(filename);
+      export_image(set, card, filename);
+    }
   }
 }
 
