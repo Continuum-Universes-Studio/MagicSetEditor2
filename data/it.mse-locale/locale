@@ -1,8 +1,9 @@
-mse version: 2.6.0
-installer group: Magic Set Editor/translations/italian
-full name: Italiano (Italian)
-version: 2026-02-28
-icon: it.png
+mse version:		2.6.0
+full name:			Italiano (Italian)
+icon:				it.png
+position hint:		01
+installer group:	Magic Set Editor/translations/italian
+version:			2026-02-28
 
 
 ############################################################## Menu items
@@ -793,6 +794,9 @@ button:
 	metaimage export:
 		Consenti di memorizzare le immagini
 		all'interno dei metadati dell'immagine
+	dfc export:
+		Unisci il volto anteriore e quello
+		posteriore in un'unica immagine
 	spellcheck enabled:					Mostra gli errori di ortografia sulle carte
 	check now:							Controlla ora (&N)
 	always:								Sempre

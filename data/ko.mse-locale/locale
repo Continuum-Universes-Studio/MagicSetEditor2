@@ -1,8 +1,10 @@
-mse version: 2.6.0
-installer group: Magic Set Editor/translations/korean
-full name: 한국어 (Korean)
-version: 2026-02-28
-icon: ko.png
+mse version:		2.6.0
+full name:			한국어 (Korean)
+icon:				ko.png
+position hint:		01
+installer group:	Magic Set Editor/translations/korean
+version:			2026-02-28
+
 
 #TODO: Get actual speaker to localize this better and not via google translate
 ############################################################## Menu items
@@ -870,6 +872,10 @@ button:
 	metaimage export:
 		Allow storing images in
 		the image metadata.
+	#TODO: Localize
+	dfc export:
+		Merge front and back faces
+		into a single image.
 	spellcheck enabled:					철자 오류 표시
 	check now:							지금 확인하세요
 	always:								언제나
