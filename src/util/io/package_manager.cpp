@@ -296,7 +296,7 @@ bool compare_name(const PackageVersionP& a, const PackageVersionP& b) {
 }
 
 bool PackageDirectory::checkForPackageFile(const String& folder_name) {
-  size_t package_pos = folder_name.find_last_of(_("."));
+  size_t package_pos = folder_name.rfind(_(".mse-"));
   if (package_pos == String::npos) {
     queue_message(MESSAGE_WARNING, _ERROR_1_("package name parse error", folder_name));
     return false;
