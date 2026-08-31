@@ -174,7 +174,7 @@ String& Card::getLinkedUID(int index) {
   case 1:  return linked_card_2;
   case 2:  return linked_card_3;
   case 3:  return linked_card_4;
-  default: throw ScriptError(_("getLinkedUID called with invalid index"));
+  default: throw ScriptError(String("getLinkedUID called with invalid index: ") << index);
   }
 }
 String& Card::getLinkedRelation(int index) {
@@ -183,7 +183,7 @@ String& Card::getLinkedRelation(int index) {
   case 1:  return linked_relation_2;
   case 2:  return linked_relation_3;
   case 3:  return linked_relation_4;
-  default: throw ScriptError(_("getLinkedRelation called with invalid index"));
+  default: throw ScriptError(String("getLinkedRelation called with invalid index: ") << index);
   }
 }
 

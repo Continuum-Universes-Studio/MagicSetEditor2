@@ -161,7 +161,7 @@ OneWayLinkCardsAction::OneWayLinkCardsAction(CardP& card, const String& uid, con
       return;
     }
     default: {
-      throw ScriptError(_("OneWayLinkCardsAction created with invalid index"));
+      throw ScriptError(String("OneWayLinkCardsAction created with invalid index: ") << index << _(" on card: ") << card->identification());
     }
   }
 }
