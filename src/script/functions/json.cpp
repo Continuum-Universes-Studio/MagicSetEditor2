@@ -1064,7 +1064,9 @@ boost::json::value mse_to_json(const ScriptValueP& sv, Set* set, bool suppress_w
         boost::json::object object;
         map<String, ScriptValueP>::iterator it;
         for (it = custom->key_value.begin(); it != custom->key_value.end(); it++) {
-          object.emplace(it->first.ToStdString(), mse_to_json(it->second, set));
+          const std::string& key = it->first.ToStdString();
+          if (object.contains(key)) queue_message(MESSAGE_WARNING, _ERROR_1_("mse map duplicate key", it->first));
+          object.emplace(key, mse_to_json(it->second, set));
         }
         return object;
       }
@@ -1091,7 +1093,9 @@ boost::json::value mse_to_json(const ScriptValueP& sv, Set* set, bool suppress_w
           boost::json::object object_a = a.get_object();
           boost::json::object object_b = b.get_object();
           for (auto it = object_b.begin(); it != object_b.end(); ++it) {
-            object_a.emplace(it->key(), it->value());
+            boost::json::string_view key_view = it->key();
+            if (object_a.contains(key_view)) queue_message(MESSAGE_WARNING, _ERROR_1_("mse map duplicate key", String::FromUTF8(key_view.data(), key_view.size())));
+            object_a.emplace(key_view, it->value());
           }
           return object_a;
         } else if (a.is_object() && b.is_array() && b.as_array().size() == 0) {
