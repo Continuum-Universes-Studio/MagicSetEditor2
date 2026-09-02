@@ -113,6 +113,7 @@ private:
   void updateCardCounts();
   int selected_cards_count = 0;
   int filtered_cards_count = 0;
+  int filtered_back_cards_count = 0;
   int total_cards_count = 0;
   /// Move the notes panel below the editor or below the card list
   void updateNotesPosition();

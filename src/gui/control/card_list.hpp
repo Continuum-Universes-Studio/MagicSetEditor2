@@ -119,10 +119,15 @@ public:
   inline CardP getCard(long pos) const { return static_pointer_cast<Card>(getItem(pos)); }
   /// Get a list of all focused cards
   void getSelection(vector<CardP>& out) const;
+  /// Number of cards hidden from the last getItems() call because they are back faces
+  int getHiddenBackFacesCount() const { return hidden_back_faces_count; }
 protected:
   /// Get a list of all cards
   void getItems(vector<VoidP>& out) const override;
-  
+
+  /// Remove cards that are back faces from the list, if settings.default_stylesheet_settings.hide_back_faces() is set
+  void filterOutBackFaces(vector<VoidP>& out) const;
+
   /// Rebuild the card list (clear all vectors and fill them again)
   void rebuild();
   /// Do some additional updating before rebuilding the list
@@ -157,6 +162,8 @@ private:
   
   mutable wxListItemAttr item_attr; ///< for OnGetItemAttr
   
+  mutable int hidden_back_faces_count = 0;
+
 public:
   /// Open a dialog for selecting columns to be shown
   void selectColumns();

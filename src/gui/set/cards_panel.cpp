@@ -174,32 +174,35 @@ CardsPanel::CardsPanel(Window* parent, int id)
 
 void CardsPanel::updateCardCounts() {
   if (counts && card_list && set) {
-    int selected = card_list->GetSelectedItemCount();
-    int filtered = card_list->GetItemCount();
     int total = set->cards.size();
+    int selected = card_list->GetSelectedItemCount();
+    int filtered = total - card_list->GetItemCount();
+    int back = card_list->getHiddenBackFacesCount();
 
     if (
-          selected_cards_count == selected
+      selected_cards_count == selected
       &&  filtered_cards_count == filtered
+      &&  filtered_back_cards_count == back
       &&  total_cards_count == total
       &&  !counts->GetLabel().empty()
     ) return;
 
     selected_cards_count = selected;
     filtered_cards_count = filtered;
+    filtered_back_cards_count = back;
     total_cards_count = total;
 
-    if (filtered == total) {
-      counts->SetLabel(_TOOL_2_("card counts 2",
-        wxString::Format(wxT("%i"), selected),
-        wxString::Format(wxT("%i"), total)));
-    }
-    else {
-      counts->SetLabel(_TOOL_3_("card counts 3",
-        wxString::Format(wxT("%i"), selected),
-        wxString::Format(wxT("%i"), filtered),
-        wxString::Format(wxT("%i"), total)));
-    }
+    String selected_string = selected > 1 ?            _TOOL_1_("card counts selecteds", wxString::Format(wxT("%i"), selected)) :
+                                                       _TOOL_("card counts selected");
+    String filtered_string = filtered > 1 ? _(",  ") + _TOOL_1_("card counts hiddens", wxString::Format(wxT("%i"), filtered)) :
+                             filtered > 0 ? _(",  ") + _TOOL_("card counts hidden") :
+                                            _("");
+    String back_string =     back > 1     ? _(" ") +   _TOOL_1_("card counts backs", wxString::Format(wxT("%i"), back)) :
+                             back > 0     ? _(" ") +   _TOOL_("card counts back") :
+                                            _("");
+    String total_string =                   _(",  ") + _TOOL_1_("card counts total", wxString::Format(wxT("%i"), total));
+
+    counts->SetLabel(selected_string + filtered_string + back_string + total_string);
   }
 }
 

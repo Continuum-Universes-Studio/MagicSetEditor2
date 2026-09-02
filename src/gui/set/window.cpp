@@ -812,8 +812,10 @@ void SetWindow::onEditAutoReplace(wxCommandEvent&) {
 void SetWindow::onEditPreferences(wxCommandEvent&) {
   PreferencesWindow wnd(this);
   if (wnd.ShowModal() == wxID_OK) {
-    // render settings may have changed, notify all windows
-    set->actions.tellListeners(DisplayChangeAction(),true);
+    // render settings may have changed, notify all windows since some settings are global
+    FOR_EACH(w, set_windows) {
+      w->set->actions.tellListeners(GlobalDisplayChangeAction(), true);
+    }
   }
 }
 

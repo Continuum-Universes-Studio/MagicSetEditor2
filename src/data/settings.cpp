@@ -147,6 +147,7 @@ StyleSheetSettings::StyleSheetSettings()
   , card_metaimage_export   (true,  true)
   , card_dfc_export         (true,  true)
   , card_spellcheck_enabled (true,  true)
+  , list_hide_back_faces    (false, true)
 {}
 
 void StyleSheetSettings::useDefault(const StyleSheetSettings& ss) {
@@ -162,6 +163,7 @@ void StyleSheetSettings::useDefault(const StyleSheetSettings& ss) {
   if (card_metaimage_export  .isDefault()) card_metaimage_export  .assignDefault(ss.card_metaimage_export);
   if (card_dfc_export        .isDefault()) card_dfc_export        .assignDefault(ss.card_dfc_export);
   if (card_spellcheck_enabled.isDefault()) card_spellcheck_enabled.assignDefault(ss.card_spellcheck_enabled);
+  if (list_hide_back_faces   .isDefault()) list_hide_back_faces   .assignDefault(ss.list_hide_back_faces);
 }
 
 IMPLEMENT_REFLECTION_NO_SCRIPT(StyleSheetSettings) {
@@ -177,6 +179,7 @@ IMPLEMENT_REFLECTION_NO_SCRIPT(StyleSheetSettings) {
   REFLECT(card_metaimage_export);
   REFLECT(card_dfc_export);
   REFLECT(card_spellcheck_enabled);
+  REFLECT(list_hide_back_faces);
 }
 
 // ----------------------------------------------------------------------------- : Printing settings

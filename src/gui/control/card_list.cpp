@@ -124,13 +124,33 @@ void CardListBase::onAction(const Action& action, bool undone) {
   TYPE_CASE(action, ValueAction) {
     if (action.card) refreshList(true);
   }
+  TYPE_CASE_(action, GlobalDisplayChangeAction) {
+    rebuild();
+  }
 }
 
 void CardListBase::getItems(vector<VoidP>& out) const {
   FOR_EACH(c, set->cards) {
     out.push_back(c);
   }
+  filterOutBackFaces(out);
 }
+
+void CardListBase::filterOutBackFaces(vector<VoidP>& out) const {
+  hidden_back_faces_count = 0;
+  if (!settings.default_stylesheet_settings.list_hide_back_faces()) return;
+  size_t before_count = out.size();
+  out.erase(
+    std::remove_if(out.begin(), out.end(),
+      [this](const VoidP& item) {
+        CardP card = static_pointer_cast<Card>(item);
+        return !card->getLinkedRelationCards(*set, _("Front Face")).empty();
+      }),
+    out.end()
+  );
+  hidden_back_faces_count = (int)(before_count - out.size());
+}
+
 void CardListBase::sendEvent(int type) {
   CardSelectEvent ev(type);
   ev.SetEventObject(this);

@@ -115,6 +115,7 @@ public:
   Defaultable<bool>    card_metaimage_export;
   Defaultable<bool>    card_dfc_export;
   Defaultable<bool>    card_spellcheck_enabled;
+  Defaultable<double>  list_hide_back_faces;
   
   /// Where the settings are the default, use the value from ss
   void useDefault(const StyleSheetSettings& ss);

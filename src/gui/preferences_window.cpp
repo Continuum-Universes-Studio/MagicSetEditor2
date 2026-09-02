@@ -53,7 +53,7 @@ public:
 private:
   DECLARE_EVENT_TABLE();
   
-  wxCheckBox* high_quality, *borders, *draw_editing, *spellcheck_enabled;
+  wxCheckBox* high_quality, *borders, *draw_editing, *spellcheck_enabled, *hide_back_faces;
   
   wxComboBox* zoom;
   int zoom_int;
@@ -216,6 +216,7 @@ DisplayPreferencesPage::DisplayPreferencesPage(Window* parent)
   borders            = new wxCheckBox(this, wxID_ANY, _BUTTON_("show lines"));
   draw_editing       = new wxCheckBox(this, wxID_ANY, _BUTTON_("show editing hints"));
   spellcheck_enabled = new wxCheckBox(this, wxID_ANY, _BUTTON_("spellcheck enabled"));
+  hide_back_faces    = new wxCheckBox(this, wxID_ANY, _BUTTON_("hide back faces"));
   zoom               = new wxComboBox(this, ID_ZOOM);
 
   // set values
@@ -223,6 +224,7 @@ DisplayPreferencesPage::DisplayPreferencesPage(Window* parent)
   borders->           SetValue( settings.default_stylesheet_settings.card_borders());
   draw_editing->      SetValue( settings.default_stylesheet_settings.card_draw_editing());
   spellcheck_enabled->SetValue( settings.default_stylesheet_settings.card_spellcheck_enabled());
+  hide_back_faces->   SetValue( settings.default_stylesheet_settings.list_hide_back_faces());
   zoom_int = static_cast<int>(  settings.default_stylesheet_settings.card_zoom() * 100);
   zoom->SetValue(String::Format(_("%d%%"),zoom_int));
   for (int i : Settings::scale_choices) {
@@ -231,18 +233,21 @@ DisplayPreferencesPage::DisplayPreferencesPage(Window* parent)
 
   // init sizer
   wxSizer* s = new wxBoxSizer(wxVERTICAL);
-    wxSizer* s2 = new wxStaticBoxSizer(wxVERTICAL, this, _LABEL_("card display"));
-      s2->Add(high_quality,       0, wxEXPAND | wxALL, 4);
-      s2->Add(borders,            0, wxEXPAND | wxALL, 4);
-      s2->Add(draw_editing,       0, wxEXPAND | wxALL, 4);
-      s2->Add(spellcheck_enabled, 0, wxEXPAND | wxALL, 4);
-      wxSizer* s3 = new wxBoxSizer(wxHORIZONTAL);
-        s3->Add(new wxStaticText(this, wxID_ANY, _LABEL_("zoom")),             0, wxALL & ~wxLEFT,  4);
-        s3->AddSpacer(2);
-        s3->Add(zoom);
-        s3->Add(new wxStaticText(this, wxID_ANY, _LABEL_("percent of normal")),1, wxALL & ~wxRIGHT, 4);
-      s2->Add(s3, 0, wxEXPAND | wxALL, 4);
-    s->Add(s2, 0, wxEXPAND | wxALL, 8);
+  wxSizer* s2 = new wxStaticBoxSizer(wxVERTICAL, this, _LABEL_("card display"));
+  s2->Add(high_quality,       0, wxEXPAND | wxALL, 4);
+  s2->Add(borders,            0, wxEXPAND | wxALL, 4);
+  s2->Add(draw_editing,       0, wxEXPAND | wxALL, 4);
+  s2->Add(spellcheck_enabled, 0, wxEXPAND | wxALL, 4);
+  wxSizer* s3 = new wxBoxSizer(wxHORIZONTAL);
+  s3->Add(new wxStaticText(this, wxID_ANY, _LABEL_("zoom")),             0, wxALL & ~wxLEFT,  4);
+  s3->AddSpacer(2);
+  s3->Add(zoom);
+  s3->Add(new wxStaticText(this, wxID_ANY, _LABEL_("percent of normal")),1, wxALL & ~wxRIGHT, 4);
+  s2->Add(s3, 0, wxEXPAND | wxALL, 4);
+  s->Add(s2, 0, wxEXPAND | wxALL, 8);
+  wxSizer* s4 = new wxStaticBoxSizer(wxVERTICAL, this, _LABEL_("card list display"));
+  s4->Add(hide_back_faces, 0, wxEXPAND | wxALL, 4);
+  s->Add(s4, 0, wxEXPAND | wxALL, 8);
   SetSizer(s);
   s->SetSizeHints(this);
 }
@@ -252,7 +257,8 @@ void DisplayPreferencesPage::store() {
   settings.default_stylesheet_settings.card_borders            = borders->GetValue();
   settings.default_stylesheet_settings.card_draw_editing       = draw_editing->GetValue();
   settings.default_stylesheet_settings.card_spellcheck_enabled = spellcheck_enabled->GetValue();
-  
+  settings.default_stylesheet_settings.list_hide_back_faces    = hide_back_faces->GetValue();
+
   updateZoom();
   settings.default_stylesheet_settings.card_zoom   = zoom_int / 100.0;
 }

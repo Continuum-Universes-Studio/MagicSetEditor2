@@ -166,7 +166,7 @@ void CardLinkWindow::onOk(wxCommandEvent&) {
   }
   // Add action to set
   set->actions.addAction(make_unique<BulkAction>(actions, set, card_list_window, false), false);
-  set->actions.tellListeners(DisplayChangeAction(),true);
+  set->actions.tellListeners(GlobalDisplayChangeAction(),true);
   // Done
   EndModal(wxID_OK);
 }
