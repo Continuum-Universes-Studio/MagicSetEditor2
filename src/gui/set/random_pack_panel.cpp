@@ -227,16 +227,12 @@ void PackAmountPicker::destroy(wxFlexGridSizer* sizer) {
   delete value;
 }
 
-void limit_packs_window_size(wxScrolledWindow* window, wxFlexGridSizer* sizer, const vector<PackAmountPicker>& pickers, int max_visible = 12) {
-  int rows = (int)pickers.size();
-  if (rows == 0) {
-    window->SetMinSize(wxSize(-1,-1));
-  } else {
-    int row_height = pickers[0].value->GetBestSize().y;
-    int vgap       = sizer->GetVGap();
-    int visible    = rows < max_visible ? rows : max_visible;
-    window->SetMinSize(wxSize(-1, visible * row_height + (visible - 1) * vgap));
-  }
+/// Give a scrolled window a hard height limit (in pixels): it sizes itself naturally
+/// to fit its content sizer up to that limit; beyond it, a scrollbar appears instead
+/// of the window growing further.
+void limit_scrolled_window_height(wxScrolledWindow* window, int max_height) {
+  wxSize content = window->GetSizer()->CalcMin();
+  window->SetMinSize(wxSize(-1, content.y < max_height ? content.y : max_height));
   window->FitInside();
 }
 
@@ -254,6 +250,7 @@ private:
   PackGenerator    generator;
   wxTextCtrl*      name;
   PackTotalsPanel* totals;
+  wxScrolledWindow* totalsWindow; ///< Scrollable container for the totals panel
   vector<PackAmountPicker> pickers;
   
   void updateTotals();
@@ -269,7 +266,13 @@ CustomPackDialog::CustomPackDialog(Window* parent, const SetP& set, const PackTy
   , set(set), edited_pack(edited_pack)
 {
   // init ui
-  totals = new PackTotalsPanel(this, wxID_ANY, generator, true);
+  totalsWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxBORDER_THEME);
+  totals = new PackTotalsPanel(totalsWindow, wxID_ANY, generator, true);
+  wxSizer* totalsWindowSizer = new wxBoxSizer(wxHORIZONTAL);
+  totalsWindowSizer->Add(totals, 1, wxEXPAND | wxALL, 4);
+  totalsWindowSizer->AddSpacer(8);
+  totalsWindow->SetSizer(totalsWindowSizer);
+  totalsWindow->SetScrollRate(0, 10);
   name   = new wxTextCtrl(this, wxID_ANY, edited_pack ? edited_pack->name : _("custom pack"));
   wxButton* remove = 
     can_remove ? new wxButton(this, ID_REMOVE_ITEM, _BUTTON_("remove item"))
@@ -293,7 +296,7 @@ CustomPackDialog::CustomPackDialog(Window* parent, const SetP& set, const PackTy
         s4->Add(packsWindow, 1, wxEXPAND | (wxALL & ~wxTOP & ~wxLEFT), 4);
       s3->Add(s4, 1, wxEXPAND, 8);
       wxSizer* s5 = new wxStaticBoxSizer(wxHORIZONTAL, this, _LABEL_("pack totals"));
-        s5->Add(totals, 1, wxEXPAND | wxALL, 4);
+        s5->Add(totalsWindow, 1, wxEXPAND | wxALL, 4);
       s3->Add(s5, 1, wxEXPAND | wxLEFT, 8);
     s->Add(s3, 0, wxEXPAND | (wxALL & ~wxTOP), 8);
     wxSizer* s6 = new wxBoxSizer(wxHORIZONTAL);
@@ -316,8 +319,8 @@ CustomPackDialog::CustomPackDialog(Window* parent, const SetP& set, const PackTy
       }
     }
   }
-  // limit the pack list to ~18 visible rows, add scroll bar beyond that
-  limit_packs_window_size(packsWindow, packsSizer, pickers, 18);
+  // limit the pack list's height to at most 500px, add a scroll bar beyond that
+  limit_scrolled_window_height(packsWindow, 500);
   // update totals
   generator.reset(set,0);
   totals->setGame(set->game);
@@ -337,7 +340,11 @@ void CustomPackDialog::updateTotals() {
   }
   generator.update_card_counts();
   // update UI
+  totals->InvalidateBestSize();
   totals->Refresh(false);
+  // the number of visible total lines can change, so re-check the height limit
+  limit_scrolled_window_height(totalsWindow, 500);
+  Layout();
   FindWindow(wxID_OK)->Enable(total_packs > 0);
 }
 
@@ -404,7 +411,13 @@ void RandomPackPanel::initControls() {
   seed_random = new wxRadioButton(this, ID_SEED_RANDOM, _BUTTON_("random seed"));
   seed_fixed  = new wxRadioButton(this, ID_SEED_FIXED,  _BUTTON_("fixed seed"));
   seed = new wxTextCtrl(this, wxID_ANY);
-  totals = new PackTotalsPanel(this, wxID_ANY, generator);
+  totalsWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxBORDER_THEME);
+  totals = new PackTotalsPanel(totalsWindow, wxID_ANY, generator);
+  wxSizer* totalsWindowSizer = new wxBoxSizer(wxHORIZONTAL);
+  totalsWindowSizer->Add(totals, 1, wxEXPAND | wxALL, 4);
+  totalsWindowSizer->AddSpacer(8);
+  totalsWindow->SetSizer(totalsWindowSizer);
+  totalsWindow->SetScrollRate(0, 10);
   set_help_text(seed_random, _HELP_("random seed"));
   set_help_text(seed_fixed,  _HELP_("fixed seed"));
   set_help_text(seed,        _HELP_("seed"));
@@ -428,7 +441,7 @@ void RandomPackPanel::initControls() {
           s4->Add(new wxButton(this, ID_CUSTOM_PACK, _BUTTON_("add custom pack")), 0, wxEXPAND | wxALIGN_TOP | (wxALL & ~wxTOP), 4);
         s3->Add(s4, 1, wxEXPAND, 8);
         wxSizer* s5 = new wxStaticBoxSizer(wxHORIZONTAL, this, _LABEL_("pack totals"));
-          s5->Add(totals, 1, wxEXPAND | wxALL, 4);
+          s5->Add(totalsWindow, 1, wxEXPAND | wxALL, 4);
         s3->Add(s5, 1, wxEXPAND | wxLEFT, 8);
         wxSizer* s6 = new wxBoxSizer(wxVERTICAL);
           wxSizer* s7 = new wxStaticBoxSizer(wxVERTICAL, this, _LABEL_("seed"));
@@ -480,8 +493,8 @@ void RandomPackPanel::onChangeSet() {
     }
   }
   
-  // limit the pack list to ~12 visible rows, add scroll bar beyond that
-  limit_packs_window_size(packsWindow, packsSizer, pickers);
+  // limit the pack list's height to at most 330px, add a scroll bar beyond that
+  limit_scrolled_window_height(packsWindow, 330);
   
   Layout();
   
@@ -595,7 +608,11 @@ void RandomPackPanel::updateTotals() {
   }
   generator.update_card_counts();
   // update UI
+  totals->InvalidateBestSize();
   totals->Refresh(false);
+  // the number of visible total lines can change, so re-check the height limit
+  limit_scrolled_window_height(totalsWindow, 330);
+  Layout();
   generate_button->Enable(total_packs > 0);
 }
 

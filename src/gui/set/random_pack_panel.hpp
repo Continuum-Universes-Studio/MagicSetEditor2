@@ -73,6 +73,7 @@ private:
   wxScrolledWindow* packsWindow; ///< Scrollable container for the pack pickers
   wxFlexGridSizer*  packsSizer;
   wxFlexGridSizer*  totalsSizer;
+  wxScrolledWindow* totalsWindow; ///< Scrollable container for the totals panel
   wxButton*         generate_button;
   wxRadioButton*    seed_random, *seed_fixed;
   PackTotalsPanel*  totals;
