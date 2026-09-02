@@ -19,6 +19,7 @@
 #include <util/window_id.hpp>
 #include <wx/spinctrl.h>
 #include <wx/dcbuffer.h>
+#include <wx/scrolwin.h>
 
 // ----------------------------------------------------------------------------- : RandomCardList
 
@@ -226,6 +227,19 @@ void PackAmountPicker::destroy(wxFlexGridSizer* sizer) {
   delete value;
 }
 
+void limit_packs_window_size(wxScrolledWindow* window, wxFlexGridSizer* sizer, const vector<PackAmountPicker>& pickers, int max_visible = 12) {
+  int rows = (int)pickers.size();
+  if (rows == 0) {
+    window->SetMinSize(wxSize(-1,-1));
+  } else {
+    int row_height = pickers[0].value->GetBestSize().y;
+    int vgap       = sizer->GetVGap();
+    int visible    = rows < max_visible ? rows : max_visible;
+    window->SetMinSize(wxSize(-1, visible * row_height + (visible - 1) * vgap));
+  }
+  window->FitInside();
+}
+
 // ----------------------------------------------------------------------------- : CustomPackDialog
 
 class CustomPackDialog : public wxDialog {
@@ -268,9 +282,15 @@ CustomPackDialog::CustomPackDialog(Window* parent, const SetP& set, const PackTy
     wxSizer* s3 = new wxBoxSizer(wxHORIZONTAL);
       wxSizer* s4 = new wxStaticBoxSizer(wxHORIZONTAL, this, _LABEL_("pack selection"));
         s4->AddSpacer(2);
+        wxScrolledWindow* packsWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxBORDER_THEME);
         wxFlexGridSizer* packsSizer = new wxFlexGridSizer(0, 2, 4, 4);
         packsSizer->AddGrowableCol(0);
-        s4->Add(packsSizer, 1, wxEXPAND | (wxALL & ~wxTOP & ~wxLEFT), 4);
+        wxSizer* packsWindowSizer = new wxBoxSizer(wxHORIZONTAL);
+        packsWindowSizer->Add(packsSizer, 1, wxEXPAND | wxALL, 4);
+        packsWindowSizer->AddSpacer(8);
+        packsWindow->SetSizer(packsWindowSizer);
+        packsWindow->SetScrollRate(0, 10);
+        s4->Add(packsWindow, 1, wxEXPAND | (wxALL & ~wxTOP & ~wxLEFT), 4);
       s3->Add(s4, 1, wxEXPAND, 8);
       wxSizer* s5 = new wxStaticBoxSizer(wxHORIZONTAL, this, _LABEL_("pack totals"));
         s5->Add(totals, 1, wxEXPAND | wxALL, 4);
@@ -285,7 +305,7 @@ CustomPackDialog::CustomPackDialog(Window* parent, const SetP& set, const PackTy
   // add spin controls
   FOR_EACH(pack, set->game->pack_types) {
     if (pack->selectable) continue; // this pack is already selectable from the main UI
-    PackAmountPicker pick(this, packsSizer, pack, false);
+    PackAmountPicker pick(packsWindow, packsSizer, pack, false);
     pickers.push_back(pick);
     // set value if it is nonzero
     if (edited_pack) {
@@ -296,6 +316,8 @@ CustomPackDialog::CustomPackDialog(Window* parent, const SetP& set, const PackTy
       }
     }
   }
+  // limit the pack list to ~18 visible rows, add scroll bar beyond that
+  limit_packs_window_size(packsWindow, packsSizer, pickers, 18);
   // update totals
   generator.reset(set,0);
   totals->setGame(set->game);
@@ -393,9 +415,15 @@ void RandomPackPanel::initControls() {
       wxSizer* s3 = new wxBoxSizer(wxHORIZONTAL);
         wxSizer* s4 = new wxStaticBoxSizer(wxVERTICAL, this, _LABEL_("pack selection"));
           wxSizer* s4b = new wxBoxSizer(wxHORIZONTAL);
+            packsWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxBORDER_THEME);
             packsSizer = new wxFlexGridSizer(0, 2, 4, 4);
             packsSizer->AddGrowableCol(0);
-            s4b->Add(packsSizer, 1, wxEXPAND | (wxALL & ~wxTOP & ~wxLEFT), 4);
+            wxSizer* packsWindowSizer = new wxBoxSizer(wxHORIZONTAL);
+            packsWindowSizer->Add(packsSizer, 1, wxEXPAND | wxALL, 4);
+            packsWindowSizer->AddSpacer(8);
+            packsWindow->SetSizer(packsWindowSizer);
+            packsWindow->SetScrollRate(0, 10);
+            s4b->Add(packsWindow, 1, wxEXPAND | (wxALL & ~wxTOP & ~wxLEFT), 4);
           s4->Add(s4b, 1, wxEXPAND | wxLEFT, 2);
           s4->Add(new wxButton(this, ID_CUSTOM_PACK, _BUTTON_("add custom pack")), 0, wxEXPAND | wxALIGN_TOP | (wxALL & ~wxTOP), 4);
         s3->Add(s4, 1, wxEXPAND, 8);
@@ -443,14 +471,17 @@ void RandomPackPanel::onChangeSet() {
   // add pack controls
   FOR_EACH(pack, set->game->pack_types) {
     if (pack->selectable) {
-      pickers.push_back(PackAmountPicker(this,packsSizer,pack,false));
+      pickers.push_back(PackAmountPicker(packsWindow,packsSizer,pack,false));
     }
   }
   FOR_EACH(pack, set->pack_types) {
     if (pack->selectable) {
-      pickers.push_back(PackAmountPicker(this,packsSizer,pack,true));
+      pickers.push_back(PackAmountPicker(packsWindow,packsSizer,pack,true));
     }
   }
+  
+  // limit the pack list to ~12 visible rows, add scroll bar beyond that
+  limit_packs_window_size(packsWindow, packsSizer, pickers);
   
   Layout();
   

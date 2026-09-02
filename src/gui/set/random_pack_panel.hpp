@@ -17,6 +17,7 @@ class CardViewer;
 class RandomCardList;
 class PackTotalsPanel;
 class SelectableLabel;
+class wxScrolledWindow;
 struct CardSelectEvent;
 DECLARE_POINTER_TYPE(PackType);
 
@@ -69,6 +70,7 @@ private:
   CardViewer*       preview;    ///< Card preview
   RandomCardList*   card_list;  ///< The list of cards
   wxTextCtrl*       seed;      ///< Seed value
+  wxScrolledWindow* packsWindow; ///< Scrollable container for the pack pickers
   wxFlexGridSizer*  packsSizer;
   wxFlexGridSizer*  totalsSizer;
   wxButton*         generate_button;
