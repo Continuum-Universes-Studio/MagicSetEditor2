@@ -961,12 +961,7 @@ SCRIPT_FUNCTION(remove_links) {
 SCRIPT_FUNCTION(has_link) {
   SCRIPT_PARAM_C(CardP, input);
   SCRIPT_PARAM(String, linked_relation);
-  SCRIPT_RETURN(
-    input->linked_relation_1 == linked_relation ||
-    input->linked_relation_2 == linked_relation ||
-    input->linked_relation_3 == linked_relation ||
-    input->linked_relation_4 == linked_relation
-  );
+  SCRIPT_RETURN(!input->findRelationLinks(linked_relation).empty());
 }
 
 // ----------------------------------------------------------------------------- : Keywords

@@ -24,7 +24,7 @@ DEFINE_EVENT_TYPE(EVENT_SIZE_CHANGE);
 
 CardViewer::CardViewer(Window* parent, int id, long style)
   : wxControl(parent, id, wxDefaultPosition, wxDefaultSize, style)
-  , up_to_date(false), is_focused(true), redraw_pending(false)
+  , up_to_date(false), is_focused(true), redraw_pending(false), full_repaint(false)
 {
   redraw_timer.SetOwner(this, ID_REDRAW_TIMER);
   SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -111,19 +111,30 @@ void CardViewer::onPaint(wxPaintEvent&) {
 //  dc.SetDeviceOrigin(-dx, -dy);
   wxRegion clip = GetUpdateRegion();
 //  clip.Offset(dx, dy);
+  if (!up_to_date) {
+    // The buffer may contain regions that were never actually painted
+    clip = wxRegion(0, 0, cs.GetWidth(), cs.GetHeight());
+  }
   dc.SetDeviceClippingRegion(clip);
   // draw
   if (!up_to_date) {
     up_to_date = true;
+    full_repaint = true;
     try {
       draw(dc);
     } CATCH_ALL_ERRORS(false); // don't show message boxes in onPaint!
+    full_repaint = false;
   }
 }
 
 void CardViewer::onClick(wxMouseEvent& ev) {
   if (GetId() == ID_CARD_LINK_VIEWER) {
-    CardsPanel* panel = dynamic_cast<CardsPanel*> (GetParent());
+    // walk up to the owning CardsPanel -- can't assume it's the immediate parent, since
+    // link viewers may be nested inside e.g. a scrolled window
+    CardsPanel* panel = nullptr;
+    for (wxWindow* w = GetParent(); w && !panel; w = w->GetParent()) {
+      panel = dynamic_cast<CardsPanel*>(w);
+    }
     if (panel) {
       panel->setCard(getCard(), true);
     }
@@ -141,6 +152,7 @@ bool CardViewer::shouldDraw(const ValueViewer& v) const {
 //  int dx = GetScrollPos(wxHORIZONTAL), dy = GetScrollPos(wxVERTICAL);
 //  wxRegion clip = GetUpdateRegion();
 //  clip.Offset(dx, dy);
+  if (full_repaint) return true;
   return GetUpdateRegion().Contains(getRotation().trRectToBB(v.boundingBoxBorder().toRect()).toRect()) != wxOutRegion;
 }
 

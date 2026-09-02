@@ -229,14 +229,12 @@ CardP json_to_mse_card(boost::json::object& jv, Set* set) {
   read(card->time_modified,     jv, "time_modified");
   read(card->notes,             jv, "notes");
   read(card->uid,               jv, "uid");
-  read(card->linked_card_1,     jv, "linked_card_1");
-  read(card->linked_card_2,     jv, "linked_card_2");
-  read(card->linked_card_3,     jv, "linked_card_3");
-  read(card->linked_card_4,     jv, "linked_card_4");
-  read(card->linked_relation_1, jv, "linked_relation_1");
-  read(card->linked_relation_2, jv, "linked_relation_2");
-  read(card->linked_relation_3, jv, "linked_relation_3");
-  read(card->linked_relation_4, jv, "linked_relation_4");
+  for (int i = 0; i < Card::MAX_LINKS; ++i) {
+    std::string card_key     = "linked_card_"     + std::to_string(i + 1);
+    std::string relation_key = "linked_relation_" + std::to_string(i + 1);
+    read(card->getLinkedUID(i),      jv, card_key.c_str());
+    read(card->getLinkedRelation(i), jv, relation_key.c_str());
+  }
   // card fields
   if (jv.contains("data") && jv["data"].is_object()) {
     boost::json::object datav = jv["data"].get_object();
@@ -526,14 +524,10 @@ boost::json::object mse_to_json(const CardP& card, const Set* set) {
   write(cardv, "time_modified",     card->time_modified);
   write(cardv, "notes",             card->notes);
   write(cardv, "uid",               card->uid);
-  write(cardv, "linked_card_1",     card->linked_card_1);
-  write(cardv, "linked_card_2",     card->linked_card_2);
-  write(cardv, "linked_card_3",     card->linked_card_3);
-  write(cardv, "linked_card_4",     card->linked_card_4);
-  write(cardv, "linked_relation_1", card->linked_relation_1);
-  write(cardv, "linked_relation_2", card->linked_relation_2);
-  write(cardv, "linked_relation_3", card->linked_relation_3);
-  write(cardv, "linked_relation_4", card->linked_relation_4);
+  for (int i = 0; i < Card::MAX_LINKS; ++i) {
+    write(cardv, String::Format(_("linked_card_%d"), i + 1),     card->getLinkedUID(i));
+    write(cardv, String::Format(_("linked_relation_%d"), i + 1), card->getLinkedRelation(i));
+  }
   // card fields
   write(cardv, "data",              card->data);
   // stylesheet

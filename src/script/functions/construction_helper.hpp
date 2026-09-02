@@ -173,36 +173,12 @@ inline static bool set_builtin_container(const Game& game, Set* set, CardP& card
     card->uid = value->toString();
     return true;
   }
-  else if (key_name == _("linked_card_1") || key_name == _("linked_card")) {
-    card->linked_card_1 = value->toString();
+  else if (Card::linkedCardFieldIndex(key_name) >= 0) {
+    card->getLinkedUID(Card::linkedCardFieldIndex(key_name)) = value->toString();
     return true;
   }
-  else if (key_name == _("linked_card_2")) {
-    card->linked_card_2 = value->toString();
-    return true;
-  }
-  else if (key_name == _("linked_card_3")) {
-    card->linked_card_3 = value->toString();
-    return true;
-  }
-  else if (key_name == _("linked_card_4")) {
-    card->linked_card_4 = value->toString();
-    return true;
-  }
-  else if (key_name == _("linked_relation_1") || key_name == _("linked_relation")) {
-    card->linked_relation_1 = value->toString();
-    return true;
-  }
-  else if (key_name == _("linked_relation_2")) {
-    card->linked_relation_2 = value->toString();
-    return true;
-  }
-  else if (key_name == _("linked_relation_3")) {
-    card->linked_relation_3 = value->toString();
-    return true;
-  }
-  else if (key_name == _("linked_relation_4")) {
-    card->linked_relation_4 = value->toString();
+  else if (Card::linkedRelationFieldIndex(key_name) >= 0) {
+    card->getLinkedRelation(Card::linkedRelationFieldIndex(key_name)) = value->toString();
     return true;
   }
   else if          (key_name == _("styling_data")   || key_name == _("styling")
@@ -233,6 +209,14 @@ inline static bool set_builtin_container(const Game& game, Set* set, CardP& card
   return false;
 }
 
+// Is key_name "linked_card"/"linked_card_N", "linked_relation"/"linked_relation_N", or the
+// legacy "link_relation"/"link_relation_N" alias, for 1 <= N <= Card::MAX_LINKS?
+inline static bool is_recognized_link_header(const String& key_name) {
+  return Card::linkedCardFieldIndex(key_name) >= 0
+      || Card::linkedRelationFieldIndex(key_name) >= 0
+      || Card::indexedFieldIndex(key_name, _("link_relation"), Card::MAX_LINKS) >= 0;
+}
+
 inline static bool check_table_headers(GameP& game, std::vector<String>& headers, const String& file_extension, String& missing_fields_out) {
   if (headers.empty()) {
     queue_message(MESSAGE_ERROR, _("Empty headers given"));
@@ -247,21 +231,7 @@ inline static bool check_table_headers(GameP& game, std::vector<String>& headers
       && key_name != _("stylesheet")
       && key_name != _("id")
       && key_name != _("uid")
-      && key_name != _("linked_card")
-      && key_name != _("linked_card_1")
-      && key_name != _("linked_card_2")
-      && key_name != _("linked_card_3")
-      && key_name != _("linked_card_4")
-      && key_name != _("linked_relation")
-      && key_name != _("linked_relation_1")
-      && key_name != _("linked_relation_2")
-      && key_name != _("linked_relation_3")
-      && key_name != _("linked_relation_4")
-      && key_name != _("link_relation")
-      && key_name != _("link_relation_1")
-      && key_name != _("link_relation_2")
-      && key_name != _("link_relation_3")
-      && key_name != _("link_relation_4")
+      && !is_recognized_link_header(key_name)
     ) {
       missing_fields_out += _("\n   ") + key_name;
     }

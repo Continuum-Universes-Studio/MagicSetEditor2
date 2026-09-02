@@ -24,7 +24,24 @@ DECLARE_POINTER_TYPE(Field);
 DECLARE_POINTER_TYPE(Value);
 DECLARE_POINTER_TYPE(StyleSheet);
 
-#define LINK_PAIRS(var, card) vector<pair<reference_wrapper<String>, reference_wrapper<String>>> var { make_pair(ref(card->linked_card_1), ref(card->linked_relation_1)), make_pair(ref(card->linked_card_2), ref(card->linked_relation_2)), make_pair(ref(card->linked_card_3), ref(card->linked_relation_3)), make_pair(ref(card->linked_card_4), ref(card->linked_relation_4)) }
+#define LINK_PAIRS(var, card) vector<pair<reference_wrapper<String>, reference_wrapper<String>>> var { \
+    make_pair(ref(card->linked_card_1),  ref(card->linked_relation_1)), \
+    make_pair(ref(card->linked_card_2),  ref(card->linked_relation_2)), \
+    make_pair(ref(card->linked_card_3),  ref(card->linked_relation_3)), \
+    make_pair(ref(card->linked_card_4),  ref(card->linked_relation_4)), \
+    make_pair(ref(card->linked_card_5),  ref(card->linked_relation_5)), \
+    make_pair(ref(card->linked_card_6),  ref(card->linked_relation_6)), \
+    make_pair(ref(card->linked_card_7),  ref(card->linked_relation_7)), \
+    make_pair(ref(card->linked_card_8),  ref(card->linked_relation_8)), \
+    make_pair(ref(card->linked_card_9),  ref(card->linked_relation_9)), \
+    make_pair(ref(card->linked_card_10), ref(card->linked_relation_10)), \
+    make_pair(ref(card->linked_card_11), ref(card->linked_relation_11)), \
+    make_pair(ref(card->linked_card_12), ref(card->linked_relation_12)), \
+    make_pair(ref(card->linked_card_13), ref(card->linked_relation_13)), \
+    make_pair(ref(card->linked_card_14), ref(card->linked_relation_14)), \
+    make_pair(ref(card->linked_card_15), ref(card->linked_relation_15)), \
+    make_pair(ref(card->linked_card_16), ref(card->linked_relation_16)) \
+  }
 
 // ----------------------------------------------------------------------------- : Card
 
@@ -48,16 +65,40 @@ public:
   String notes;
   /// Unique identifier for this card, so other cards can refer to it, and be linked to it
   String uid;
-  /// Up to four uid of other cards, to encode relations such as front face/back face, or generator/token, etc...
+  /// Up to MAX_LINKS uids of other cards, to encode relations such as front face/back face, or generator/token, etc...
   String linked_card_1;
   String linked_card_2;
   String linked_card_3;
   String linked_card_4;
+  String linked_card_5;
+  String linked_card_6;
+  String linked_card_7;
+  String linked_card_8;
+  String linked_card_9;
+  String linked_card_10;
+  String linked_card_11;
+  String linked_card_12;
+  String linked_card_13;
+  String linked_card_14;
+  String linked_card_15;
+  String linked_card_16;
   /// Nature of the relatation with the respective linked card, such as back face, or token, etc...
   String linked_relation_1;
   String linked_relation_2;
   String linked_relation_3;
   String linked_relation_4;
+  String linked_relation_5;
+  String linked_relation_6;
+  String linked_relation_7;
+  String linked_relation_8;
+  String linked_relation_9;
+  String linked_relation_10;
+  String linked_relation_11;
+  String linked_relation_12;
+  String linked_relation_13;
+  String linked_relation_14;
+  String linked_relation_15;
+  String linked_relation_16;
   /// Time the card was created/last modified
   wxDateTime time_created, time_modified;
   /// Alternative style to use for this card
@@ -109,6 +150,9 @@ public:
     throw InternalError(_("Expected a card field with name '")+name+_("'"));
   }
 
+  /// The number of link slots a card has (linked_card_1..MAX_LINKS / linked_relation_1..MAX_LINKS).
+  static const int MAX_LINKS = 16;
+
   /// Find the index of a free link slot to write to. Returns -1 if not found.
   int         findFreeLink (const String&   linked_uid,  const unordered_map<String, CardP>& all_existing_uids);
   vector<int> findFreeLinks(vector<String>& linked_uids, const unordered_map<String, CardP>& all_existing_uids);
@@ -118,10 +162,22 @@ public:
   /// Find all indexes of link slots that references the linked_relation.
   vector<int> findRelationLinks(const String& linked_relation);
 
-  /// Get a reference to the linked uid slot.
+  /// Get a reference to the linked uid slot (0 <= index < MAX_LINKS).
   String& getLinkedUID     (int index);
-  /// Get a reference to the linked relation slot.
+  /// Get a reference to the linked relation slot (0 <= index < MAX_LINKS).
   String& getLinkedRelation(int index);
+
+  /// Helper to convert a link name into an index
+  /// If key_name == base_name, returns 0. If key_name == base_name + "_" + N for
+  /// 1 <= N <= max_count, returns N-1. Otherwise returns -1.
+  static int indexedFieldIndex(const String& key_name, const String& base_name, int max_count);
+  /// If key_name is "linked_card" or "linked_card_N" (1 <= N <= MAX_LINKS), return the
+  /// corresponding 0-based link index. Otherwise return -1.
+  static int linkedCardFieldIndex(const String& key_name);
+  /// Same as linkedCardFieldIndex, but for "linked_relation"/"linked_relation_N".
+  static int linkedRelationFieldIndex(const String& key_name);
+  /// Is `name` one of the linked_card_*/linked_relation_* member names? Used for dependency tracking.
+  static bool isLinkFieldName(const String& name);
 
   /// Make all links that point to old_uid point to new_uid instead.
   void updateLinkedUID(const String& old_uid, const String& new_uid);

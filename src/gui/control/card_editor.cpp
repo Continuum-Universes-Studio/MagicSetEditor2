@@ -441,6 +441,12 @@ void DataEditor::onLoseCapture(wxMouseCaptureLostEvent&) {
 
 // ----------------------------------------------------------------------------- : Keyboard events
 
+static CardsPanel* find_cards_panel(wxWindow* w) {
+  for (; w; w = w->GetParent()) {
+    if (CardsPanel* panel = dynamic_cast<CardsPanel*>(w)) return panel;
+  }
+  return nullptr;
+}
 void DataEditor::onChar(wxKeyEvent& ev) {
   if (ev.GetKeyCode() == WXK_TAB) {
     if (!ev.ShiftDown()) {
@@ -467,7 +473,7 @@ void DataEditor::onChar(wxKeyEvent& ev) {
 
   // TODO: Figure out how to send an event instead of doing this
   if (GetId() == ID_CARD_LINK_EDITOR) {
-    CardsPanel* panel = dynamic_cast<CardsPanel*> (GetParent());
+    CardsPanel* panel = find_cards_panel(GetParent());
     if (panel) {
       panel->refreshCard(card);
     }
@@ -516,7 +522,7 @@ void DataEditor::onFocus(wxFocusEvent& ev) {
       selectFirst();
     }
   }
-  CardsPanel* panel = dynamic_cast<CardsPanel*> (GetParent());
+  CardsPanel* panel = find_cards_panel(GetParent());
   if (panel) {
     panel->setFocusedEditor(this);
   }

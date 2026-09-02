@@ -8,6 +8,7 @@
 
 #include <util/prec.hpp>
 #include <data/game.hpp>
+#include <data/card.hpp>
 #include <data/field.hpp>
 #include <data/field/choice.hpp>
 #include <data/card_link.hpp>
@@ -140,16 +141,7 @@ void Game::validate(Version v) {
       field_name == _("notes") ||
       field_name == _("id") ||
       field_name == _("uid") ||
-      field_name == _("linked_card") ||
-      field_name == _("linked_card_1") ||
-      field_name == _("linked_card_2") ||
-      field_name == _("linked_card_3") ||
-      field_name == _("linked_card_4") ||
-      field_name == _("linked_relation") ||
-      field_name == _("linked_relation_1") ||
-      field_name == _("linked_relation_2") ||
-      field_name == _("linked_relation_3") ||
-      field_name == _("linked_relation_4")
+      Card::isLinkFieldName(field_name)
     ) {
       queue_message(MESSAGE_ERROR, _ERROR_1_("reserved field name", field_name));
     }

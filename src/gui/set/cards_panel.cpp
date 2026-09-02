@@ -25,6 +25,8 @@
 #include <util/window_id.hpp>
 #include <wx/splitter.h>
 #include <wx/gbsizer.h>
+#include <wx/scrolwin.h>
+#include <wx/settings.h>
 
 // ----------------------------------------------------------------------------- : CardsPanel
 
@@ -33,26 +35,27 @@ CardsPanel::CardsPanel(Window* parent, int id)
 {
   // init controls
   editor          = new CardEditor(this, ID_EDITOR);
-  link_editor     = new CardEditor(this, ID_CARD_LINK_EDITOR);
   focused_editor  = editor;
+  link_scroller   = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL | wxBORDER_NONE);
+  link_scroller->SetScrollRate(0, 12);
+  link_editor     = new CardEditor(link_scroller, ID_CARD_LINK_EDITOR);
   link_editor->is_focused = false;
-  link_viewer_1   = new CardViewer(this, ID_CARD_LINK_VIEWER);
-  link_viewer_2   = new CardViewer(this, ID_CARD_LINK_VIEWER);
-  link_viewer_3   = new CardViewer(this, ID_CARD_LINK_VIEWER);
-  link_viewer_4   = new CardViewer(this, ID_CARD_LINK_VIEWER);
-  link_viewer_1->is_focused = false;
-  link_viewer_2->is_focused = false;
-  link_viewer_3->is_focused = false;
-  link_viewer_4->is_focused = false;
-  link_relation_1 = new wxStaticText(this, ID_CARD_LINK_RELATION_1, _(""), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-  link_relation_2 = new wxStaticText(this, ID_CARD_LINK_RELATION_2, _(""), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-  link_relation_3 = new wxStaticText(this, ID_CARD_LINK_RELATION_3, _(""), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-  link_relation_4 = new wxStaticText(this, ID_CARD_LINK_RELATION_4, _(""), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-  link_select     = new wxButton(this, ID_CARD_LINK_SELECT, _BUTTON_("link select"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-  link_unlink_1   = new wxButton(this, ID_CARD_LINK_UNLINK_1, _BUTTON_("unlink"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-  link_unlink_2   = new wxButton(this, ID_CARD_LINK_UNLINK_2, _BUTTON_("unlink"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-  link_unlink_3   = new wxButton(this, ID_CARD_LINK_UNLINK_3, _BUTTON_("unlink"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-  link_unlink_4   = new wxButton(this, ID_CARD_LINK_UNLINK_4, _BUTTON_("unlink"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+  link_select     = new wxButton(link_scroller, ID_CARD_LINK_SELECT, _BUTTON_("link select"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+  // one box per possible link slot; slot 0 doubles as the full card editor
+  wxFont bold_font = GetFont();
+  bold_font.SetWeight(wxFONTWEIGHT_BOLD);
+  link_viewers.resize(Card::MAX_LINKS);
+  link_relations.resize(Card::MAX_LINKS);
+  link_unlinks.resize(Card::MAX_LINKS);
+  link_boxes.resize(Card::MAX_LINKS);
+  for (int i = 0; i < Card::MAX_LINKS; ++i) {
+    link_viewers[i] = new CardViewer(link_scroller, ID_CARD_LINK_VIEWER);
+    link_viewers[i]->is_focused = false;
+    link_relations[i] = new wxStaticText(link_scroller, wxID_ANY, _(""), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    link_relations[i]->SetFont(bold_font);
+    link_unlinks[i] = new wxButton(link_scroller, wxID_ANY, _BUTTON_("unlink"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+    link_unlinks[i]->Bind(wxEVT_BUTTON, [this, i](wxCommandEvent&) { onUnlink(i); });
+  }
   splitter        = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
   card_list       = new FilteredImageCardList(splitter, ID_CARD_LIST);
   nodes_panel     = new wxPanel(splitter, wxID_ANY);
@@ -62,12 +65,6 @@ CardsPanel::CardsPanel(Window* parent, int id)
   filter          = nullptr;
   editor->next_in_tab_order = card_list;
   SetDropTarget(card_list->drop_target);
-  wxFont font = link_relation_1->GetFont();
-  font.SetWeight(wxFONTWEIGHT_BOLD);
-  link_relation_1->SetFont(font);
-  link_relation_2->SetFont(font);
-  link_relation_3->SetFont(font);
-  link_relation_4->SetFont(font);
   // init sizer for notes panel
   wxSizer* sn = new wxBoxSizer(wxVERTICAL);
     wxSizer* sc = new wxBoxSizer(wxHORIZONTAL);
@@ -87,40 +84,24 @@ CardsPanel::CardsPanel(Window* parent, int id)
       card_and_link = new wxBoxSizer(wxHORIZONTAL);
       s_left->Add(card_and_link);
         card_and_link->Add(editor);
-        wxGridBagSizer* link_boxes = new wxGridBagSizer(); // Sizer for the linked cards
-        card_and_link->Add(link_boxes, 0, wxLEFT, 2);
-          link_box_1 = new wxStaticBoxSizer(wxVERTICAL, this); // Box around the first linked card, it's relation, and buttons to select and unlink
-          link_boxes->Add(link_box_1, wxGBPosition(0, 0), wxGBSpan(1, 1));
-          link_box_2 = new wxStaticBoxSizer(wxVERTICAL, this); // Box around the second linked card, it's relation, and a button to unlink
-          link_boxes->Add(link_box_2, wxGBPosition(1, 0), wxGBSpan(1, 1));
-          link_box_3 = new wxStaticBoxSizer(wxVERTICAL, this); // Box around the third linked card, it's relation, and a button to unlink
-          link_boxes->Add(link_box_3, wxGBPosition(0, 1), wxGBSpan(1, 1));
-          link_box_4 = new wxStaticBoxSizer(wxVERTICAL, this); // Box around the fourth linked card, it's relation, and a button to unlink
-          link_boxes->Add(link_box_4, wxGBPosition(1, 1), wxGBSpan(1, 1));
-            wxGridBagSizer* link_grid_1 = new wxGridBagSizer(); // Sizer for the first linked card, with it's relation, and a button to unlink
-            link_box_1->Add(link_grid_1);
-            wxGridBagSizer* link_grid_2 = new wxGridBagSizer();
-            link_box_2->Add(link_grid_2);
-            wxGridBagSizer* link_grid_3 = new wxGridBagSizer();
-            link_box_3->Add(link_grid_3);
-            wxGridBagSizer* link_grid_4 = new wxGridBagSizer();
-            link_box_4->Add(link_grid_4);
-              wxSizer* link_grid_1_buttons = new wxBoxSizer(wxHORIZONTAL);
-              link_grid_1->Add(link_relation_1,     wxGBPosition(0, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
-              link_grid_1->Add(link_viewer_1,       wxGBPosition(1, 0), wxGBSpan(1, 2));
-              link_grid_1->Add(link_editor,         wxGBPosition(2, 0), wxGBSpan(1, 2));
-              link_grid_1->Add(link_grid_1_buttons, wxGBPosition(0, 1), wxGBSpan(1, 1), wxALIGN_RIGHT);
-                link_grid_1_buttons->Add(link_select);
-                link_grid_1_buttons->Add(link_unlink_1);
-              link_grid_2->Add(link_relation_2, wxGBPosition(0, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
-              link_grid_2->Add(link_unlink_2,   wxGBPosition(0, 1), wxGBSpan(1, 1), wxALIGN_RIGHT);
-              link_grid_2->Add(link_viewer_2,   wxGBPosition(1, 0), wxGBSpan(1, 2));
-              link_grid_3->Add(link_relation_3, wxGBPosition(0, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
-              link_grid_3->Add(link_unlink_3,   wxGBPosition(0, 1), wxGBSpan(1, 1), wxALIGN_RIGHT);
-              link_grid_3->Add(link_viewer_3,   wxGBPosition(1, 0), wxGBSpan(1, 2));
-              link_grid_4->Add(link_relation_4, wxGBPosition(0, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
-              link_grid_4->Add(link_unlink_4,   wxGBPosition(0, 1), wxGBSpan(1, 1), wxALIGN_RIGHT);
-              link_grid_4->Add(link_viewer_4,   wxGBPosition(1, 0), wxGBSpan(1, 2));
+        card_and_link->Add(link_scroller, 0, wxEXPAND | wxLEFT, 2);
+          link_boxes_sizer = new wxGridBagSizer(); // 2-column grid of link boxes; extra rows scroll
+          link_scroller->SetSizer(link_boxes_sizer);
+          for (int i = 0; i < Card::MAX_LINKS; ++i) {
+            // Box around the linked card, its relation, and buttons to select/unlink.
+            wxStaticBoxSizer* link_box = new wxStaticBoxSizer(wxVERTICAL, link_scroller);
+            link_boxes[i] = link_box;
+            link_boxes_sizer->Add(link_box, wxGBPosition(i / LINK_BOX_COLUMNS, i % LINK_BOX_COLUMNS), wxGBSpan(1, 1));
+            wxGridBagSizer* link_grid = new wxGridBagSizer(); // relation label / viewer / editor / buttons for this slot
+            link_box->Add(link_grid);
+            wxSizer* link_grid_buttons = new wxBoxSizer(wxHORIZONTAL);
+            if (i == 0) link_grid_buttons->Add(link_select); // only slot 0 can show the "select" button
+            link_grid_buttons->Add(link_unlinks[i]);
+            link_grid->Add(link_relations[i], wxGBPosition(0, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+            link_grid->Add(link_grid_buttons,  wxGBPosition(0, 1), wxGBSpan(1, 1), wxALIGN_RIGHT);
+            link_grid->Add(link_viewers[i],    wxGBPosition(1, 0), wxGBSpan(1, 2));
+            if (i == 0) link_grid->Add(link_editor, wxGBPosition(2, 0), wxGBSpan(1, 2)); // shown instead of link_viewers[0] when there's exactly 1 link
+          }
   s->Add(s_left,   0, wxEXPAND | wxRIGHT, 2);
   s->Add(splitter, 1, wxEXPAND);
   SetSizer(s);
@@ -253,12 +234,12 @@ CardsPanel::~CardsPanel() {
 void CardsPanel::onChangeSet() {
   editor->setSet(set);
   link_editor->setSet(set);
-  link_viewer_1->setSet(set);
-  link_viewer_2->setSet(set);
-  link_viewer_3->setSet(set);
-  link_viewer_4->setSet(set);
+  for (int i = 0; i < Card::MAX_LINKS; ++i) {
+    link_viewers[i]->setSet(set);
+  }
   notes->setSet(set);
   card_list->setSet(set);
+  updateLinkScrollerCap();
   
   // change insertManyCardsMenu
   delete insertManyCardsMenu->GetSubMenu();
@@ -272,6 +253,20 @@ void CardsPanel::onChangeSet() {
     // At this point it might be possible to just store a reference to the toolbar directly instead.
     toolAddCard->GetToolBar()->SetDropdownMenu(ID_CARD_ADD, makeAddCardsSubmenu(true));
   }
+}
+
+void CardsPanel::updateLinkScrollerCap() {
+  if (link_boxes.size() < (size_t)LINK_BOX_COLUMNS) return;
+  wxSize box_size(0, 0);
+  for (int i = 0; i < LINK_BOX_COLUMNS; ++i) {
+    wxSize s = link_boxes[i]->CalcMin();
+    box_size.x = std::max(box_size.x, s.x);
+    box_size.y = std::max(box_size.y, s.y);
+  }
+  if (box_size.x <= 0 || box_size.y <= 0) return; // boxes aren't laid out yet, try again later
+  // Reserve extra width for the vertical scrollbar
+  int scrollbar_width = wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, link_scroller);
+  link_scroller->SetMaxSize(wxSize(box_size.x * LINK_BOX_COLUMNS + scrollbar_width, box_size.y * 2));
 }
 
 wxMenu* CardsPanel::makeAddCardsSubmenu(bool add_single_card_option) {
@@ -470,28 +465,8 @@ void CardsPanel::onCommand(int id) {
       card_list->doLink();
       setCard(card_list->getCard(), true);
       break;
-    case ID_CARD_LINK_UNLINK_1: {
-      card_list->doUnlink(link_viewer_1->getCard());
-      setCard(card_list->getCard(), true);
-      break;
-    }
-    case ID_CARD_LINK_UNLINK_2: {
-      card_list->doUnlink(link_viewer_2->getCard());
-      setCard(card_list->getCard(), true);
-      break;
-    }
-    case ID_CARD_LINK_UNLINK_3: {
-      card_list->doUnlink(link_viewer_3->getCard());
-      setCard(card_list->getCard(), true);
-      break;
-    }
-    case ID_CARD_LINK_UNLINK_4: {
-      card_list->doUnlink(link_viewer_4->getCard());
-      setCard(card_list->getCard(), true);
-      break;
-    }
     case ID_CARD_LINK_SELECT: {
-      setCard(link_viewer_1->getCard(), true);
+      setCard(link_viewers[0]->getCard(), true);
       break;
     }
     case ID_CARD_AND_LINK_COPY:
@@ -554,6 +529,11 @@ void CardsPanel::onCommand(int id) {
       }
     }
   }
+}
+
+void CardsPanel::onUnlink(int index) {
+  card_list->doUnlink(link_viewers[index]->getCard());
+  setCard(card_list->getCard(), true);
 }
 
 // ----------------------------------------------------------------------------- : Actions
@@ -713,72 +693,57 @@ void CardsPanel::selectCard(const CardP& card) {
 
   editor->setCard(card);
   vector<pair<CardP, String>> linked_cards = card->getLinkedCards(*set);
-  int count = linked_cards.size();
-  if (count >= 1) {
-    link_box_1->Show(true);
-    link_editor->setCard(linked_cards[0].first);
-    link_viewer_1->setCard(linked_cards[0].first);
-    link_relation_1->SetLabel(linked_cards[0].second);
-    if (count == 1) {
+  int count = (int)linked_cards.size();
+
+  // when there are exactly 2 linked cards, lay them out vertically (1 column)
+  int link_box_columns = (count == 2) ? 1 : LINK_BOX_COLUMNS;
+  for (int i = 0; i < Card::MAX_LINKS; ++i) {
+    link_boxes_sizer->Detach(link_boxes[i]);
+  }
+  for (int i = 0; i < Card::MAX_LINKS; ++i) {
+    link_boxes_sizer->Add(link_boxes[i], wxGBPosition(i / link_box_columns, i % link_box_columns), wxGBSpan(1, 1));
+  }
+
+  for (int i = 0; i < Card::MAX_LINKS; ++i) {
+    if (i >= count) {
+      // this slot is unused: hide its box, and point its widgets back at the
+      // selected card so they don't hang on to a stale/removed linked card
+      link_boxes[i]->Show(false);
+      if (i == 0) link_editor->setCard(card);
+      link_viewers[i]->setCard(card);
+      continue;
+    }
+    link_boxes[i]->Show(true);
+    link_relations[i]->SetLabel(linked_cards[i].second);
+    if (i == 0 && count == 1) {
+      // exactly one linked card: show the full editor instead of a viewer
+      link_editor->setCard(linked_cards[0].first);
       link_editor->Show(true);
-      link_viewer_1->Show(false);
+      link_viewers[0]->Show(false);
       link_select->Show(true);
       link_editor->InvalidateBestSize();
-      link_relation_1->SetMaxSize(wxSize(link_editor->GetSize().x - link_unlink_1->GetSize().x, -1));
+      link_relations[0]->SetMaxSize(wxSize(link_editor->GetSize().x - link_unlinks[0]->GetSize().x, -1));
     } else {
-      link_editor->Show(false);
-      link_viewer_1->Show(true);
-      link_select->Show(false);
-      link_viewer_1->InvalidateBestSize();
-      link_relation_1->SetMaxSize(wxSize(link_viewer_1->GetSize().x - link_unlink_1->GetSize().x, -1));
+      link_viewers[i]->setCard(linked_cards[i].first);
+      link_viewers[i]->Show(true);
+      if (i == 0) {
+        link_editor->Show(false);
+        link_select->Show(false);
+      }
+      link_viewers[i]->InvalidateBestSize();
+      link_relations[i]->SetMaxSize(wxSize(link_viewers[i]->GetSize().x - link_unlinks[i]->GetSize().x, -1));
     }
-    link_relation_1->InvalidateBestSize();
-  } else {
-    link_box_1->Show(false);
-    link_editor->setCard(card);
-    link_viewer_1->setCard(card);
-    //link_relation_1->SetLabel(_(""));
-  }
-  if (count >= 2) {
-    link_box_2->Show(true);
-    link_viewer_2->setCard(linked_cards[1].first);
-    link_relation_2->SetLabel(linked_cards[1].second);
-    link_relation_2->SetMaxSize(wxSize(link_viewer_2->GetSize().x - link_unlink_2->GetSize().x, -1));
-    link_relation_2->InvalidateBestSize();
-  } else {
-    link_box_2->Show(false);
-    link_viewer_2->setCard(card);
-    //link_relation_2->SetLabel(_(""));
-  }
-  if (count >= 3) {
-    link_box_3->Show(true);
-    link_viewer_3->setCard(linked_cards[2].first);
-    link_relation_3->SetLabel(linked_cards[2].second);
-    link_relation_3->SetMaxSize(wxSize(link_viewer_3->GetSize().x - link_unlink_3->GetSize().x, -1));
-    link_relation_3->InvalidateBestSize();
-  } else {
-    link_box_3->Show(false);
-    link_viewer_3->setCard(card);
-    //link_relation_3->SetLabel(_(""));
-  }
-  if (count >= 4) {
-    link_box_4->Show(true);
-    link_viewer_4->setCard(linked_cards[3].first);
-    link_relation_4->SetLabel(linked_cards[3].second);
-    link_relation_4->SetMaxSize(wxSize(link_viewer_4->GetSize().x - link_unlink_4->GetSize().x, -1));
-    link_relation_4->InvalidateBestSize();
-  } else {
-    link_box_4->Show(false);
-    link_viewer_4->setCard(card);
-    //link_relation_4->SetLabel(_(""));
-  }
-  if (count >= 5) {
-    queue_message(MESSAGE_WARNING, "DEBUG More than 4 linked cards found for card: " + card->identification());
+    link_relations[i]->InvalidateBestSize();
   }
 
   notes->setValue(card ? &card->notes : nullptr);
 
   updating_card = false;
+
+  // the number of visible boxes just changed, so recompute the scrollable area
+  link_boxes_sizer->Layout();
+  link_scroller->FitInside();
+  updateLinkScrollerCap();
 
   Layout();
   updateNotesPosition();
