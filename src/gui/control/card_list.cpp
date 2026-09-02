@@ -569,6 +569,7 @@ bool CardListBase::doUnlink(CardP linked_card) {
   actions.emplace_back(make_intrusive<OneWayLinkCardsAction>(selected_card, _(""), _(""), selected_index));
   if (linked_index >= 0) actions.emplace_back(make_intrusive<OneWayLinkCardsAction>(linked_card,   _(""), _(""), linked_index));
   set->actions.addAction(make_unique<BulkAction>(actions, set, this, false), false);
+  set->actions.tellListeners(GlobalDisplayChangeAction(),true);
   return true;
 }
 

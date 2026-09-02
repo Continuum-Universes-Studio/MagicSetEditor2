@@ -466,7 +466,7 @@ void CardsPanel::onCommand(int id) {
       setCard(card_list->getCard(), true);
       break;
     case ID_CARD_LINK_SELECT: {
-      setCard(link_viewers[0]->getCard(), true);
+      setCard(link_editor->getCard(), true);
       break;
     }
     case ID_CARD_AND_LINK_COPY:
@@ -532,8 +532,10 @@ void CardsPanel::onCommand(int id) {
 }
 
 void CardsPanel::onUnlink(int index) {
-  card_list->doUnlink(link_viewers[index]->getCard());
-  setCard(card_list->getCard(), true);
+  const CardP& card = card_list->getCard();
+  const CardP& linked_card = index == 0 && card->getLinkedCards(*set).size() == 1 ? link_editor->getCard() : link_viewers[index]->getCard();
+  card_list->doUnlink(linked_card);
+  setCard(card, true);
 }
 
 // ----------------------------------------------------------------------------- : Actions
