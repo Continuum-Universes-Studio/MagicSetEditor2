@@ -69,7 +69,7 @@ public:
   void store() override;
 
 private:
-  wxCheckBox* non_normal_export, *bleed_export, *notes_export, *metaimage_export, *dfc_export, *allow_image_download;
+  wxCheckBox* non_normal_export, *bleed_export, *notes_export, *metaimage_export, *dfc_export, *allow_image_download, *dfc_copy;
 
   wxChoice*   export_scale, *import_scale, *clipboard_scale;
 };
@@ -300,6 +300,7 @@ TransfersPreferencesPage::TransfersPreferencesPage(Window* parent) : Preferences
   allow_image_download     = new wxCheckBox(this, wxID_ANY, _BUTTON_("allow image download"));
   import_scale             = new wxChoice  (this, ID_IMPORT_ZOOM);
   clipboard_scale          = new wxChoice  (this, ID_CLIPBOARD_ZOOM);
+  dfc_copy                 = new wxCheckBox(this, wxID_ANY, _BUTTON_("dfc copy"));
 
   // set values
   non_normal_export-> SetValue(!settings.default_stylesheet_settings.card_normal_export());
@@ -339,6 +340,7 @@ TransfersPreferencesPage::TransfersPreferencesPage(Window* parent) : Preferences
   int default_clipboard_scale = settings.clipboard_scale_selection;
   if (default_clipboard_scale < 0 || default_clipboard_scale > clipboard_scale->GetCount() - 1) default_clipboard_scale = 0;
   clipboard_scale->SetSelection(default_clipboard_scale);
+  dfc_copy->SetValue(settings.card_dfc_copy);
 
   // init sizers
   wxSizer* s = new wxBoxSizer(wxVERTICAL);
@@ -370,6 +372,7 @@ TransfersPreferencesPage::TransfersPreferencesPage(Window* parent) : Preferences
         s8->AddSpacer(2);
         s8->Add(clipboard_scale);
       s7->Add(s8, 0, wxEXPAND | wxALL, 4);
+      s7->Add(dfc_copy, 0, wxEXPAND | wxALL, 4);
     s->Add(s2, 0, wxEXPAND | wxALL, 8);
     s->Add(s5, 0, wxEXPAND | wxALL, 8);
     s->Add(s7, 0, wxEXPAND | wxALL, 8);
@@ -389,6 +392,7 @@ void TransfersPreferencesPage::store() {
   settings.allow_image_download                               = allow_image_download->GetValue();
   settings.import_scale_selection                             = import_scale->GetSelection();
   settings.clipboard_scale_selection                          = clipboard_scale->GetSelection();
+  settings.card_dfc_copy                                      = dfc_copy->GetValue();
 }
 
 // ----------------------------------------------------------------------------- : Preferences page : directories

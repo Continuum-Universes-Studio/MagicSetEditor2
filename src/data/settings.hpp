@@ -242,6 +242,7 @@ public:
 
   int import_scale_selection;
   int clipboard_scale_selection;
+  bool card_dfc_copy;
   bool allow_image_download;
 
   // --------------------------------------------------- : Update checking

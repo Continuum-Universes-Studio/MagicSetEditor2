@@ -218,6 +218,7 @@ Settings::Settings()
   , dark_mode_type           (DARKMODE_SYSTEM)
   , import_scale_selection   (0)
   , clipboard_scale_selection(3)
+  , card_dfc_copy            (true)
   , allow_image_download     (true)
   , installer_list_url       (_("https://raw.githubusercontent.com/MagicSetEditorPacks/Installer-Pack/refs/heads/main/packages.txt"))
   , check_updates_what       (CHECK_EVERYTHING)
@@ -373,6 +374,7 @@ IMPLEMENT_REFLECTION_NO_SCRIPT(Settings) {
   REFLECT(apprentice_location);
   REFLECT(import_scale_selection);
   REFLECT(clipboard_scale_selection);
+  REFLECT(card_dfc_copy);
   REFLECT(allow_image_download);
   REFLECT(check_updates_what);
   REFLECT(check_updates_when);
