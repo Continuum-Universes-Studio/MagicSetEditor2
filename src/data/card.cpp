@@ -255,17 +255,6 @@ vector<pair<CardP, String>> Card::getLinkedCards(const Set& set) {
   return linked_cards;
 }
 
-//CardP Card::getLinkedOtherFaceCard(const vector<CardP>& cards) {
-//  unordered_set<String> faces;
-//  if (linked_relation_1 == _("Front Face") || linked_relation_1 == _("Back Face")) faces.emplace(linked_card_1);
-//  if (linked_relation_2 == _("Front Face") || linked_relation_2 == _("Back Face")) faces.emplace(linked_card_2);
-//  if (linked_relation_3 == _("Front Face") || linked_relation_3 == _("Back Face")) faces.emplace(linked_card_3);
-//  if (linked_relation_4 == _("Front Face") || linked_relation_4 == _("Back Face")) faces.emplace(linked_card_4);
-//  FOR_EACH(other_card, cards) {
-//    if (faces.find(other_card->uid) != faces.end()) return other_card;
-//  }
-//  return nullptr;
-//}
 CardP Card::getLinkedOtherFaceCard(const Set& set) {
   LINK_PAIRS(linked_pairs, this);
   for (int i = 0; i < (int)linked_pairs.size(); ++i) {
@@ -398,6 +387,22 @@ IMPLEMENT_REFLECTION(Card) {
   REFLECT(linked_card_14);
   REFLECT(linked_card_15);
   REFLECT(linked_card_16);
+  REFLECT(linked_card_17);
+  REFLECT(linked_card_18);
+  REFLECT(linked_card_19);
+  REFLECT(linked_card_20);
+  REFLECT(linked_card_21);
+  REFLECT(linked_card_22);
+  REFLECT(linked_card_23);
+  REFLECT(linked_card_24);
+  REFLECT(linked_card_25);
+  REFLECT(linked_card_26);
+  REFLECT(linked_card_27);
+  REFLECT(linked_card_28);
+  REFLECT(linked_card_29);
+  REFLECT(linked_card_30);
+  REFLECT(linked_card_31);
+  REFLECT(linked_card_32);
   REFLECT(linked_relation_1);
   REFLECT(linked_relation_2);
   REFLECT(linked_relation_3);
@@ -414,6 +419,22 @@ IMPLEMENT_REFLECTION(Card) {
   REFLECT(linked_relation_14);
   REFLECT(linked_relation_15);
   REFLECT(linked_relation_16);
+  REFLECT(linked_relation_17);
+  REFLECT(linked_relation_18);
+  REFLECT(linked_relation_19);
+  REFLECT(linked_relation_20);
+  REFLECT(linked_relation_21);
+  REFLECT(linked_relation_22);
+  REFLECT(linked_relation_23);
+  REFLECT(linked_relation_24);
+  REFLECT(linked_relation_25);
+  REFLECT(linked_relation_26);
+  REFLECT(linked_relation_27);
+  REFLECT(linked_relation_28);
+  REFLECT(linked_relation_29);
+  REFLECT(linked_relation_30);
+  REFLECT(linked_relation_31);
+  REFLECT(linked_relation_32);
   REFLECT(time_created);
   REFLECT(time_modified);
   REFLECT(extra_data); // don't allow scripts to depend on style specific data

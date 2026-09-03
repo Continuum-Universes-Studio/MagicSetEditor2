@@ -525,7 +525,9 @@ boost::json::object mse_to_json(const CardP& card, const Set* set) {
   write(cardv, "notes",             card->notes);
   write(cardv, "uid",               card->uid);
   for (int i = 0; i < Card::MAX_LINKS; ++i) {
-    write(cardv, String::Format(_("linked_card_%d"), i + 1),     card->getLinkedUID(i));
+    const String& uid = card->getLinkedUID(i);
+    if (uid.empty()) continue;
+    write(cardv, String::Format(_("linked_card_%d"), i + 1),     uid);
     write(cardv, String::Format(_("linked_relation_%d"), i + 1), card->getLinkedRelation(i));
   }
   // card fields

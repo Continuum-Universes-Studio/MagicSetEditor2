@@ -307,8 +307,7 @@ void export_image(const SetP& set, const vector<CardP>& cards, const String& pat
   }
 }
 
-String export_metadata(const SetP& set, const CardP& card, double zoom, Radians angle_radians, int width, int height, double offset_x, double offset_y)
-{
+String export_metadata(const SetP& set, const CardP& card, double zoom, Radians angle_radians, int width, int height, double offset_x, double offset_y) {
   IndexMap<FieldP, ValueP>& card_data = card->data;
   boost::json::object cardv = mse_to_json(card, set.get());
   boost::json::object& cardv_data = cardv["data"].as_object();

@@ -40,7 +40,23 @@ DECLARE_POINTER_TYPE(StyleSheet);
     make_pair(ref(card->linked_card_13), ref(card->linked_relation_13)), \
     make_pair(ref(card->linked_card_14), ref(card->linked_relation_14)), \
     make_pair(ref(card->linked_card_15), ref(card->linked_relation_15)), \
-    make_pair(ref(card->linked_card_16), ref(card->linked_relation_16)) \
+    make_pair(ref(card->linked_card_16), ref(card->linked_relation_16)), \
+    make_pair(ref(card->linked_card_17), ref(card->linked_relation_17)), \
+    make_pair(ref(card->linked_card_18), ref(card->linked_relation_18)), \
+    make_pair(ref(card->linked_card_19), ref(card->linked_relation_19)), \
+    make_pair(ref(card->linked_card_20), ref(card->linked_relation_20)), \
+    make_pair(ref(card->linked_card_21), ref(card->linked_relation_21)), \
+    make_pair(ref(card->linked_card_22), ref(card->linked_relation_22)), \
+    make_pair(ref(card->linked_card_23), ref(card->linked_relation_23)), \
+    make_pair(ref(card->linked_card_24), ref(card->linked_relation_24)), \
+    make_pair(ref(card->linked_card_25), ref(card->linked_relation_25)), \
+    make_pair(ref(card->linked_card_26), ref(card->linked_relation_26)), \
+    make_pair(ref(card->linked_card_27), ref(card->linked_relation_27)), \
+    make_pair(ref(card->linked_card_28), ref(card->linked_relation_28)), \
+    make_pair(ref(card->linked_card_29), ref(card->linked_relation_29)), \
+    make_pair(ref(card->linked_card_30), ref(card->linked_relation_30)), \
+    make_pair(ref(card->linked_card_31), ref(card->linked_relation_31)), \
+    make_pair(ref(card->linked_card_32), ref(card->linked_relation_32)) \
   }
 
 // ----------------------------------------------------------------------------- : Card
@@ -82,6 +98,22 @@ public:
   String linked_card_14;
   String linked_card_15;
   String linked_card_16;
+  String linked_card_17;
+  String linked_card_18;
+  String linked_card_19;
+  String linked_card_20;
+  String linked_card_21;
+  String linked_card_22;
+  String linked_card_23;
+  String linked_card_24;
+  String linked_card_25;
+  String linked_card_26;
+  String linked_card_27;
+  String linked_card_28;
+  String linked_card_29;
+  String linked_card_30;
+  String linked_card_31;
+  String linked_card_32;
   /// Nature of the relatation with the respective linked card, such as back face, or token, etc...
   String linked_relation_1;
   String linked_relation_2;
@@ -99,6 +131,22 @@ public:
   String linked_relation_14;
   String linked_relation_15;
   String linked_relation_16;
+  String linked_relation_17;
+  String linked_relation_18;
+  String linked_relation_19;
+  String linked_relation_20;
+  String linked_relation_21;
+  String linked_relation_22;
+  String linked_relation_23;
+  String linked_relation_24;
+  String linked_relation_25;
+  String linked_relation_26;
+  String linked_relation_27;
+  String linked_relation_28;
+  String linked_relation_29;
+  String linked_relation_30;
+  String linked_relation_31;
+  String linked_relation_32;
   /// Time the card was created/last modified
   wxDateTime time_created, time_modified;
   /// Alternative style to use for this card
@@ -151,7 +199,7 @@ public:
   }
 
   /// The number of link slots a card has (linked_card_1..MAX_LINKS / linked_relation_1..MAX_LINKS).
-  static const int MAX_LINKS = 16;
+  static const int MAX_LINKS = 32;
 
   /// Find the index of a free link slot to write to. Returns -1 if not found.
   int         findFreeLink (const String&   linked_uid,  const unordered_map<String, CardP>& all_existing_uids);
@@ -190,7 +238,6 @@ public:
   /// Get all the cards linked to this card with the given relation.
   //vector<CardP> getLinkedRelationCards(const vector<CardP>& cards, const String& linked_relation);
   vector<CardP> getLinkedRelationCards(const Set& set,             const String& linked_relation);
-
   /// Get all the cards linked to this card.
   //vector<pair<CardP, String>> getLinkedCards(const vector<CardP>& cards);
   vector<pair<CardP, String>> getLinkedCards(const Set& set);
