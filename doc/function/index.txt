@@ -118,6 +118,7 @@ These functions are built into the program, other [[type:function]]s can be defi
 | [[fun:get_card_export_settings]]	Get the zoom, angle and bleed size at which the card will be exported.
 | [[fun:get_card_from_uid]]		Find the [[type:card]] with the given uid.
 | [[fun:get_cards_from_link]]		Find all [[type:card]]s that have the given link type to the given [[type:card]].
+| [[fun:get_link_from_cards]]		Find the relation type of the link between two cards.
 | [[fun:get_front_face]]		Find a [[type:card]] that has the link type "Front Face" to the given [[type:card]].
 | [[fun:get_back_face]]		Find a [[type:card]] that has the link type "Back Face" to the given [[type:card]].
 | [[fun:has_link]]		Determine if the given [[type:card]] has a link of the given type.

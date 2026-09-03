@@ -35,6 +35,7 @@ CardLinkWindow::CardLinkWindow(Window* parent, const SetP& set, const CardP& sel
   relation_type->SetSelection(0);
   setRelationType();
   list = new SelectCardList(this, wxID_ANY);
+  list->allow_back_face_hidding = false;
   list->setSet(set);
   list->selectNone();
   sel_none = new wxButton(this, ID_SELECT_NONE, _BUTTON_("select none"));

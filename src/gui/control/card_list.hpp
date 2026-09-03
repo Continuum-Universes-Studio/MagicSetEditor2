@@ -119,6 +119,8 @@ public:
   inline CardP getCard(long pos) const { return static_pointer_cast<Card>(getItem(pos)); }
   /// Get a list of all focused cards
   void getSelection(vector<CardP>& out) const;
+  /// Can this card list hide back faces if the settings dictate it
+  bool allow_back_face_hidding = true;
   /// Number of cards hidden from the last getItems() call because they are back faces
   int getHiddenBackFacesCount() const { return hidden_back_faces_count; }
 protected:
@@ -161,7 +163,7 @@ private:
   FieldP alternate_sort_field;  ///< Second field to sort by, if the column doesn't suffice
   
   mutable wxListItemAttr item_attr; ///< for OnGetItemAttr
-  
+
   mutable int hidden_back_faces_count = 0;
 
 public:

@@ -138,13 +138,13 @@ void CardListBase::getItems(vector<VoidP>& out) const {
 
 void CardListBase::filterOutBackFaces(vector<VoidP>& out) const {
   hidden_back_faces_count = 0;
-  if (!settings.default_stylesheet_settings.list_hide_back_faces()) return;
+  if (!allow_back_face_hidding || !settings.default_stylesheet_settings.list_hide_back_faces()) return;
   size_t before_count = out.size();
   out.erase(
     std::remove_if(out.begin(), out.end(),
       [this](const VoidP& item) {
         CardP card = static_pointer_cast<Card>(item);
-        return !card->getLinkedRelationCards(*set, _("Front Face")).empty();
+        return !!card->getFrontFaceCard(*set);
       }),
     out.end()
   );
@@ -236,7 +236,8 @@ bool CardListBase::doDelete() {
   // if there is one double faced card, select the other face to make it clear it hasn't been deleted
   CardP other_face = nullptr;
   if (cards_to_delete.size() == 1) {
-    other_face = cards_to_delete[0]->getLinkedOtherFaceCard(*set);
+    other_face = cards_to_delete[0]->getFrontFaceCard(*set);
+    if (!other_face) other_face = cards_to_delete[0]->getBackFaceCard(*set);
   }
   // delete cards
   set->actions.addAction(make_unique<AddCardAction>(REMOVE, *set, cards_to_delete));

@@ -219,27 +219,11 @@ Image export_image(const SetP& set,
   return global_img;
 }
 
-// Find the other face, keep track of which is the front
-pair<CardP, CardP> find_front_back_pair(const Set& set, const CardP& card) {
-  vector<int> back_idx = card->findRelationLinks(_("Back Face"));
-  if (!back_idx.empty()) {
-    CardP back = Card::getUIDCard(set, card->getLinkedUID(back_idx[0]));
-    if (back) return make_pair(card, back);
-  }
-  vector<int> front_idx = card->findRelationLinks(_("Front Face"));
-  if (!front_idx.empty()) {
-    CardP front = Card::getUIDCard(set, card->getLinkedUID(front_idx[0]));
-    if (front) return make_pair(front, card);
-  }
-  return make_pair(CardP(), CardP());
-}
-
 void export_image(const SetP& set, const CardP& card, const String& filename) {
   const StyleSheet& stylesheet = set->stylesheetFor(card);
-  StyleSheetSettings& stylesheet_settings = settings.stylesheetSettingsFor(stylesheet);
   // is this card part of a front/back pair that should be combined?
-  pair<CardP, CardP> faces = stylesheet_settings.card_dfc_export() ?
-                             find_front_back_pair(*set, card) :
+  pair<CardP, CardP> faces = settings.stylesheetSettingsFor(stylesheet).card_dfc_export() ?
+                             card->getFrontFaceBackFacePair(*set) :
                              make_pair(CardP(), CardP());
   if (faces.first && faces.second) {
     vector<CardP> combo{faces.first, faces.second};
@@ -265,9 +249,9 @@ void export_image(const SetP& set, const vector<CardP>& cards, const String& pat
     if (processed.count(card.get())) continue;
     // is this card part of a front/back pair that should be combined?
     const StyleSheet& stylesheet = set->stylesheetFor(card);
-    pair<CardP, CardP> faces = settings.stylesheetSettingsFor(stylesheet).card_dfc_export()
-                              ? find_front_back_pair(*set, card)
-                              : make_pair(CardP(), CardP());
+    pair<CardP, CardP> faces = settings.stylesheetSettingsFor(stylesheet).card_dfc_export() ?
+                               card->getFrontFaceBackFacePair(*set) :
+                               make_pair(CardP(), CardP());
     if (faces.first && faces.second) {
       // filename is "<front name> -- <back name>"
       Context& ctx_front = set->getContext(faces.first);

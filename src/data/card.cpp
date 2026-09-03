@@ -207,16 +207,6 @@ void Card::updateLinkedUID(const String& old_uid, const String& new_uid) {
   if (index >= 0) getLinkedUID(index) = new_uid;
 }
 
-//vector<CardP> Card::getLinkedRelationCards(const vector<CardP>& cards, const String& linked_relation) {
-//  vector<CardP> other_cards;
-//  vector<int> indexes = findRelationLinks(linked_relation);
-//  for (size_t i = 0; i < indexes.size(); ++i) {
-//    String& linked_uid = getLinkedUID(indexes[i]);
-//    CardP other_card = getUIDCard(cards, linked_uid);
-//    if (other_card) other_cards.push_back(other_card);
-//  }
-//  return other_cards;
-//}
 vector<CardP> Card::getLinkedRelationCards(const Set& set, const String& linked_relation) {
   vector<CardP> other_cards;
   vector<int> indexes = findRelationLinks(linked_relation);
@@ -228,21 +218,6 @@ vector<CardP> Card::getLinkedRelationCards(const Set& set, const String& linked_
   return other_cards;
 }
 
-//vector<pair<CardP, String>> Card::getLinkedCards(const vector<CardP>& cards) {
-//  unordered_map<String, String> links{
-//    { linked_card_1, linked_relation_1 },
-//    { linked_card_2, linked_relation_2 },
-//    { linked_card_3, linked_relation_3 },
-//    { linked_card_4, linked_relation_4 }
-//  };
-//  vector<pair<CardP, String>> linked_cards;
-//  FOR_EACH(other_card, cards) {
-//    if (links.find(other_card->uid) != links.end()) {
-//      linked_cards.push_back(make_pair(other_card, links.at(other_card->uid)));
-//    }
-//  }
-//  return linked_cards;
-//}
 vector<pair<CardP, String>> Card::getLinkedCards(const Set& set) {
   vector<pair<CardP, String>> linked_cards;
   LINK_PAIRS(linked_pairs, this);
@@ -255,16 +230,53 @@ vector<pair<CardP, String>> Card::getLinkedCards(const Set& set) {
   return linked_cards;
 }
 
-CardP Card::getLinkedOtherFaceCard(const Set& set) {
-  LINK_PAIRS(linked_pairs, this);
-  for (int i = 0; i < (int)linked_pairs.size(); ++i) {
-    const String& relation = linked_pairs[i].second.get();
-    if (relation == _("Front Face") || relation == _("Back Face")) {
-      CardP other_card = getUIDCard(set, linked_pairs[i].first.get());
-      if (other_card) return other_card;
+CardP Card::getFrontFaceCard(Set& set) {
+  // use game script logic if defined
+  if (set.game->get_front_face_script) {
+    const CardP& this_card = CardP(this);
+    Context& ctx = set.getContext(this_card);
+    ctx.setVariable(SCRIPT_VAR_input, to_script(this_card));
+    ScriptValueP result = set.game->get_front_face_script.invoke(ctx);
+    if (result == script_nil) return CardP();
+    if (ScriptObject<CardP>* ic = dynamic_cast<ScriptObject<CardP>*>(result.get())) {
+      return ic->getValue();
     }
+    queue_message(MESSAGE_ERROR, _ERROR_1_("result not card or nil", "get_front_face_script"));
+    return CardP();
   }
-  return nullptr;
+  // fallback on regular Front Face/Back Face logic
+  vector<CardP> other_cards = getLinkedRelationCards(set, "Front Face");
+  if (other_cards.size() == 0) return CardP();
+  return other_cards[0];
+}
+
+CardP Card::getBackFaceCard(Set& set) {
+  // use game script logic if defined
+  if (set.game->get_back_face_script) {
+    const CardP& this_card = CardP(this);
+    Context& ctx = set.getContext(this_card);
+    ctx.setVariable(SCRIPT_VAR_input, to_script(this_card));
+    ScriptValueP result = set.game->get_back_face_script.invoke(ctx);
+    if (result == script_nil) return CardP();
+    if (ScriptObject<CardP>* ic = dynamic_cast<ScriptObject<CardP>*>(result.get())) {
+      return ic->getValue();
+    }
+    queue_message(MESSAGE_ERROR, _ERROR_1_("result not card or nil", "get_back_face_script"));
+    return CardP();
+  }
+  // fallback on regular Front Face/Back Face logic
+  vector<CardP> other_cards = getLinkedRelationCards(set, "Back Face");
+  if (other_cards.size() == 0) return CardP();
+  return other_cards[0];
+}
+
+// Find the other face, keep track of which is the front
+pair<CardP, CardP> Card::getFrontFaceBackFacePair(Set& set) {
+  const CardP& back = getBackFaceCard(set);
+  if (back) return make_pair(CardP(this), back);
+  const CardP& front = getFrontFaceCard(set);
+  if (front) return make_pair(front, CardP(this));
+  return make_pair(CardP(), CardP());
 }
 
 void Card::addLink(const Set& set, CardP& linked_card, const String& selected_relation, const String& linked_relation) {

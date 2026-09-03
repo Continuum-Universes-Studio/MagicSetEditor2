@@ -242,13 +242,15 @@ public:
   //vector<pair<CardP, String>> getLinkedCards(const vector<CardP>& cards);
   vector<pair<CardP, String>> getLinkedCards(const Set& set);
 
-  /// Get the back face or front face of this card.
-  //CardP getLinkedOtherFaceCard(const vector<CardP>& cards);
-  CardP getLinkedOtherFaceCard(const Set& set);
+  /// Get the front face of this card, or nullptr if it doesn't have one
+  CardP getFrontFaceCard(Set& set);
+  /// Get the back face of this card, or nullptr if it doesn't have one
+  CardP getBackFaceCard(Set& set);
+  /// Get a pair where, either the first is the front and the second is the back, or both are nullptr if it's a single faced card
+  pair<CardP, CardP> getFrontFaceBackFacePair(Set& set);
 
   /// Link a card to this card. This bypasses the action stack. Should be used only in scripts.
   void addLink(const Set& set, CardP& linked_card, const String& selected_relation, const String& linked_relation);
-
   /// Unlink a card from this card. This bypasses the action stack. Should be used only in scripts.
   void removeLink(const CardP& linked_card);
 

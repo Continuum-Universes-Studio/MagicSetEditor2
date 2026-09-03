@@ -54,6 +54,8 @@ IMPLEMENT_REFLECTION(Game) {
   REFLECT_NO_SCRIPT(card_links);
   REFLECT_NO_SCRIPT(card_list_color_script);
   REFLECT_NO_SCRIPT(import_script);
+  REFLECT_NO_SCRIPT(get_front_face_script);
+  REFLECT_NO_SCRIPT(get_back_face_script);
   REFLECT_NO_SCRIPT(json_paths);
   REFLECT_NO_SCRIPT(statistics_dimensions);
   REFLECT_NO_SCRIPT(statistics_categories);
