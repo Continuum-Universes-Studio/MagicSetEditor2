@@ -64,7 +64,7 @@ private:
 // very similair, so in the same file
 
 /// Show the select stylesheet window, return the selected stylesheet, if any
-StyleSheetP select_stylesheet(const Game& game, const String& failed_name);
+StyleSheetP select_stylesheet(const Game& game, const String& failed_name, const String& failed_dep = String());
 
 /// "Create a new set" dialog. First select game, then matching style.
 class SelectStyleSheetWindow : public wxDialog {
@@ -72,7 +72,7 @@ public:
   /// The selected stylesheet, if any
   StyleSheetP stylesheet;
   
-  SelectStyleSheetWindow(Window* parent, const Game& game, const String& failed_name);
+  SelectStyleSheetWindow(Window* parent, const Game& game, const String& failed_name, const String& failed_dep = String());
   
   // --------------------------------------------------- : data
 private:
@@ -93,6 +93,7 @@ private:
   bool          searching_online = false;
   bool          auto_installing  = false;
   String        failed_name;
+  String        failed_dep; // non-empty if failed_name was found but this dependency of it wasn't
 
   // --------------------------------------------------- : background install
   

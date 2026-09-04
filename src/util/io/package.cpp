@@ -78,7 +78,7 @@ void Package::open(const String& n, bool fast) {
   } else if (wxFileExists(filename)) {
     openZipfile();
   } else {
-    throw PackageNotFoundError(_ERROR_1_("package not found", filename));
+    throw PackageNotFoundError(_ERROR_1_("package not found", filename), filename);
   }
 }
 

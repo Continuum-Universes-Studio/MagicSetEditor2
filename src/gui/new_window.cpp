@@ -170,16 +170,17 @@ END_EVENT_TABLE  ()
 // ----------------------------------------------------------------------------- : SelectStyleSheetWindow
 
 
-StyleSheetP select_stylesheet(const Game& game, const String& failed_name) {
-  SelectStyleSheetWindow wnd(nullptr, game, failed_name);
+StyleSheetP select_stylesheet(const Game& game, const String& failed_name, const String& failed_dep) {
+  SelectStyleSheetWindow wnd(nullptr, game, failed_name, failed_dep);
   wnd.ShowModal();
   return wnd.stylesheet;
 }
 
-SelectStyleSheetWindow::SelectStyleSheetWindow(Window* parent, const Game& game, const String& failed_name)
+SelectStyleSheetWindow::SelectStyleSheetWindow(Window* parent, const Game& game, const String& failed_name, const String& failed_dep)
   : wxDialog(parent, wxID_ANY, _TITLE_("select stylesheet"), wxDefaultPosition, wxSize(830,320), wxDEFAULT_DIALOG_STYLE)
   , game(game)
   , failed_name(failed_name)
+  , failed_dep(failed_dep)
 {
   wxBusyCursor wait;
   // init controls
@@ -193,7 +194,9 @@ SelectStyleSheetWindow::SelectStyleSheetWindow(Window* parent, const Game& game,
     find_online_status_text     = new wxStaticText(this, wxID_ANY, _(""));
   }
   stylesheet_list               = new PackageList (this, ID_STYLESHEET_LIST);
-  wxStaticText* description     = new wxStaticText(this, ID_GAME_LIST,       _LABEL_1_("stylesheet not found", failed_name));
+  wxStaticText* description     = new wxStaticText(this, ID_GAME_LIST, failed_dep.empty() ?
+                                                                       _LABEL_1_("stylesheet not found", failed_name) :
+                                                                       _LABEL_2_("stylesheet dep not found", failed_name, failed_dep));
   wxStaticText* stylesheet_text = new wxStaticText(this, ID_STYLESHEET_LIST, _LABEL_("style type"));
 
   stylesheet_filter = new FilterCtrl(this, ID_STYLESHEET_FILTER, _LABEL_("search stylesheet list"), _HELP_("search stylesheet list control"));

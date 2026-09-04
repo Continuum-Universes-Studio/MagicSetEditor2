@@ -38,8 +38,11 @@ StyleSheetP StyleSheet::byGameAndName(const Game& game, const String& name) {
       return package_manager.open<StyleSheet>(full_name);
     }
   } catch (PackageNotFoundError& e) {
+    // Was the stylesheet itself not found, or was it one of its dependencies?
+    String missing = wxFileName(e.package_name).GetFullName();
+    String failed_dep = (!missing.empty() && missing != full_name) ? missing : String();
     // load an alternative stylesheet
-    StyleSheetP ss = select_stylesheet(game, full_name);
+    StyleSheetP ss = select_stylesheet(game, full_name, failed_dep);
     if (ss) {
       stylesheet_alternatives[full_name] = ss->relativeFilename();
       return ss;
