@@ -122,7 +122,7 @@ long ItemList::findGivenItemPos(const VoidP& item) {
 }
 void ItemList::focusSelectedItem(bool force_focus) {
   if (GetItemCount() > 0) {
-    if (selected_item_pos == -1 || (size_t)selected_item_pos > sorted_list.size()) {
+    if (selected_item_pos == -1 || (size_t)selected_item_pos >= sorted_list.size()) {
       // deselect currently selected item, if any
       long sel = GetFirstSelected();
       Select(sel, false);

@@ -694,7 +694,7 @@ void CardsPanel::selectCard(const CardP& card) {
   card_list->setCard(card);
 
   editor->setCard(card);
-  vector<pair<CardP, String>> linked_cards = card->getLinkedCards(*set);
+  vector<pair<CardP, String>> linked_cards = card ? card->getLinkedCards(*set) : vector<pair<CardP, String>>();
   int count = (int)linked_cards.size();
 
   // when there are exactly 2 linked cards, lay them out vertically (1 column)
