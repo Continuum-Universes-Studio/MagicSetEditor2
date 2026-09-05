@@ -34,8 +34,6 @@ void StylePanel::initControls() {
   preview       = new CardViewer   (this, wxID_ANY);
   list          = new PackageList  (this, wxID_ANY);
   use_for_all   = new wxButton     (this, ID_STYLE_USE_FOR_ALL, _BUTTON_("use for all cards"));
-  use_custom_options = new wxCheckBox(this, ID_STYLE_USE_CUSTOM, _BUTTON_("use custom styling options"));
-  editor        = new StylingEditor(this, ID_EDITOR, wxNO_BORDER);
 
   stylesheet_filter = new FilterCtrl(this, ID_STYLESHEET_FILTER, _LABEL_("search stylesheet list"), _HELP_("search stylesheet list control"));
   stylesheet_filter->setFilter(stylesheet_filter_value);
@@ -50,7 +48,11 @@ void StylePanel::initControls() {
         s3->AddStretchSpacer();
         s3->Add(use_for_all, 0, wxBOTTOM | wxRIGHT, 4);
       s2->Add(s3, wxSizerFlags().Expand().Border(wxALL, 6));
-      wxSizer* s4 = new wxStaticBoxSizer(wxVERTICAL, this, _LABEL_("styling options"));
+      wxStaticBoxSizer* s4 = new wxStaticBoxSizer(wxVERTICAL, this, _LABEL_("styling options"));
+        wxStaticBox* styling_box = s4->GetStaticBox();
+        // use_custom_options and editor are created as children of the wxStaticBoxSizer otherwise they may be drawn underneath it
+        use_custom_options = new wxCheckBox(styling_box, ID_STYLE_USE_CUSTOM, _BUTTON_("use custom styling options"));
+        editor             = new StylingEditor(styling_box, ID_EDITOR, wxNO_BORDER);
         s4->Add(use_custom_options, 0, wxEXPAND | wxALL, 4);
         s4->Add(editor,             2, wxEXPAND, 0);
       s2->Add(s4, 1, wxEXPAND | wxALL, 2);
